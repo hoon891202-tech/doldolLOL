@@ -2993,49 +2993,8 @@ window.njAutoSuggest = (game) => {
   if(pool.length < 10){ showToast('신청자 10명이 필요합니다 (현재 ' + pool.length + '명)'); return; }
   const ten = pool.slice(0, 10);
 
-  // 여러 안 생성: 라인균형 중시 / 포인트균형 중시 / 랜덤셔플 3개
   const suggestions = [];
-
-  // === 안 생성 함수 ===
-  // 헝가리안 알고리즘 대신 그리디: 포지션별로 최적 선수 배정
-  function assignByLane(playerList, priorityFn) {
-    const assigned = {}; // pos -> {t1: player, t2: player}
-    const used = new Set();
-    NJ_POSITIONS.forEach(pos => assigned[pos] = {t1: null, t2: null});
-
-    // 각 포지션에 대해 가장 적합한 선수 2명씩 배정
-    for(const pos of NJ_POSITIONS){
-      const candidates = playerList
-        .filter(p => !used.has(p.uid))
-        .sort((a, b) => priorityFn(a, b, pos));
-      if(candidates.length >= 2){
-        assigned[pos].t1 = candidates[0];
-        assigned[pos].t2 = candidates[1];
-        used.add(candidates[0].uid);
-        used.add(candidates[1].uid);
-      }
-    }
-    // 미배정 선수 처리 (포지션 중복 시 남은 인원)
-    const unassigned = playerList.filter(p => !used.has(p.uid));
-    let ui = 0;
-    for(const pos of NJ_POSITIONS){
-      if(!assigned[pos].t1 && unassigned[ui]) { assigned[pos].t1 = unassigned[ui++]; }
-      if(!assigned[pos].t2 && unassigned[ui]) { assigned[pos].t2 = unassigned[ui++]; }
-    }
-    return assigned;
-  }
-
-  // 배정 결과를 t1/t2 배열로 변환
-  function toTeams(assigned){
-    const t1 = [], t2 = [];
-    NJ_POSITIONS.forEach(pos => {
-      if(assigned[pos].t1) t1.push({...assigned[pos].t1, assignedPos: pos});
-      if(assigned[pos].t2) t2.push({...assigned[pos].t2, assignedPos: pos});
-    });
-    return {t1, t2};
-  }
-
-  function teamScore(team){ return team.reduce((s, p) => s + njGetPosScore(p, p.assignedPos), 0); }
+  function teamScore(team){ return team.reduce((s,p) => s+njGetPosScore(p,p.assignedPos), 0); }
 
   // 포인트 균형을 위해 t1/t2 스왑 최적화
   function optimizeSwap(t1, t2){
@@ -3055,44 +3014,94 @@ window.njAutoSuggest = (game) => {
     return best;
   }
 
-  // === 안 1: 라인 적합도 중시 ===
-  const assigned1 = assignByLane(ten, (a, b, pos) => njPosPriority(a, pos) - njPosPriority(b, pos) || njGetPosScore(b, pos) - njGetPosScore(a, pos));
-  const teams1raw = toTeams(assigned1);
-  const teams1 = optimizeSwap(teams1raw.t1, teams1raw.t2);
-  suggestions.push({label:'안 1 — 라인 적합도 중시', desc:'각 포지션에 주/부라인 선수 우선 배치', ...teams1});
-
-  // === 안 2: 포인트 균형 중시 ===
-  // 전체 포인트 내림차순 정렬 후 지그재그 배분
-  const sorted = [...ten].sort((a, b) => {
-    const sa = Math.max(Number(a.balanceTierMain)||0, Number(a.balanceTierSub)||0, Number(a.balanceTierSub2)||0);
-    const sb = Math.max(Number(b.balanceTierMain)||0, Number(b.balanceTierSub)||0, Number(b.balanceTierSub2)||0);
-    return sb - sa;
-  });
-  const t2a = [], t2b = [];
-  sorted.forEach((p, i) => (i % 2 === 0 ? t2a : t2b).push(p));
-  // 라인 배정: 각 팀 내에서 그리디
+  // 팀 내 포지션 그리디 배정 (라인 적합도 → 포인트 높은 순)
   function assignPositions(team){
     const used = new Set();
     const result = [];
     for(const pos of NJ_POSITIONS){
-      const best = team.filter(p => !used.has(p.uid)).sort((a, b) => njPosPriority(a, pos) - njPosPriority(b, pos))[0];
-      if(best){ result.push({...best, assignedPos: pos}); used.add(best.uid); }
+      const best = team
+        .filter(p => !used.has(p.uid))
+        .sort((a, b) => njPosPriority(a,pos) - njPosPriority(b,pos) || njGetPosScore(b,pos) - njGetPosScore(a,pos))[0];
+      if(best){ result.push({...best, assignedPos:pos}); used.add(best.uid); }
     }
     team.filter(p => !used.has(p.uid)).forEach(p => result.push({...p, assignedPos:'기타'}));
     return result;
   }
-  const teams2t1 = assignPositions(t2a), teams2t2 = assignPositions(t2b);
-  const teams2 = optimizeSwap(teams2t1, teams2t2);
-  suggestions.push({label:'안 2 — 포인트 균형 중시', desc:'팀 전체 밸런스 포인트 합산이 최대한 같도록 배분', ...teams2});
 
-  // === 안 3~5: 랜덤 셔플 3가지 ===
-  for(let s=0; s<3; s++){
-    const shuffled = [...ten].sort(() => Math.random() - 0.5);
-    const st1 = assignPositions(shuffled.slice(0,5));
-    const st2 = assignPositions(shuffled.slice(5,10));
-    const teams3 = optimizeSwap(st1, st2);
-    suggestions.push({label:`안 ${s+3} — 랜덤 배분 ${s+1}`, desc:'무작위 배정 후 포인트 최적화', ...teams3});
+  // === 안 1: 정글/미드 균형 ===
+  // 정글·미드 포인트 기준 상위 선수를 교대 배분, 나머지는 전체 pt 기준 교대
+  const jmScore = p => Math.max(njGetPosScore(p,'정글'), njGetPosScore(p,'미드'));
+  const jmSorted = [...ten].sort((a,b) => jmScore(b) - jmScore(a));
+  const t1a = [], t1b = [];
+  jmSorted.forEach((p,i) => (i%2===0 ? t1a : t1b).push(p));
+  suggestions.push({label:'안 1 — 정글/미드 균형', desc:'정글·미드 포인트 기준으로 양 팀에 교대 배분',
+    ...optimizeSwap(assignPositions(t1a), assignPositions(t1b))});
+
+  // === 안 2: 원딜/서폿 시너지 ===
+  // 각 팀에 원딜·서폿 주라인 선수 1명씩 확보 → 나머지 포인트 균형
+  const adcMains = ten.filter(p => p.main==='원딜');
+  const supMains = ten.filter(p => p.main==='서폿');
+  const t2a = [], t2b = [];
+  // 주라인 원딜·서폿을 팀별 1명씩 고정
+  if(adcMains.length>=2){ t2a.push(adcMains[0]); t2b.push(adcMains[1]); }
+  else if(adcMains.length===1){ t2a.push(adcMains[0]); }
+  if(supMains.length>=2){ t2a.push(supMains[0]); t2b.push(supMains[1]); }
+  else if(supMains.length===1){ t2b.push(supMains[0]); }
+  const fixed2 = new Set([...t2a,...t2b].map(p=>p.uid));
+  [...ten].filter(p=>!fixed2.has(p.uid))
+    .sort((a,b)=>Math.max(Number(b.balanceTierMain)||0,Number(b.balanceTierSub)||0)-Math.max(Number(a.balanceTierMain)||0,Number(a.balanceTierSub)||0))
+    .forEach(p => (t2a.length<=t2b.length ? t2a : t2b).push(p));
+  suggestions.push({label:'안 2 — 원딜/서폿 시너지', desc:'원딜·서폿 주라인 선수를 각 팀에 먼저 확보 후 나머지 균형 배분',
+    ...optimizeSwap(assignPositions(t2a.slice(0,5)), assignPositions(t2b.slice(0,5)))});
+
+  // === 안 3: 탑/바텀 균형 ===
+  // 상단(탑+정글), 하단(원딜+서폿) 각각 양 팀에 교대 배분
+  const topScore = p => Math.max(njGetPosScore(p,'탑'), njGetPosScore(p,'정글'));
+  const botScore = p => Math.max(njGetPosScore(p,'원딜'), njGetPosScore(p,'서폿'));
+  const topSorted = [...ten].sort((a,b) => topScore(b)-topScore(a));
+  const t3a = [], t3b = [];
+  const topTop4 = topSorted.slice(0,4);
+  topTop4.forEach((p,i) => (i%2===0 ? t3a : t3b).push(p));
+  const topUsed = new Set(topTop4.map(p=>p.uid));
+  [...ten].filter(p=>!topUsed.has(p.uid)).sort((a,b)=>botScore(b)-botScore(a))
+    .forEach(p => (t3a.length<=t3b.length ? t3a : t3b).push(p));
+  suggestions.push({label:'안 3 — 탑/바텀 라인 균형', desc:'탑·정글(상단)과 원딜·서폿(하단) 포인트를 양 팀에 균등 배분',
+    ...optimizeSwap(assignPositions(t3a.slice(0,5)), assignPositions(t3b.slice(0,5)))});
+
+  // === 안 4: 주라인 배치 극대화 ===
+  // 포지션별로 주라인 선수를 팀당 1명씩 배정, 남은 자리는 pt 균형
+  const used4 = new Set();
+  const t4a = [], t4b = [];
+  for(const pos of NJ_POSITIONS){
+    const mains = ten.filter(p=>!used4.has(p.uid)&&p.main===pos)
+      .sort((a,b)=>njGetPosScore(b,pos)-njGetPosScore(a,pos));
+    if(mains.length>=2){ t4a.push(mains[0]); t4b.push(mains[1]); used4.add(mains[0].uid); used4.add(mains[1].uid); }
+    else if(mains.length===1){ (t4a.length<=t4b.length?t4a:t4b).push(mains[0]); used4.add(mains[0].uid); }
   }
+  ten.filter(p=>!used4.has(p.uid))
+    .sort((a,b)=>Math.max(Number(b.balanceTierMain)||0,Number(b.balanceTierSub)||0)-Math.max(Number(a.balanceTierMain)||0,Number(a.balanceTierSub)||0))
+    .forEach(p=>(t4a.length<=t4b.length?t4a:t4b).push(p));
+  suggestions.push({label:'안 4 — 주라인 배치 극대화', desc:'최대한 많은 선수가 주라인 포지션에 배치되도록 우선 매칭',
+    ...optimizeSwap(assignPositions(t4a.slice(0,5)), assignPositions(t4b.slice(0,5)))});
+
+  // === 안 5: 완전 최적 균형 (브루트포스) ===
+  // C(10,5)=252가지 조합 전부 탐색 → pt 격차 최소 조합
+  function combinations(arr, k){
+    if(k===0) return [[]];
+    if(arr.length===k) return [[...arr]];
+    const [first,...rest]=arr;
+    return [...combinations(rest,k-1).map(c=>[first,...c]),...combinations(rest,k)];
+  }
+  let bestDiff=Infinity, bestT5a=null, bestT5b=null;
+  for(const combo of combinations(ten,5)){
+    const uids=new Set(combo.map(p=>p.uid));
+    const other=ten.filter(p=>!uids.has(p.uid));
+    const at1=assignPositions(combo), at2=assignPositions(other);
+    const diff=Math.abs(teamScore(at1)-teamScore(at2));
+    if(diff<bestDiff){ bestDiff=diff; bestT5a=at1; bestT5b=at2; }
+  }
+  suggestions.push({label:'안 5 — 완전 최적 균형', desc:'252가지 5vs5 조합을 전부 탐색해 포인트 격차가 가장 적은 배분 도출',
+    ...optimizeSwap(bestT5a, bestT5b)});
 
   // 렌더링
   const el = document.getElementById(`nj${game}-suggestions`);
