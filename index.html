@@ -280,7 +280,7 @@ select.inp option{background:#1e1e1e;}
   <div class="nav-tab" onclick="showPage('lolsulpam',this)">🃏 돌돌LOL팸</div>
   <div class="nav-tab" onclick="showPage('naejeon',this)">⚔️ 내전</div>
   <div class="nav-tab" onclick="showPage('jarparty',this)">🎮 자랭파티</div>
-  <div class="nav-tab" onclick="showPage('event',this)">🏆 이벤트</div>
+  <div class="nav-tab" onclick="showPage('combo',this)">🗂️ 종합신청</div>
   <div class="nav-tab" onclick="showPage('regs',this)">📜 운영 규정</div>
   <div class="nav-tab" onclick="showPage('rule',this)">📋 드래프트 룰북</div>
   <div class="nav-tab" onclick="showPage('apply',this)">✋ 드래프트 신청</div>
@@ -353,7 +353,7 @@ select.inp option{background:#1e1e1e;}
 <div class="wrap">
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">
     <div class="card">
-      <div class="card-header"><span class="card-icon">⚔️</span><span class="card-title">내전 1</span><span id="nj1-cnt" class="card-note">0명</span><button id="nj1-reset-btn" onclick="njClearApply(1)" style="display:none;margin-left:auto;font-size:11px;padding:2px 8px;background:#3a1010;border:1px solid #6a2020;color:#ff6666;border-radius:4px;cursor:pointer;">🗑 신청 초기화</button></div>
+      <div class="card-header"><span class="card-icon">⚔️</span><span class="card-title">내전 1</span><span id="nj1-time" style="font-size:11px;color:#88ccff;margin-left:4px;"></span><span id="nj1-cnt" class="card-note">0명</span><button id="nj1-reset-btn" onclick="njClearApply(1)" style="display:none;margin-left:auto;font-size:11px;padding:2px 8px;background:#3a1010;border:1px solid #6a2020;color:#ff6666;border-radius:4px;cursor:pointer;">🗑 신청 초기화</button></div>
       <div style="padding:12px;display:flex;flex-direction:column;gap:8px;">
         <button id="nj1-btn" class="btn btn-red btn-sm" onclick="njToggleApply(1)">신청하기</button>
         <div id="nj1-admin-add" style="display:none;margin-top:10px;padding:10px;background:var(--bg4);border-radius:6px;border:1px solid var(--border);">
@@ -368,7 +368,7 @@ select.inp option{background:#1e1e1e;}
       </div>
     </div>
     <div class="card">
-      <div class="card-header"><span class="card-icon">⚔️</span><span class="card-title">내전 2</span><span id="nj2-cnt" class="card-note">0명</span><button id="nj2-reset-btn" onclick="njClearApply(2)" style="display:none;margin-left:auto;font-size:11px;padding:2px 8px;background:#3a1010;border:1px solid #6a2020;color:#ff6666;border-radius:4px;cursor:pointer;">🗑 신청 초기화</button></div>
+      <div class="card-header"><span class="card-icon">⚔️</span><span class="card-title">내전 2</span><span id="nj2-time" style="font-size:11px;color:#88ccff;margin-left:4px;"></span><span id="nj2-cnt" class="card-note">0명</span><button id="nj2-reset-btn" onclick="njClearApply(2)" style="display:none;margin-left:auto;font-size:11px;padding:2px 8px;background:#3a1010;border:1px solid #6a2020;color:#ff6666;border-radius:4px;cursor:pointer;">🗑 신청 초기화</button></div>
       <div style="padding:12px;display:flex;flex-direction:column;gap:8px;">
         <button id="nj2-btn" class="btn btn-red btn-sm" onclick="njToggleApply(2)">신청하기</button>
         <div id="nj2-admin-add" style="display:none;margin-top:10px;padding:10px;background:var(--bg4);border-radius:6px;border:1px solid var(--border);">
@@ -383,15 +383,20 @@ select.inp option{background:#1e1e1e;}
       </div>
     </div>
   </div>
-  <div id="nj-admin-section" style="display:none;">
-    <div class="card" style="margin-bottom:14px;">
-      <div class="card-header"><span class="card-icon">🔴</span><span class="card-title">내전1 팀구성 — 1팀 vs 2팀</span></div>
-      <div id="nj1-team-builder" style="padding:12px;"></div>
+  <div class="card" style="margin-bottom:14px;">
+    <div class="card-header"><span class="card-icon">⏳</span><span class="card-title">내전대기</span><span id="nj-wait-cnt" class="card-note">0명</span></div>
+    <div style="padding:12px;">
+      <div id="nj-wait-list"><div style="font-size:12px;color:var(--text-dim);">대기자 없음</div></div>
+      <div id="nj-wait-btn" style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;"></div>
     </div>
-    <div class="card" style="margin-bottom:14px;">
-      <div class="card-header"><span class="card-icon">🔵</span><span class="card-title">내전2 팀구성 — 3팀 vs 4팀</span></div>
-      <div id="nj2-team-builder" style="padding:12px;"></div>
-    </div>
+  </div>
+  <div class="card" style="margin-bottom:14px;">
+    <div class="card-header"><span class="card-icon">🔴</span><span class="card-title">내전1 팀구성 — 1팀 vs 2팀</span></div>
+    <div id="nj1-team-builder" style="padding:12px;"></div>
+  </div>
+  <div class="card" style="margin-bottom:14px;">
+    <div class="card-header"><span class="card-icon">🔵</span><span class="card-title">내전2 팀구성 — 3팀 vs 4팀</span></div>
+    <div id="nj2-team-builder" style="padding:12px;"></div>
   </div>
   <div class="card">
     <div class="card-header"><span class="card-icon">📋</span><span class="card-title">내전 기록</span><span class="card-note">날짜별</span></div>
@@ -403,6 +408,9 @@ select.inp option{background:#1e1e1e;}
 <!-- ══ 자랭파티 ══ -->
 <div id="page-jarparty" class="page">
 <div class="wrap">
+  <div id="jp-time-card" style="display:none;margin-bottom:12px;" class="card">
+    <div class="card-header"><span class="card-icon">⏰</span><span id="jp-time-display" class="card-title" style="color:#88ccff;"></span></div>
+  </div>
   <div id="jp-slots-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;"></div>
   <div class="card">
     <div class="card-header"><span class="card-icon">📋</span><span class="card-title">자랭파티 기록</span><span class="card-note">날짜별</span></div>
@@ -411,22 +419,34 @@ select.inp option{background:#1e1e1e;}
 </div>
 </div>
 
-<!-- ══ 이벤트 ══ -->
-<div id="page-event" class="page">
+
+<!-- ══ 종합신청 ══ -->
+<div id="page-combo" class="page">
 <div class="wrap">
-  <div id="ev-admin-panel" style="display:none;">
-    <div class="card" style="margin-bottom:12px;">
-      <div class="card-header"><span class="card-icon">⚙️</span><span class="card-title">이벤트 관리</span><span class="card-note">관리자 전용</span></div>
-      <div style="padding:14px;display:flex;flex-direction:column;gap:10px;" id="ev-admin-section">
-        <div class="loading">불러오는 중...</div>
-      </div>
+  <div id="combo-time-card" style="display:none;margin-bottom:12px;" class="card">
+    <div class="card-header"><span class="card-icon">⏰</span><span id="combo-time-display" class="card-title" style="color:#88ccff;"></span></div>
+  </div>
+  <div class="card" style="margin-bottom:14px;">
+    <div class="card-header"><span class="card-icon">👥</span><span class="card-title">듀오</span><span id="combo-duo-cnt" class="card-note">0/6</span></div>
+    <div style="padding:12px;">
+      <div id="combo-duo-list" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px;"></div>
     </div>
   </div>
-  <div id="ev-active-section"><div class="loading">불러오는 중...</div></div>
-  <div class="card" id="ev-history-card" style="display:none;">
-    <div class="card-header"><span class="card-icon">📜</span><span class="card-title">종료된 이벤트</span></div>
-    <div id="ev-history-list" style="padding:12px;"></div>
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:14px;">
+    <div class="card">
+      <div class="card-header"><span class="card-icon">⚔️</span><span class="card-title">일반</span><span id="combo-normal-cnt" class="card-note">0/2</span></div>
+      <div style="padding:12px;"><div id="combo-normal-list" style="display:flex;flex-direction:column;gap:6px;"></div></div>
+    </div>
+    <div class="card">
+      <div class="card-header"><span class="card-icon">🌀</span><span class="card-title">칼바람</span><span id="combo-aram-cnt" class="card-note">0/2</span></div>
+      <div style="padding:12px;"><div id="combo-aram-list" style="display:flex;flex-direction:column;gap:6px;"></div></div>
+    </div>
+    <div class="card">
+      <div class="card-header"><span class="card-icon">♟️</span><span class="card-title">롤체</span><span id="combo-tft-cnt" class="card-note">0/2</span></div>
+      <div style="padding:12px;"><div id="combo-tft-list" style="display:flex;flex-direction:column;gap:6px;"></div></div>
+    </div>
   </div>
+  <div id="combo-apply-btns" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px;"></div>
 </div>
 </div>
 
@@ -806,7 +826,7 @@ select.inp option{background:#1e1e1e;}
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, browserLocalPersistence, setPersistence }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-import { getFirestore, doc, setDoc, getDoc, getDocs, collection, addDoc, deleteDoc, updateDoc, query, where, orderBy, writeBatch }
+import { getFirestore, doc, setDoc, getDoc, getDocs, collection, addDoc, deleteDoc, updateDoc, query, where, orderBy, writeBatch, serverTimestamp }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 import { getFunctions, httpsCallable }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-functions.js";
@@ -941,7 +961,7 @@ window.showPage = (id, el) => {
   if(id==='rule') loadRulePage();
   if(id==='naejeon') loadNaejeonPage();
   if(id==='jarparty') loadJarPartyPage();
-  if(id==='event') loadEventPage();
+  if(id==='combo') loadComboPage();
   if(id==='regs') loadRegsPage();
 };
 
@@ -2285,18 +2305,14 @@ window.njAdminAdd = async (game) => {
 
 async function loadNaejeonPage(){
   if(isAdmin){
-    document.getElementById('nj-admin-section').style.display = 'block';
     await njFillAdminSelect();
     document.getElementById('nj1-reset-btn').style.display = 'inline-block';
     document.getElementById('nj2-reset-btn').style.display = 'inline-block';
   }
-  if(isAdmin){
-    renderNjTeamBuilder(1);
-    renderNjTeamBuilder(2);
-    // 저장된 배치 자동 복원
-    await njAutoRestoreArrange(1);
-    await njAutoRestoreArrange(2);
-  }
+  renderNjTeamBuilder(1);
+  renderNjTeamBuilder(2);
+  await njAutoRestoreArrange(1);
+  await njAutoRestoreArrange(2);
   await njLoadApplyStatus();
   await loadNjHistory();
 }
@@ -2361,6 +2377,47 @@ async function njLoadApplyStatus(){
       if(b1){ b1.textContent=my.game1?'✅ 신청완료 (취소)':'신청하기'; b1.className=my.game1?'btn btn-ghost btn-sm':'btn btn-red btn-sm'; }
       if(b2){ b2.textContent=my.game2?'✅ 신청완료 (취소)':'신청하기'; b2.className=my.game2?'btn btn-ghost btn-sm':'btn btn-red btn-sm'; }
     }
+    // ── 내전 시간 ──
+    const [t1Snap, t2Snap] = await Promise.all([
+      getDoc(doc(db,'naejeonInfo','game1')),
+      getDoc(doc(db,'naejeonInfo','game2'))
+    ]);
+    const t1El = document.getElementById('nj1-time');
+    const t2El = document.getElementById('nj2-time');
+    if(t1El) t1El.textContent = t1Snap.exists() && t1Snap.data().time ? `⏰ ${t1Snap.data().time}` : '';
+    if(t2El) t2El.textContent = t2Snap.exists() && t2Snap.data().time ? `⏰ ${t2Snap.data().time}` : '';
+    // ── 내전대기 ──
+    const waitSnap = await getDocs(query(collection(db,'naejeonWaitlist'), orderBy('joinedAt','asc')));
+    const waitList = [];
+    waitSnap.forEach(d => waitList.push(d.data()));
+    const waitCntEl = document.getElementById('nj-wait-cnt');
+    const waitListEl = document.getElementById('nj-wait-list');
+    const waitBtnEl  = document.getElementById('nj-wait-btn');
+    if(waitCntEl) waitCntEl.textContent = waitList.length + '명';
+    if(waitListEl){
+      waitListEl.innerHTML = waitList.length
+        ? waitList.map((u,i) => `
+        <div style="display:flex;align-items:center;gap:6px;padding:4px 0;border-bottom:1px solid var(--border);font-size:12px;">
+          <span style="color:var(--text-dim);min-width:20px;">${i+1}.</span>
+          <span class="tb t${u.tier}" style="font-size:10px;">${TIER_NAMES[u.tier]||u.tier}</span>
+          <span style="flex:1;">${u.realname||u.nick} <span style="color:var(--text-dim);font-size:11px;">(${u.nick})</span></span>
+          ${currentUser&&currentUser.uid===u.uid
+            ? `<button onclick="njWaitCancel()" style="font-size:10px;padding:2px 7px;background:#3a1010;border:1px solid #6a2020;color:#ff6666;border-radius:4px;cursor:pointer;">취소</button>`
+            : isAdmin
+              ? `<button onclick="njWaitAdminRemove('${u.uid}')" style="font-size:10px;padding:2px 7px;background:#3a1010;border:1px solid #6a2020;color:#ff6666;border-radius:4px;cursor:pointer;">취소</button>`
+              : ''}
+        </div>`).join('')
+        : '<div style="font-size:12px;color:var(--text-dim);">대기자 없음</div>';
+    }
+    if(waitBtnEl){
+      const myInWait = currentUser && waitList.some(u => u.uid === currentUser.uid);
+      waitBtnEl.innerHTML = currentUser
+        ? (myInWait
+            ? '<button class="btn btn-ghost btn-sm" onclick="njWaitCancel()">✅ 대기 신청완료 (취소)</button>'
+            : '<button class="btn btn-red btn-sm" onclick="njWaitApply()">대기 신청하기</button>')
+        : '';
+      if(isAdmin) waitBtnEl.innerHTML += `<button onclick="njClearWaitlist()" style="font-size:11px;padding:3px 10px;background:#3a1010;border:1px solid #6a2020;color:#ff6666;border-radius:4px;cursor:pointer;margin-left:4px;">🗑 대기 초기화</button>`;
+    }
   } catch(e){ console.error(e); }
 }
 
@@ -2387,7 +2444,7 @@ function renderNjTeamBuilder(game){
     <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
       <button class="btn btn-red btn-sm" onclick="njLoadTeam(${game})">📥 신청자 불러오기</button>
       <button class="btn btn-ghost btn-sm" onclick="njResetArrange(${game})">🔄 배치 초기화</button>
-      <button class="btn btn-sm" style="background:#1a2a3a;border:1px solid #4488cc;color:#88ccff;" onclick="njAutoSuggest(${game})">⚡ 자동 배분 제안</button>
+      <button class="btn btn-sm" style="background:#1a2a3a;border:1px solid #4488cc;color:#88ccff;" onclick="njAutoSuggest(${game})">⚡ 자동 팀 구성</button>
     </div>
     <div id="nj${game}-suggestions" style="display:none;margin-bottom:14px;"></div>
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;align-items:start;">
@@ -2420,9 +2477,9 @@ function renderNjTeamBuilder(game){
       </div>
     </div>
     <div id="nj${game}-result-btns" style="display:none;gap:8px;margin-top:12px;flex-wrap:wrap;align-items:center;">
-      <span style="font-size:12px;color:var(--text-dim);">결과 입력:</span>
+      ${isAdmin ? `<span style="font-size:12px;color:var(--text-dim);">결과 입력:</span>
       <button class="btn btn-sm" style="background:#3a1010;color:#ff5555;border:1px solid #ff555544;" onclick="njRecordResult(${game},'t1')">🔴 ${tNames[0]} 승</button>
-      <button class="btn btn-sm" style="background:#101a3a;color:#5090d0;border:1px solid #5090d044;" onclick="njRecordResult(${game},'t2')">🔵 ${tNames[1]} 승</button>
+      <button class="btn btn-sm" style="background:#101a3a;color:#5090d0;border:1px solid #5090d044;" onclick="njRecordResult(${game},'t2')">🔵 ${tNames[1]} 승</button>` : ''}
       <button class="btn btn-sm" style="background:#1a2a1a;color:#66cc66;border:1px solid #44aa4444;" onclick="njCopyTeamText(${game})">📋 팀 공유</button>
     </div>`;
   renderNjPlayers(game);
@@ -2567,50 +2624,17 @@ window.njAutoSuggest = (game) => {
   suggestions.push({label:'안 5 — 완전 최적 균형', desc:'252가지 5vs5 조합을 전부 탐색해 포인트 격차가 가장 적은 배분 도출',
     ...optimizeSwap(bestT5a, bestT5b)});
 
-  // 렌더링
-  const el = document.getElementById(`nj${game}-suggestions`);
-  const tNames = game===1 ? ['1팀','2팀'] : ['3팀','4팀'];
-
-  const renderSuggestion = (sug, idx) => {
-    const s1 = teamScore(sug.t1), s2 = teamScore(sug.t2);
-    const diff = Math.abs(s1 - s2);
-    const teamHtml = (team, color, name) => team.map(p =>
-      `<div style="display:flex;align-items:center;gap:5px;padding:3px 0;border-bottom:1px solid var(--border);font-size:12px;">
-        <span style="color:var(--text-dim);font-size:10px;width:22px;flex-shrink:0;">${p.assignedPos}</span>
-        <span style="flex:1;">${p.realname||p.nick}</span>
-        <span style="font-size:10px;color:${njPosPriority(p, p.assignedPos)===0?'#88ee88':njPosPriority(p, p.assignedPos)===1?'#ffcc44':'#ff8888'};">${njPosPriority(p, p.assignedPos)===0?'주':njPosPriority(p, p.assignedPos)===1?'부':'부2'}</span>
-        <span style="font-size:10px;color:#aaddff;">${njGetPosScore(p, p.assignedPos)||'─'}pt</span>
-      </div>`).join('');
-    return `<div style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:10px;">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;flex-wrap:wrap;gap:6px;">
-        <div>
-          <span style="font-size:13px;font-weight:700;color:#88ccff;">${sug.label}</span>
-          <div style="font-size:11px;color:var(--text-dim);">${sug.desc}</div>
-        </div>
-        <div style="display:flex;align-items:center;gap:8px;">
-          <span style="font-size:11px;color:${diff<=2?'#88ee88':diff<=5?'#ffcc44':'#ff8888'};">격차 ${diff}pt</span>
-          <button class="btn btn-sm" style="background:#1a3a2a;border:1px solid #44aa66;color:#88ddaa;" onclick="njApplySuggestion(${game},${idx})">✅ 이 안으로 적용</button>
-        </div>
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-        <div>
-          <div style="font-size:11px;color:#ff8888;font-weight:700;margin-bottom:4px;">🔴 ${tNames[0]} (${s1}pt)</div>
-          ${teamHtml(sug.t1,'#ff5555',tNames[0])}
-        </div>
-        <div>
-          <div style="font-size:11px;color:#88aaff;font-weight:700;margin-bottom:4px;">🔵 ${tNames[1]} (${s2}pt)</div>
-          ${teamHtml(sug.t2,'#5090d0',tNames[1])}
-        </div>
-      </div>
-    </div>`;
-  };
-
-  // suggestions 저장 (적용 시 사용)
-  window[`_njSuggestions_${game}`] = suggestions;
-
-  el.style.display = 'block';
-  el.innerHTML = `<div style="font-size:12px;color:var(--gold);font-weight:700;margin-bottom:8px;">⚡ 자동 배분 제안 — 원하는 안을 선택해 적용하세요</div>` +
-    suggestions.map((s, i) => renderSuggestion(s, i)).join('');
+  // 포인트 격차 최소 안을 자동 적용
+  const best = suggestions.reduce((a, b) => a.diff <= b.diff ? a : b);
+  const autoPlayers = njPlayers[game];
+  autoPlayers.forEach(p => p.loc = 'pool');
+  best.t1.forEach(p => { const pl = autoPlayers.find(x => x.uid === p.uid); if(pl) pl.loc = `t1-${p.assignedPos}`; });
+  best.t2.forEach(p => { const pl = autoPlayers.find(x => x.uid === p.uid); if(pl) pl.loc = `t2-${p.assignedPos}`; });
+  renderNjPlayers(game);
+  setDoc(doc(db,'naejeonArrange',`game${game}`), {players: autoPlayers.map(p=>({uid:p.uid,loc:p.loc})), updatedAt:new Date()}).catch(()=>{});
+  const tNamesAuto = game===1 ? ['1팀','2팀'] : ['3팀','4팀'];
+  const s1Auto = teamScore(best.t1), s2Auto = teamScore(best.t2);
+  showToast(`⚡ 자동 팀 구성 완료! 격차 ${best.diff}pt — ${tNamesAuto[0]} ${s1Auto}pt / ${tNamesAuto[1]} ${s2Auto}pt`);
 };
 
 window.njApplySuggestion = (game, idx) => {
@@ -2634,7 +2658,7 @@ window.njApplySuggestion = (game, idx) => {
 function njCard(p, game){
   const isPlaced = p.loc !== 'pool';
   const bScore = isPlaced ? njBalanceScore(p) : 0;
-  const bScoreHtml = isAdmin && isPlaced
+  const bScoreHtml = isPlaced
     ? (bScore
         ? `<span style="font-size:10px;color:#aaddff;font-weight:700;flex-shrink:0;">${bScore}pt</span>`
         : `<span style="font-size:10px;color:#555;flex-shrink:0;">─pt</span>`)
@@ -2827,10 +2851,46 @@ window.njClearApply = async (game) => {
   if(!confirm(`내전${game} 신청을 모두 초기화하시겠습니까?`)) return;
   const snap = await getDocs(collection(db,'naejeonApply'));
   for(const d of snap.docs) await updateDoc(doc(db,'naejeonApply',d.id),{[`game${game}`]:false});
+  await setDoc(doc(db,'naejeonCounts',`game${game}`), {count:0});
+  await setDoc(doc(db,'naejeonInfo',`game${game}`), {time:''});
   njPlayers[game] = [];
   renderNjPlayers(game);
   await njLoadApplyStatus();
   showToast(`내전${game} 신청 초기화됐습니다`);
+};
+
+window.njWaitApply = async () => {
+  if(!currentUser) return;
+  await setDoc(doc(db,'naejeonWaitlist',currentUser.uid), {
+    uid: currentUser.uid, nick: currentProfile.nick,
+    realname: currentProfile.realname||'', tier: currentProfile.tier||'', main: currentProfile.main||'',
+    joinedAt: serverTimestamp()
+  });
+  showToast('내전대기 신청 완료!');
+  await njLoadApplyStatus();
+};
+
+window.njWaitCancel = async () => {
+  if(!currentUser) return;
+  await deleteDoc(doc(db,'naejeonWaitlist',currentUser.uid));
+  showToast('내전대기 취소됨');
+  await njLoadApplyStatus();
+};
+
+window.njWaitAdminRemove = async (uid) => {
+  if(!isAdmin) return;
+  await deleteDoc(doc(db,'naejeonWaitlist',uid));
+  showToast('대기자 제거됨');
+  await njLoadApplyStatus();
+};
+
+window.njClearWaitlist = async () => {
+  if(!isAdmin) return;
+  if(!confirm('내전대기를 모두 초기화하시겠습니까?')) return;
+  const snap = await getDocs(collection(db,'naejeonWaitlist'));
+  await Promise.all(snap.docs.map(d => deleteDoc(d.ref)));
+  showToast('내전대기 초기화 완료');
+  await njLoadApplyStatus();
 };
 
 window.njRecordResult = async (game, winner) => {
@@ -2978,7 +3038,15 @@ async function jpRenderSlots(){
   const grid = document.getElementById('jp-slots-grid');
   if(!grid) return;
   try {
-    const snaps = await Promise.all(JP_SLOTS.map(n => getDoc(doc(db,'jarPartySlots',`slot${n}`))));
+    const [snaps, timeSnap] = await Promise.all([
+      Promise.all(JP_SLOTS.map(n => getDoc(doc(db,'jarPartySlots',`slot${n}`)))),
+      getDoc(doc(db,'jarPartyInfo','current'))
+    ]);
+    const jpTime = timeSnap.exists() ? timeSnap.data().time || '' : '';
+    const jpTimeCard = document.getElementById('jp-time-card');
+    const jpTimeEl   = document.getElementById('jp-time-display');
+    if(jpTimeCard) jpTimeCard.style.display = jpTime ? 'block' : 'none';
+    if(jpTimeEl)   jpTimeEl.textContent = jpTime || '';
     const myUid = currentUser ? currentUser.uid : null;
     const mySlotN = myUid ? JP_SLOTS.find((s,i) => snaps[i].exists() && snaps[i].data().uid === myUid) : null;
     grid.innerHTML = snaps.map((snap,i) => jpRenderSlotCard(i+1, snap, myUid, mySlotN)).join('');
@@ -3117,6 +3185,98 @@ window.jpDeleteSession = async function(sid){
     showToast('삭제 완료');
     await loadJpHistory();
   } catch(e){ showToast('삭제 실패: '+e.message); }
+};
+
+// ── 종합신청 시스템 ──
+const COMBO_TYPES = [
+  { key:'duo',    label:'듀오',   icon:'👥', count:6 },
+  { key:'normal', label:'일반',   icon:'⚔️', count:2 },
+  { key:'aram',   label:'칼바람', icon:'🌀', count:2 },
+  { key:'tft',    label:'롤체',   icon:'♟️', count:2 },
+];
+
+async function loadComboPage(){
+  await comboRender();
+}
+
+async function comboRender(){
+  try {
+    const timeSnap = await getDoc(doc(db,'comboInfo','current'));
+    const comboTime = timeSnap.exists() ? timeSnap.data().time || '' : '';
+    const timeCard = document.getElementById('combo-time-card');
+    const timeEl   = document.getElementById('combo-time-display');
+    if(timeCard) timeCard.style.display = comboTime ? 'block' : 'none';
+    if(timeEl)   timeEl.textContent = comboTime || '';
+
+    const myUid = currentUser ? currentUser.uid : null;
+    let myApplied = null;
+
+    for(const type of COMBO_TYPES){
+      const snaps = await Promise.all(
+        Array.from({length:type.count}, (_, i) => getDoc(doc(db,'comboSlots',`${type.key}-${i+1}`)))
+      );
+      const filled = snaps.filter(s => s.exists() && s.data().uid).length;
+      const cntEl = document.getElementById(`combo-${type.key}-cnt`);
+      if(cntEl) cntEl.textContent = `${filled}/${type.count}`;
+      const listEl = document.getElementById(`combo-${type.key}-list`);
+      if(!listEl) continue;
+      listEl.innerHTML = snaps.map((snap, i) => {
+        const slot = snap.exists() ? snap.data() : {};
+        const isMe = myUid && slot.uid === myUid;
+        if(isMe) myApplied = { type: type.key, n: i+1 };
+        if(slot.uid){
+          return `<div style="background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:6px 8px;font-size:12px;display:flex;align-items:center;gap:5px;">
+            <span style="flex:1;">${slot.nick||slot.uid}</span>
+            ${isMe?`<button onclick="comboCancel('${type.key}',${i+1})" style="font-size:10px;padding:1px 6px;background:#3a1010;border:1px solid #6a2020;color:#ff6666;border-radius:4px;cursor:pointer;">취소</button>`:''}
+            ${isAdmin&&!isMe?`<button onclick="comboAdminRemove('${type.key}',${i+1})" style="font-size:10px;padding:1px 6px;background:#3a1010;border:1px solid #6a2020;color:#ff6666;border-radius:4px;cursor:pointer;">제거</button>`:''}
+          </div>`;
+        }
+        return `<div style="background:var(--bg4);border:1px dashed var(--border);border-radius:6px;padding:6px 8px;font-size:11px;color:var(--text-dim);text-align:center;">빈 자리</div>`;
+      }).join('');
+    }
+
+    const btnsEl = document.getElementById('combo-apply-btns');
+    if(btnsEl && currentUser){
+      btnsEl.innerHTML = myApplied
+        ? `<div style="font-size:12px;color:var(--text-dim);">✅ ${COMBO_TYPES.find(t=>t.key===myApplied.type)?.label} 신청 완료 — 취소는 위 카드에서</div>`
+        : COMBO_TYPES.map(t=>`<button class="btn btn-red btn-sm" onclick="comboApply('${t.key}')">${t.icon} ${t.label} 신청</button>`).join('');
+    } else if(btnsEl){ btnsEl.innerHTML = ''; }
+  } catch(e){ console.error('comboRender error:', e); }
+}
+
+window.comboApply = async (type) => {
+  if(!currentUser || !currentProfile) return;
+  const typeInfo = COMBO_TYPES.find(t => t.key === type);
+  if(!typeInfo) return;
+  // 중복 신청 확인
+  for(const t of COMBO_TYPES){
+    const snaps = await Promise.all(Array.from({length:t.count},(_,i)=>getDoc(doc(db,'comboSlots',`${t.key}-${i+1}`))));
+    if(snaps.some(s=>s.exists()&&s.data().uid===currentUser.uid)){ showToast('이미 종합신청에 등록되어 있습니다'); return; }
+  }
+  // 빈 슬롯 찾기
+  const snaps = await Promise.all(Array.from({length:typeInfo.count},(_,i)=>getDoc(doc(db,'comboSlots',`${type}-${i+1}`))));
+  const emptyIdx = snaps.findIndex(s=>!s.exists()||!s.data().uid);
+  if(emptyIdx===-1){ showToast(`${typeInfo.label} 자리가 모두 찼습니다`); await comboRender(); return; }
+  await setDoc(doc(db,'comboSlots',`${type}-${emptyIdx+1}`),{uid:currentUser.uid, nick:currentProfile.nick},{merge:true});
+  showToast(`${typeInfo.label} 신청 완료!`);
+  await comboRender();
+};
+
+window.comboCancel = async (type, n) => {
+  if(!currentUser) return;
+  const ref = doc(db,'comboSlots',`${type}-${n}`);
+  const snap = await getDoc(ref);
+  if(!snap.exists()||snap.data().uid!==currentUser.uid){ showToast('신청 내역이 없습니다'); await comboRender(); return; }
+  await setDoc(ref,{});
+  showToast('종합신청 취소됐습니다');
+  await comboRender();
+};
+
+window.comboAdminRemove = async (type, n) => {
+  if(!isAdmin) return;
+  await setDoc(doc(db,'comboSlots',`${type}-${n}`),{});
+  showToast('제거됐습니다');
+  await comboRender();
 };
 
 // ── APPLY ──
