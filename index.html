@@ -423,30 +423,12 @@ select.inp option{background:#1e1e1e;}
 <!-- ══ 종합신청 ══ -->
 <div id="page-combo" class="page">
 <div class="wrap">
-  <div id="combo-time-card" style="display:none;margin-bottom:12px;" class="card">
-    <div class="card-header"><span class="card-icon">⏰</span><span id="combo-time-display" class="card-title" style="color:#88ccff;"></span></div>
-  </div>
-  <div class="card" style="margin-bottom:14px;">
-    <div class="card-header"><span class="card-icon">👥</span><span class="card-title">듀오</span><span id="combo-duo-cnt" class="card-note">0/6</span></div>
-    <div style="padding:12px;">
-      <div id="combo-duo-list" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px;"></div>
-    </div>
-  </div>
+  <div id="combo-duo-section" style="margin-bottom:14px;"></div>
   <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:14px;">
-    <div class="card">
-      <div class="card-header"><span class="card-icon">⚔️</span><span class="card-title">일반</span><span id="combo-normal-cnt" class="card-note">0/2</span></div>
-      <div style="padding:12px;"><div id="combo-normal-list" style="display:flex;flex-direction:column;gap:6px;"></div></div>
-    </div>
-    <div class="card">
-      <div class="card-header"><span class="card-icon">🌀</span><span class="card-title">칼바람</span><span id="combo-aram-cnt" class="card-note">0/2</span></div>
-      <div style="padding:12px;"><div id="combo-aram-list" style="display:flex;flex-direction:column;gap:6px;"></div></div>
-    </div>
-    <div class="card">
-      <div class="card-header"><span class="card-icon">♟️</span><span class="card-title">롤체</span><span id="combo-tft-cnt" class="card-note">0/2</span></div>
-      <div style="padding:12px;"><div id="combo-tft-list" style="display:flex;flex-direction:column;gap:6px;"></div></div>
-    </div>
+    <div id="combo-normal-section"></div>
+    <div id="combo-aram-section"></div>
+    <div id="combo-tft-section"></div>
   </div>
-  <div id="combo-apply-btns" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px;"></div>
 </div>
 </div>
 
@@ -3188,83 +3170,116 @@ window.jpDeleteSession = async function(sid){
 };
 
 // ── 종합신청 시스템 ──
-const COMBO_TYPES = [
-  { key:'duo',    label:'듀오',   icon:'👥', count:6 },
-  { key:'normal', label:'일반',   icon:'⚔️', count:2 },
-  { key:'aram',   label:'칼바람', icon:'🌀', count:2 },
-  { key:'tft',    label:'롤체',   icon:'♟️', count:2 },
-];
+// 슬롯 문서 ID 형식: {type}-{group}-{member} (예: duo-3-2, normal-1-4)
+const COMBO_CFG = {
+  duo:    { label:'듀오',   icon:'👥', groups:6, perGroup:2  },
+  normal: { label:'일반',   icon:'⚔️', groups:1, perGroup:5  },
+  aram:   { label:'칼바람', icon:'🌀', groups:1, perGroup:5  },
+  tft:    { label:'롤체',   icon:'♟️', groups:1, perGroup:8  },
+};
 
-async function loadComboPage(){
-  await comboRender();
+async function loadComboPage(){ await comboRender(); }
+
+function _comboSlotRow(s, isMe, type, group, member){
+  if(s && s.uid){
+    return `<div style="font-size:12px;padding:4px 0;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:5px;">
+      <span style="flex:1;">${s.nick||s.uid}</span>
+      ${isMe?`<button onclick="comboCancel('${type}',${group},${member})" style="font-size:10px;padding:1px 5px;background:#3a1010;border:1px solid #6a2020;color:#ff6666;border-radius:4px;cursor:pointer;">취소</button>`:''}
+      ${isAdmin&&!isMe?`<button onclick="comboAdminRemove('${type}',${group},${member})" style="font-size:10px;padding:1px 5px;background:#3a1010;border:1px solid #6a2020;color:#ff6666;border-radius:4px;cursor:pointer;">제거</button>`:''}
+    </div>`;
+  }
+  return `<div style="font-size:11px;padding:4px 0;border-bottom:1px solid var(--border);color:var(--text-dim);">빈 자리</div>`;
 }
 
 async function comboRender(){
   try {
-    const timeSnap = await getDoc(doc(db,'comboInfo','current'));
-    const comboTime = timeSnap.exists() ? timeSnap.data().time || '' : '';
-    const timeCard = document.getElementById('combo-time-card');
-    const timeEl   = document.getElementById('combo-time-display');
-    if(timeCard) timeCard.style.display = comboTime ? 'block' : 'none';
-    if(timeEl)   timeEl.textContent = comboTime || '';
-
     const myUid = currentUser ? currentUser.uid : null;
-    let myApplied = null;
-
-    for(const type of COMBO_TYPES){
-      const snaps = await Promise.all(
-        Array.from({length:type.count}, (_, i) => getDoc(doc(db,'comboSlots',`${type.key}-${i+1}`)))
-      );
-      const filled = snaps.filter(s => s.exists() && s.data().uid).length;
-      const cntEl = document.getElementById(`combo-${type.key}-cnt`);
-      if(cntEl) cntEl.textContent = `${filled}/${type.count}`;
-      const listEl = document.getElementById(`combo-${type.key}-list`);
-      if(!listEl) continue;
-      listEl.innerHTML = snaps.map((snap, i) => {
-        const slot = snap.exists() ? snap.data() : {};
-        const isMe = myUid && slot.uid === myUid;
-        if(isMe) myApplied = { type: type.key, n: i+1 };
-        if(slot.uid){
-          return `<div style="background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:6px 8px;font-size:12px;display:flex;align-items:center;gap:5px;">
-            <span style="flex:1;">${slot.nick||slot.uid}</span>
-            ${isMe?`<button onclick="comboCancel('${type.key}',${i+1})" style="font-size:10px;padding:1px 6px;background:#3a1010;border:1px solid #6a2020;color:#ff6666;border-radius:4px;cursor:pointer;">취소</button>`:''}
-            ${isAdmin&&!isMe?`<button onclick="comboAdminRemove('${type.key}',${i+1})" style="font-size:10px;padding:1px 6px;background:#3a1010;border:1px solid #6a2020;color:#ff6666;border-radius:4px;cursor:pointer;">제거</button>`:''}
-          </div>`;
+    // 전체 슬롯 일괄 로드
+    const refs = [], meta = [];
+    for(const [type, cfg] of Object.entries(COMBO_CFG))
+      for(let g=1; g<=cfg.groups; g++)
+        for(let m=1; m<=cfg.perGroup; m++){
+          refs.push(getDoc(doc(db,'comboSlots',`${type}-${g}-${m}`)));
+          meta.push({type,g,m});
         }
-        return `<div style="background:var(--bg4);border:1px dashed var(--border);border-radius:6px;padding:6px 8px;font-size:11px;color:var(--text-dim);text-align:center;">빈 자리</div>`;
-      }).join('');
-    }
+    const snaps = await Promise.all(refs);
+    // slotData[type][g][m] = {uid,nick} | null
+    const slotData = {};
+    snaps.forEach((snap,i)=>{
+      const {type,g,m}=meta[i];
+      if(!slotData[type]) slotData[type]={};
+      if(!slotData[type][g]) slotData[type][g]={};
+      slotData[type][g][m] = snap.exists() ? snap.data() : null;
+    });
 
-    const btnsEl = document.getElementById('combo-apply-btns');
-    if(btnsEl && currentUser){
-      btnsEl.innerHTML = myApplied
-        ? `<div style="font-size:12px;color:var(--text-dim);">✅ ${COMBO_TYPES.find(t=>t.key===myApplied.type)?.label} 신청 완료 — 취소는 위 카드에서</div>`
-        : COMBO_TYPES.map(t=>`<button class="btn btn-red btn-sm" onclick="comboApply('${t.key}')">${t.icon} ${t.label} 신청</button>`).join('');
-    } else if(btnsEl){ btnsEl.innerHTML = ''; }
+    // 내 신청 위치 확인
+    let myApplied = null;
+    outer:for(const [type,cfg] of Object.entries(COMBO_CFG))
+      for(let g=1; g<=cfg.groups; g++)
+        for(let m=1; m<=cfg.perGroup; m++)
+          if(myUid && slotData[type]?.[g]?.[m]?.uid===myUid){ myApplied={type,g,m}; break outer; }
+
+    // ── 듀오 섹션 ──
+    const duoCfg = COMBO_CFG.duo;
+    const duoFilled = Object.values(slotData.duo||{}).flatMap(g=>Object.values(g)).filter(s=>s&&s.uid).length;
+    let duoGroups = '';
+    for(let g=1; g<=duoCfg.groups; g++){
+      const gd = slotData.duo?.[g]||{};
+      const rows = [1,2].map(m=>_comboSlotRow(gd[m], myUid&&gd[m]?.uid===myUid, 'duo', g, m)).join('');
+      const full = [1,2].every(m=>gd[m]?.uid);
+      const btn = (myUid&&!myApplied&&!full)
+        ? `<button class="btn btn-red btn-sm" style="width:100%;margin-top:6px;font-size:11px;" onclick="comboApply('duo',${g})">신청</button>` : '';
+      duoGroups += `<div style="background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:8px;">
+        <div style="font-size:11px;color:var(--gold);margin-bottom:5px;font-weight:700;">듀오 ${g}</div>${rows}${btn}</div>`;
+    }
+    const duoSection = document.getElementById('combo-duo-section');
+    if(duoSection) duoSection.innerHTML = `<div class="card">
+      <div class="card-header"><span class="card-icon">👥</span><span class="card-title">듀오</span><span class="card-note">${duoFilled}/12명</span></div>
+      <div style="padding:12px;display:grid;grid-template-columns:repeat(3,1fr);gap:8px;">${duoGroups}</div></div>`;
+
+    // ── 일반/칼바람/롤체 섹션 ──
+    for(const type of ['normal','aram','tft']){
+      const cfg = COMBO_CFG[type];
+      const gd = slotData[type]?.[1]||{};
+      const filled = Object.values(gd).filter(s=>s&&s.uid).length;
+      const rows = Array.from({length:cfg.perGroup},(_,i)=>_comboSlotRow(gd[i+1], myUid&&gd[i+1]?.uid===myUid, type, 1, i+1)).join('');
+      const btn = (myUid&&!myApplied&&filled<cfg.perGroup)
+        ? `<button class="btn btn-red btn-sm" style="width:100%;margin-top:8px;font-size:11px;" onclick="comboApply('${type}',1)">신청</button>` : '';
+      const sec = document.getElementById(`combo-${type}-section`);
+      if(sec) sec.innerHTML = `<div class="card" style="height:100%;">
+        <div class="card-header"><span class="card-icon">${cfg.icon}</span><span class="card-title">${cfg.label}</span><span class="card-note">${filled}/${cfg.perGroup}명</span></div>
+        <div style="padding:12px;">${rows}${btn}</div></div>`;
+    }
   } catch(e){ console.error('comboRender error:', e); }
 }
 
-window.comboApply = async (type) => {
-  if(!currentUser || !currentProfile) return;
-  const typeInfo = COMBO_TYPES.find(t => t.key === type);
-  if(!typeInfo) return;
-  // 중복 신청 확인
-  for(const t of COMBO_TYPES){
-    const snaps = await Promise.all(Array.from({length:t.count},(_,i)=>getDoc(doc(db,'comboSlots',`${t.key}-${i+1}`))));
-    if(snaps.some(s=>s.exists()&&s.data().uid===currentUser.uid)){ showToast('이미 종합신청에 등록되어 있습니다'); return; }
+window.comboApply = async (type, group) => {
+  if(!currentUser||!currentProfile) return;
+  const cfg = COMBO_CFG[type];
+  if(!cfg) return;
+  // 중복 확인 (전체 콤보 슬롯)
+  const allRefs = Object.entries(COMBO_CFG).flatMap(([t,c])=>
+    Array.from({length:c.groups},(_,gi)=>Array.from({length:c.perGroup},(_,mi)=>
+      getDoc(doc(db,'comboSlots',`${t}-${gi+1}-${mi+1}`)))).flat());
+  const all = await Promise.all(allRefs);
+  if(all.some(s=>s.exists()&&s.data().uid===currentUser.uid)){ showToast('이미 종합신청에 등록되어 있습니다'); return; }
+  // 해당 그룹 빈 슬롯 배정
+  for(let m=1; m<=cfg.perGroup; m++){
+    const ref = doc(db,'comboSlots',`${type}-${group}-${m}`);
+    const snap = await getDoc(ref);
+    if(!snap.exists()||!snap.data().uid){
+      await setDoc(ref,{uid:currentUser.uid,nick:currentProfile.nick},{merge:true});
+      showToast(`${cfg.label}${cfg.groups>1?' '+group+'번 그룹':''} 신청 완료!`);
+      await comboRender(); return;
+    }
   }
-  // 빈 슬롯 찾기
-  const snaps = await Promise.all(Array.from({length:typeInfo.count},(_,i)=>getDoc(doc(db,'comboSlots',`${type}-${i+1}`))));
-  const emptyIdx = snaps.findIndex(s=>!s.exists()||!s.data().uid);
-  if(emptyIdx===-1){ showToast(`${typeInfo.label} 자리가 모두 찼습니다`); await comboRender(); return; }
-  await setDoc(doc(db,'comboSlots',`${type}-${emptyIdx+1}`),{uid:currentUser.uid, nick:currentProfile.nick},{merge:true});
-  showToast(`${typeInfo.label} 신청 완료!`);
+  showToast(`${cfg.label}${cfg.groups>1?' '+group+'번 그룹':''} 자리가 꽉 찼습니다`);
   await comboRender();
 };
 
-window.comboCancel = async (type, n) => {
+window.comboCancel = async (type, group, member) => {
   if(!currentUser) return;
-  const ref = doc(db,'comboSlots',`${type}-${n}`);
+  const ref = doc(db,'comboSlots',`${type}-${group}-${member}`);
   const snap = await getDoc(ref);
   if(!snap.exists()||snap.data().uid!==currentUser.uid){ showToast('신청 내역이 없습니다'); await comboRender(); return; }
   await setDoc(ref,{});
@@ -3272,9 +3287,9 @@ window.comboCancel = async (type, n) => {
   await comboRender();
 };
 
-window.comboAdminRemove = async (type, n) => {
+window.comboAdminRemove = async (type, group, member) => {
   if(!isAdmin) return;
-  await setDoc(doc(db,'comboSlots',`${type}-${n}`),{});
+  await setDoc(doc(db,'comboSlots',`${type}-${group}-${member}`),{});
   showToast('제거됐습니다');
   await comboRender();
 };
