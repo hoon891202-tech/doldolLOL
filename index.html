@@ -319,7 +319,7 @@ select.inp option{background:#1e1e1e;}
       <tr><td>지각</td><td>내전 지각</td><td class="v-red">-0.5점</td></tr>
       <tr><td>노쇼</td><td>무단 불참</td><td class="v-red">-1점</td></tr>
     </table>
-    <div class="note-bar">※ 자랭 5명 5판 = 2.5점 | 경고는 점수와 별도</div>
+    <div class="note-bar">※ 자랭 5명 5판 = 2.5점</div>
   </div>
 </div>
 </div>
@@ -707,23 +707,8 @@ select.inp option{background:#1e1e1e;}
   </div>
 
   <div class="card">
-    <div class="card-header"><span class="card-icon">⚠️</span><span class="card-title">경고 현황</span></div>
-    <div id="my-warn-status" style="padding:16px;"><div class="loading">불러오는 중...</div></div>
-    <div style="padding:0 16px 14px;display:flex;gap:8px;">
-      <button class="btn btn-gold btn-sm" onclick="useExemption()">면제권 사용하기</button>
-    </div>
-  </div>
-
-  <div class="card">
-    <div class="card-header"><span class="card-icon">😴</span><span class="card-title">휴식기</span><span class="card-note">연 2회 가능</span></div>
-    <div style="padding:14px;">
-      <div style="font-size:12px;color:var(--text-dim);margin-bottom:10px;line-height:1.8;">
-        매월 20일 이후 신청 시 익월부터 적용됩니다. 연 2회 가능.<br>
-        휴식기 중에는 월 참여 기준 미충족 경고를 받지 않습니다.
-      </div>
-      <div id="my-rest-status" style="margin-bottom:12px;"></div>
-      <div id="my-rest-btns" style="display:flex;gap:8px;flex-wrap:wrap;"></div>
-    </div>
+    <div class="card-header"><span class="card-icon">📅</span><span class="card-title">월별 참여 기록</span></div>
+    <div id="my-monthly-history" style="padding:16px;"><div class="loading">불러오는 중...</div></div>
   </div>
 
   <div class="card">
@@ -801,23 +786,19 @@ select.inp option{background:#1e1e1e;}
         <select id="king-month-select" class="inp btn-sm" style="width:110px;"></select>
       </div>
       <div id="king-preview" style="display:flex;gap:8px;flex-wrap:wrap;"></div>
-      <button class="btn btn-gold btn-sm" onclick="calcAndGiveExemption()">🏆 이달의 왕 계산 & 면제권 지급</button>
     </div>
   </div>
   <div class="card">
-    <div class="card-header"><span class="card-icon">⚠️</span><span class="card-title">이달 자동 경고</span><span class="card-note">당월 가입·휴식기 제외 / 2pt 미만</span></div>
+    <div class="card-header"><span class="card-icon">📋</span><span class="card-title">이달 미참여자 목록</span><span class="card-note">참여 1회 이하</span></div>
     <div style="padding:12px 14px;display:flex;flex-direction:column;gap:10px;">
       <div style="font-size:12px;color:var(--text-dim);line-height:1.6;">
-        • 선택 월 가입자 제외<br>
-        • 현재 휴식기 중인 회원 제외<br>
-        • 선택 월 획득 포인트 <b style="color:#ff8800;">2pt 미만</b> 대상자에게 경고 부여
+        이번 달 자랭+내전 합산 참여 횟수가 1회 이하인 회원 목록입니다.
       </div>
-      <div style="display:flex;align-items:center;gap:8px;">
-        <span style="font-size:12px;color:var(--text-dim);">대상 월:</span>
-        <select id="auto-warn-month-select" class="inp btn-sm" style="width:110px;"></select>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="btn btn-sm" style="background:#1a2a3a;border:1px solid #3a5a8a;color:#88aacc;" onclick="calcLowParticipants()">🔍 미참여자 확인</button>
+        <button class="btn btn-ghost btn-sm" id="copy-low-btn" style="display:none;" onclick="copyLowParticipants()">📋 목록 복사</button>
       </div>
-      <div id="auto-warn-preview"></div>
-      <button class="btn btn-sm" style="background:#3a1a1a;border:1px solid #ff5555;color:#ff8888;" onclick="calcAndGiveWarning()">⚠️ 2pt 미만 경고 자동 부여</button>
+      <div id="low-participants-list"></div>
     </div>
   </div>
   <div class="card">
@@ -825,31 +806,13 @@ select.inp option{background:#1e1e1e;}
     <div style="padding:10px 14px 0;display:flex;flex-direction:column;gap:8px;">
       <input id="adm-member-search" type="text" class="inp" placeholder="🔍 이름/닉네임으로 검색..." style="width:100%;font-size:13px;" oninput="filterAdminMembers()">
       <div style="display:flex;gap:6px;flex-wrap:wrap;">
-        <button id="adm-f-all"  class="btn btn-sm" style="background:var(--gold);color:#1a1a2e;"         onclick="setAdmFilter('all')">전체</button>
-        <button id="adm-f-rest" class="btn btn-sm" style="background:var(--bg3);color:var(--text-mid);" onclick="setAdmFilter('rest')">😴 휴식기 중</button>
-        <button id="adm-f-warn" class="btn btn-sm" style="background:var(--bg3);color:var(--text-mid);" onclick="setAdmFilter('warn')">⚠️ 경고 있음</button>
+        <button id="adm-f-all"  class="btn btn-sm" style="background:var(--gold);color:#1a1a2e;" onclick="setAdmFilter('all')">전체</button>
       </div>
     </div>
     <div id="admin-list" style="padding:14px;"><div class="loading">불러오는 중...</div></div>
     <div id="adm-pagination" style="display:flex;justify-content:center;align-items:center;gap:6px;padding:10px 14px;flex-wrap:wrap;"></div>
   </div>
 </div>
-</div>
-
-<!-- 점수 수정 모달 -->
-<div id="pts-modal" class="modal-overlay" style="display:none;">
-  <div class="modal">
-    <h3>점수 수정</h3>
-    <div style="font-size:13px;color:var(--text-dim);margin-bottom:12px;" id="pts-modal-name"></div>
-    <div style="display:flex;gap:10px;align-items:center;">
-      <span style="font-size:12px;color:var(--text-dim);">이번 달 점수</span>
-      <input id="pts-modal-val" type="number" step="0.5" class="inp" style="width:100px;">
-    </div>
-    <div class="modal-actions">
-      <button class="btn btn-ghost btn-sm" onclick="closePtsModal()">취소</button>
-      <button class="btn btn-gold btn-sm" onclick="savePtsModal()">저장</button>
-    </div>
-  </div>
 </div>
 
 <!-- 기록관리 모달 -->
@@ -864,53 +827,6 @@ select.inp option{background:#1e1e1e;}
   </div>
 </div>
 
-<!-- 경고 사유 모달 -->
-<div id="warn-modal" class="modal-overlay" style="display:none;">
-  <div class="modal">
-    <h3>⚠️ 경고 부여</h3>
-    <div style="font-size:13px;color:var(--text-dim);margin-bottom:12px;" id="warn-modal-name"></div>
-    <input type="hidden" id="warn-modal-uid">
-    <input type="hidden" id="warn-modal-cur">
-    <div style="margin-bottom:12px;">
-      <div style="font-size:11px;color:var(--text-dim);margin-bottom:6px;">경고 양</div>
-      <div style="display:flex;gap:16px;">
-        <label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:13px;">
-          <input type="radio" name="warn-amount" value="1" checked> 1회 (일반)
-        </label>
-        <label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:13px;">
-          <input type="radio" name="warn-amount" value="0.5"> 0.5회 (지각)
-        </label>
-      </div>
-    </div>
-    <div style="margin-bottom:12px;">
-      <div style="font-size:11px;color:var(--text-dim);margin-bottom:6px;">사유 (필수)</div>
-      <input id="warn-modal-reason" class="inp" style="width:100%;" placeholder="경고 사유를 입력하세요">
-    </div>
-    <div style="font-size:12px;color:#ff8800;background:#2a1a08;padding:8px 12px;border-radius:6px;margin-bottom:4px;">
-      ⚠️ 경고 2회 누적 시 자격박탈, 3회 시 1개월 활동정지
-    </div>
-    <div class="modal-actions">
-      <button class="btn btn-ghost btn-sm" onclick="document.getElementById('warn-modal').style.display='none'">취소</button>
-      <button class="btn btn-danger btn-sm" onclick="confirmWarn()">경고 부여</button>
-    </div>
-  </div>
-</div>
-
-<!-- 휴식기 신청 모달 -->
-<div id="rest-modal" class="modal-overlay" style="display:none;">
-  <div class="modal">
-    <h3>😴 휴식기 신청</h3>
-    <div style="font-size:12px;color:var(--text-dim);margin-bottom:14px;">익월부터 적용됩니다. 연 2회까지 가능합니다.</div>
-    <div style="margin-bottom:12px;">
-      <div style="font-size:11px;color:var(--text-dim);margin-bottom:6px;">사유</div>
-      <input id="rest-reason" class="inp" style="width:100%;" placeholder="휴식기 사유 (선택)">
-    </div>
-    <div class="modal-actions">
-      <button class="btn btn-ghost btn-sm" onclick="document.getElementById('rest-modal').style.display='none'">취소</button>
-      <button class="btn btn-gold btn-sm" onclick="applyRest()">신청</button>
-    </div>
-  </div>
-</div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
@@ -1058,7 +974,7 @@ window.showPage = (id, el) => {
 // ── UTILS ──
 function ym(date){ return date.getFullYear()+'-'+String(date.getMonth()+1).padStart(2,'0'); }
 function todayStr(){ return new Date().toISOString().slice(0,10); }
-function restEndStr(restFrom){ if(!restFrom) return ''; const [y,m]=restFrom.split('-').map(Number); return `${y}년 ${m}월 ${new Date(y,m,0).getDate()}일`; }
+
 window.toggleSubOther = function(selId, inputId){
   const sel = document.getElementById(selId);
   const inp = document.getElementById(inputId);
@@ -1106,11 +1022,11 @@ async function loadRanking(){
       if(!u.active) continue;
       // get month score
       const recSnap = await getDocs(query(collection(db,'records'), where('uid','==',d.id), where('month','==',month)));
-      let pts=0, wins=0, total=0;
-      recSnap.forEach(r=>{ const rec=r.data(); pts+=rec.pts||0; if(rec.type==='naejeon'){ total++; if(rec.result==='win') wins++; } });
-      members.push({nick:u.nick, realname:u.realname||'', birthyear:u.birthyear||'', tier:u.tier, currentTier:u.currentTier||'', currentRank:u.currentRank||'', currentLP:u.currentLP??'', main:u.main, sub:u.sub||'', isAdmin:u.isAdmin||false, pts, wins, total});
+      let jarangCnt=0, naejeonCnt=0, wins=0;
+      recSnap.forEach(r=>{ const rec=r.data(); if(rec.type==='jarang') jarangCnt+=(rec.games||1); if(rec.type==='naejeon'){ naejeonCnt++; if(rec.result==='win') wins++; } });
+      members.push({nick:u.nick, realname:u.realname||'', birthyear:u.birthyear||'', tier:u.tier, currentTier:u.currentTier||'', currentRank:u.currentRank||'', currentLP:u.currentLP??'', main:u.main, sub:u.sub||'', isAdmin:u.isAdmin||false, jarangCnt, naejeonCnt, wins, total:naejeonCnt});
     }
-    members.sort((a,b)=>b.pts-a.pts);
+    members.sort((a,b)=>(b.jarangCnt+b.naejeonCnt)-(a.jarangCnt+a.naejeonCnt));
     rankingCache = { month, data: members, ts: Date.now() };
     renderRankingList(members);
   } catch(e){ console.error(e); }
@@ -1127,8 +1043,8 @@ function renderRankingList(members){
         <div style="display:flex;align-items:center;gap:6px;">
           <span class="rank-name">${m.realname||m.nick}${m.isAdmin?'<span style="font-size:10px;color:var(--gold);margin-left:4px;">👑</span>':''}<span style="font-size:11px;color:var(--text-dim);font-weight:300;margin-left:5px;">${m.birthyear?m.birthyear+'년생':''}</span></span>
           <div style="margin-left:auto;text-align:right;flex-shrink:0;">
-            <div class="rank-pts">${m.pts}<span class="rank-pts-label">pt</span></div>
-            ${m.total>0?`<span class="rank-wr">${wr}</span>`:''}
+            <div class="rank-pts" style="font-size:13px;">${m.jarangCnt+m.naejeonCnt}<span class="rank-pts-label">회</span></div>
+            <div style="font-size:10px;color:var(--text-dim);">자랭${m.jarangCnt} 내전${m.naejeonCnt}</div>
           </div>
         </div>
         <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
@@ -1414,82 +1330,58 @@ function prefillMyPage(){
 async function loadMyPage(){
   prefillMyPage();
   // 이번달 요약
-  const month = ym(new Date());
+  const nowDate = new Date();
+  const month = ym(nowDate);
   const snap = await getDocs(query(collection(db,'records'), where('uid','==',currentUser.uid), where('month','==',month)));
-  let pts=0, wins=0, loses=0, jarangGames=0, penalties=0;
+  let jarangCnt=0, naejeonCnt=0, wins=0, loses=0;
   snap.forEach(d=>{ const r=d.data();
-    pts+=r.pts||0;
-    if(r.type==='naejeon'){ if(r.result==='win')wins++;else loses++; }
-    if(r.type==='jarang') jarangGames+=r.games||0;
-    if(r.type==='penalty') penalties+=Math.abs(r.pts||0);
+    if(r.type==='jarang') jarangCnt+=(r.games||1);
+    if(r.type==='naejeon'){ naejeonCnt++; if(r.result==='win')wins++;else loses++; }
   });
   const total=wins+loses;
   const wr=total>0?Math.round(wins/total*100):0;
-  // 경고 현황
-  const warnCnt = currentProfile.warnings || 0;
-  const exemptions = currentProfile.exemptions || 0;
-  const restUsedThisPeriod = currentProfile.restUsedThisPeriod || 0;
-  const statusColors = {active:'var(--green)', disqualified:'#ff8800', suspended:'#ff5555'};
-  const statusLabels = {active:'정상', disqualified:'자격박탈', suspended:'활동정지'};
-  const st = currentProfile.status || 'active';
-  document.getElementById('my-warn-status').innerHTML = `
-    <div style="display:flex;flex-direction:column;gap:10px;">
-      <div style="display:flex;align-items:center;gap:12px;padding:12px;background:var(--bg3);border-radius:8px;border:1px solid var(--border);">
-        <div style="flex:1;">
-          <div style="font-size:11px;color:var(--text-dim);margin-bottom:4px;">현재 상태</div>
-          <div style="font-size:16px;font-weight:700;color:${statusColors[st]||'var(--green)'};">${statusLabels[st]||'정상'}</div>
-        </div>
-        <div style="text-align:center;">
-          <div style="font-size:11px;color:var(--text-dim);margin-bottom:4px;">경고 횟수</div>
-          <div style="font-family:'Black Han Sans',sans-serif;font-size:24px;color:${warnCnt>=2?'#ff5555':warnCnt>=1?'#ff8800':'var(--text)'};">${warnCnt}<span style="font-size:13px;">회</span></div>
-        </div>
-        <div style="text-align:center;">
-          <div style="font-size:11px;color:var(--text-dim);margin-bottom:4px;">면제권</div>
-          <div style="font-family:'Black Han Sans',sans-serif;font-size:24px;color:var(--gold-light);">${exemptions}<span style="font-size:13px;">장</span></div>
-        </div>
-      </div>
-      ${warnCnt>0?`<div style="font-size:12px;color:#ff8800;background:#2a1a08;padding:8px 12px;border-radius:6px;">⚠️ 경고 2회 → 자격박탈 | 경고 3회 → 1개월 활동정지</div>`:''}
-      <div style="font-size:11px;color:var(--text-dim);">경고가 3개월 이상 추가되지 않으면 경고 1회 자동 차감됩니다. 면제권 2장 → 양도권 1장 교환 가능.</div>
-    </div>`;
-  // 휴식기 현황
-  const isResting = currentProfile.restActive && currentProfile.restFrom;
-  document.getElementById('my-rest-status').innerHTML = `
-    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
-      <span style="font-size:12px;color:var(--text-dim);">올해 사용: <span style="color:var(--text);font-weight:500;">${restUsedThisPeriod} / 2회</span></span>
-      ${isResting
-        ? `<span style="font-size:11px;background:#2a2a4a;color:#8888cc;border:1px solid #4a4a7a55;padding:2px 9px;border-radius:10px;">😴 휴식중 ${currentProfile.restFrom} ~ ${restEndStr(currentProfile.restFrom)}</span>`
-        : `<span style="font-size:11px;color:var(--green);">✅ 활동중</span>`}
-    </div>`;
-  // 버튼 동적 표시
-  const restBtns = document.getElementById('my-rest-btns');
-  if(isResting){
-    restBtns.innerHTML = `
-      <button class="btn btn-ghost btn-sm" onclick="cancelRest()">😴 휴식기 종료</button>
-      <span style="font-size:11px;color:var(--text-dim);align-self:center;">현재 휴식중입니다</span>`;
-  } else {
-    restBtns.innerHTML = restUsedThisPeriod>=2
-      ? `<span style="font-size:12px;color:#ff7070;">올해 휴식기를 모두 사용했습니다</span>`
-      : `<button class="btn btn-gold btn-sm" onclick="document.getElementById('rest-modal').style.display='flex'">😴 휴식기 신청</button>`;
-  }
   document.getElementById('my-summary').innerHTML = `
     <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;">
       <div style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:14px;text-align:center;">
-        <div style="font-size:11px;color:var(--text-dim);margin-bottom:6px;">이번 달 총점</div>
-        <div style="font-family:'Black Han Sans',sans-serif;font-size:28px;color:var(--gold-light);">${pts}<span style="font-size:13px;">pt</span></div>
+        <div style="font-size:11px;color:var(--text-dim);margin-bottom:6px;">이번 달 자랭 참여</div>
+        <div style="font-family:'Black Han Sans',sans-serif;font-size:28px;color:var(--blue);">${jarangCnt}<span style="font-size:13px;">회</span></div>
+      </div>
+      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:14px;text-align:center;">
+        <div style="font-size:11px;color:var(--text-dim);margin-bottom:6px;">이번 달 내전 참여</div>
+        <div style="font-family:'Black Han Sans',sans-serif;font-size:28px;color:var(--green);">${naejeonCnt}<span style="font-size:13px;">회</span></div>
       </div>
       <div style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:14px;text-align:center;">
         <div style="font-size:11px;color:var(--text-dim);margin-bottom:6px;">내전 승률</div>
-        <div style="font-family:'Black Han Sans',sans-serif;font-size:28px;color:var(--green);">${total>0?wr+'%':'-'}</div>
+        <div style="font-family:'Black Han Sans',sans-serif;font-size:28px;color:var(--gold-light);">${total>0?wr+'%':'-'}</div>
       </div>
       <div style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:14px;text-align:center;">
-        <div style="font-size:11px;color:var(--text-dim);margin-bottom:6px;">자랭 게임 수</div>
-        <div style="font-family:'Black Han Sans',sans-serif;font-size:28px;color:var(--blue);">${jarangGames}<span style="font-size:13px;">판</span></div>
-      </div>
-      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:14px;text-align:center;">
-        <div style="font-size:11px;color:var(--text-dim);margin-bottom:6px;">내전 ${wins}승 ${loses}패</div>
-        <div style="font-family:'Black Han Sans',sans-serif;font-size:28px;color:${penalties>0?'#ff7070':'var(--text-mid)'};">${penalties>0?'-'+penalties+'pt':wins+loses+'게임'}</div>
+        <div style="font-size:11px;color:var(--text-dim);margin-bottom:6px;">내전 전적</div>
+        <div style="font-family:'Black Han Sans',sans-serif;font-size:28px;color:var(--text-mid);">${wins}승 ${loses}패</div>
       </div>
     </div>`;
+  // 월별 참여 기록 (최근 6개월)
+  const allSnap = await getDocs(query(collection(db,'records'), where('uid','==',currentUser.uid)));
+  const monthMap = {};
+  allSnap.forEach(d=>{ const r=d.data(); if(!r.month) return;
+    if(!monthMap[r.month]) monthMap[r.month]={jarang:0,naejeon:0};
+    if(r.type==='jarang') monthMap[r.month].jarang+=(r.games||1);
+    if(r.type==='naejeon') monthMap[r.month].naejeon++;
+  });
+  const months = Object.keys(monthMap).sort().reverse().slice(0,6);
+  document.getElementById('my-monthly-history').innerHTML = months.length
+    ? `<div style="display:flex;flex-direction:column;gap:8px;">${months.map(m=>{
+        const [y,mo]=m.split('-');
+        const d=monthMap[m];
+        const total=d.jarang+d.naejeon;
+        const color=total<=1?'#ff7070':total>=4?'var(--green)':'var(--text)';
+        return `<div style="display:flex;align-items:center;gap:10px;padding:8px 10px;background:var(--bg3);border-radius:6px;border:1px solid var(--border);">
+          <span style="font-size:13px;font-weight:600;width:52px;">${mo}월</span>
+          <span style="font-size:12px;color:var(--text-dim);">자랭 ${d.jarang}회</span>
+          <span style="font-size:12px;color:var(--text-dim);">내전 ${d.naejeon}회</span>
+          <span style="margin-left:auto;font-family:'Black Han Sans',sans-serif;font-size:16px;color:${color};">${total}회</span>
+        </div>`;
+      }).join('')}</div>`
+    : `<div style="color:var(--text-dim);font-size:13px;">참여 기록이 없습니다</div>`;
 }
 
 window.saveMyProfile = async () => {
@@ -1513,85 +1405,6 @@ window.saveMyProfile = async () => {
   showToast('프로필이 저장됐습니다 ✅');
 };
 
-window.useExemption = async () => {
-  const ex = currentProfile.exemptions || 0;
-  if(ex <= 0){ showToast('보유한 면제권이 없습니다'); return; }
-  const w = currentProfile.warnings || 0;
-  if(w <= 0){ showToast('경고가 없어 면제권을 사용할 필요가 없습니다'); return; }
-  if(!confirm(`면제권 1장을 사용하여 경고 1회를 삭제하시겠습니까?\n(남은 면제권: ${ex}장)`)) return;
-  const newEx = ex - 1;
-  const newW = Math.max(w-1, 0);
-  const updates = {exemptions: newEx, warnings: newW};
-  if(newW < 2) updates.status = 'active';
-  await updateDoc(doc(db,'users',currentUser.uid), updates);
-  await addDoc(collection(db,'warnlogs'),{
-    uid: currentUser.uid, reason:'면제권 사용 — 경고 삭제',
-    warnings: newW, date: todayStr(),
-    month: ym(new Date()), createdAt: new Date().toISOString()
-  });
-  currentProfile.exemptions = newEx;
-  currentProfile.warnings = newW;
-  currentProfile.status = updates.status || currentProfile.status;
-  showToast(`면제권 사용 완료! 경고 ${w}회 → ${newW}회 😊`);
-  loadMyPage();
-};
-
-window.cancelRest = async () => {
-  if(!confirm('휴식기를 종료하시겠습니까?\n종료 후 즉시 활동중 상태로 변경됩니다.')) return;
-  await updateDoc(doc(db,'users',currentUser.uid),{ restActive:false, restFrom:null });
-  await addDoc(collection(db,'restlogs'),{
-    uid: currentUser.uid, nick: currentProfile.nick,
-    reason:'본인 종료', applyFrom: null,
-    endedAt: new Date().toISOString(), createdAt: new Date().toISOString()
-  });
-  currentProfile.restActive = false;
-  currentProfile.restFrom = null;
-  showToast('휴식기가 종료됐습니다 ✅');
-  loadMyPage();
-};
-
-window.applyRest = async () => {
-  const reason = document.getElementById('rest-reason').value.trim();
-  const restCount = currentProfile.restCount || 0;
-  const joinedAt = currentProfile.joinedAt ? new Date(currentProfile.joinedAt) : new Date();
-  const now = new Date();
-
-  // 가입일 기준 1년 주기로 2회 리셋 체크
-  const yearsSinceJoin = Math.floor((now - joinedAt) / (365.25 * 24 * 3600 * 1000));
-  const restPeriodStart = new Date(joinedAt.getFullYear() + yearsSinceJoin, joinedAt.getMonth(), joinedAt.getDate());
-  const restUsedThisPeriod = currentProfile.restUsedThisPeriod || 0;
-  const lastResetYear = currentProfile.lastRestReset || joinedAt.toISOString().slice(0,10);
-
-  // 1년이 지나서 새 주기면 리셋
-  if(now >= new Date(new Date(lastResetYear).getTime() + 365.25*24*3600*1000)){
-    await updateDoc(doc(db,'users',currentUser.uid),{ restUsedThisPeriod: 0, lastRestReset: now.toISOString().slice(0,10) });
-    currentProfile.restUsedThisPeriod = 0;
-  }
-
-  const usedThisPeriod = currentProfile.restUsedThisPeriod || 0;
-  if(usedThisPeriod >= 2){
-    const nextReset = new Date(new Date(lastResetYear).getTime() + 365.25*24*3600*1000);
-    showToast(`휴식기 2회 모두 사용. 다음 부여일: ${nextReset.toISOString().slice(0,10)}`);
-    document.getElementById('rest-modal').style.display='none'; return;
-  }
-  if(now.getDate() < 20){ showToast('휴식기 신청은 매월 20일 이후에 가능합니다'); document.getElementById('rest-modal').style.display='none'; return; }
-  const nextMonth = new Date(now.getFullYear(), now.getMonth()+1, 1);
-  const applyFrom = ym(nextMonth);
-  await updateDoc(doc(db,'users',currentUser.uid),{
-    restCount: restCount+1,
-    restUsedThisPeriod: usedThisPeriod+1,
-    lastRestReset: currentProfile.lastRestReset || joinedAt.toISOString().slice(0,10),
-    restActive: true, restFrom: applyFrom
-  });
-  await addDoc(collection(db,'restlogs'),{ uid: currentUser.uid, nick: currentProfile.nick, reason, applyFrom, createdAt: new Date().toISOString() });
-  currentProfile.restCount = restCount+1;
-  currentProfile.restUsedThisPeriod = usedThisPeriod+1;
-  currentProfile.restActive = true;
-  currentProfile.restFrom = applyFrom;
-  document.getElementById('rest-modal').style.display='none';
-  showToast(`휴식기 신청 완료! ${applyFrom}부터 적용됩니다 😴`);
-  loadMyPage();
-};
 
 window.changeMyPw = async () => {
   const { updatePassword } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js");
@@ -1692,12 +1505,12 @@ window.findMyPw = async () => {
   }
 };
 
-let admAllMembers = []; // {name, html, uid, isResting, hasWarn}
+let admAllMembers = []; // {name, html, uid}
 let admPage = 1;
 let admFilter = 'all';
 window.setAdmFilter = (f) => {
   admFilter = f;
-  ['all','rest','warn'].forEach(k => {
+  ['all'].forEach(k => {
     const el = document.getElementById(`adm-f-${k}`);
     if(el){ el.style.background = f===k ? 'var(--gold)' : 'var(--bg3)'; el.style.color = f===k ? '#1a1a2e' : 'var(--text-mid)'; }
   });
@@ -1762,8 +1575,6 @@ window.filterAdminMembers = function(){
 function renderAdminList(){
   const keyword = (document.getElementById('adm-member-search')?.value||'').trim().toLowerCase();
   let filtered = admAllMembers;
-  if(admFilter === 'rest') filtered = filtered.filter(m => m.isResting);
-  else if(admFilter === 'warn') filtered = filtered.filter(m => m.hasWarn);
   if(keyword) filtered = filtered.filter(m => m.name.toLowerCase().includes(keyword));
   const total = filtered.length;
   const pages = Math.max(1, Math.ceil(total / ADM_PER_PAGE));
@@ -1789,7 +1600,6 @@ async function loadAdmin(){
   if(!isAdmin) return;
   const el = document.getElementById('admin-list');
   el.innerHTML = '<div class="loading">불러오는 중...</div>';
-  autoReduceWarnings();
   // 날짜 초기화
   document.getElementById('adm-rec-date').value = todayStr();
   // 내전왕/참여왕 정산 월 셀렉트 초기화
@@ -1800,15 +1610,6 @@ async function loadAdmin(){
     for(let d=new Date(now2.getFullYear(),now2.getMonth(),1); d>=start2; d.setMonth(d.getMonth()-1)){
       const opt=document.createElement('option'); opt.value=ym(d); opt.textContent=`${d.getFullYear()}년 ${d.getMonth()+1}월`;
       kingMonthSel.appendChild(opt);
-    }
-  }
-  const warnMonthSel = document.getElementById('auto-warn-month-select');
-  if(warnMonthSel && !warnMonthSel.options.length){
-    const now3 = new Date();
-    const start3 = new Date(2026, 2, 1);
-    for(let d=new Date(now3.getFullYear(),now3.getMonth(),1); d>=start3; d.setMonth(d.getMonth()-1)){
-      const opt=document.createElement('option'); opt.value=ym(d); opt.textContent=`${d.getFullYear()}년 ${d.getMonth()+1}월`;
-      warnMonthSel.appendChild(opt);
     }
   }
   try {
@@ -1822,38 +1623,14 @@ async function loadAdmin(){
     for(const d of snap.docs){
       const u = d.data();
       if(!u.active && !showInactiveMembers) continue; // 탈퇴 회원 숨김
-      let pts=0;
-      try {
-        const recSnap = await getDocs(query(collection(db,'records'), where('uid','==',d.id), where('month','==',month)));
-        recSnap.forEach(r=>pts+=r.data().pts||0);
-      } catch(re){ /* records 조회 실패 무시 */ }
-      const w = u.warnings||0;
-      const wc = w<=0?'aw0':w<1?'aw05':w<2?'aw1':w<3?'aw2':'aw3';
-      const statusLabel = u.status==='suspended'?'활동정지':u.status==='disqualified'?'자격박탈':w<=0?'정상':w>=3?'제명':`경고${w}`;
-      const ws = statusLabel;
-      const exCount = u.exemptions||0;
-      // 면제권 사용 횟수
-      let usedEx = 0;
-      try {
-        const exUsedSnap = await getDocs(query(collection(db,'warnlogs'), where('uid','==',d.id)));
-        exUsedSnap.forEach(wl=>{ if((wl.data().reason||'').includes('면제권')) usedEx++; });
-      } catch(we){ /* warnlogs 조회 실패 무시 */ }
-      const isResting = u.restActive && u.restFrom;
-      const restUsed = u.restUsedThisPeriod || 0;
-      const restLabel = isResting ? `😴 휴식중 (${u.restFrom} ~ ${restEndStr(u.restFrom)})` : '';
-      const restPeriodLabel = `휴식기 ${restUsed}/2회`;
-      const memberHtml = `<div class="admin-member-row" id="admrow-${d.id}" style="${isResting?'border-color:#404060;opacity:0.85;':''}">
+      const memberHtml = `<div class="admin-member-row" id="admrow-${d.id}">
         <div style="flex:1;min-width:120px;">
           <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;">
             <span class="adm-name">${u.realname||u.nick} ${u.birthyear?u.birthyear+'년생 ':''}<span style="font-size:12px;color:var(--text-mid);">(${u.nick})</span></span>
             ${u.isAdmin?'<span style="font-size:10px;color:var(--gold);">👑 관리자</span>':''}
             ${!u.active?'<span style="color:#ff4444;font-size:11px;">(탈퇴)</span>':''}
-            ${isResting?`<span style="font-size:10px;background:#2a2a4a;color:#8888cc;border:1px solid #4a4a7a55;padding:1px 7px;border-radius:10px;">${restLabel}</span>`:''}
           </div>
           <div style="font-size:11px;color:var(--text-dim);margin-top:2px;">${u.email||''}</div>
-          <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;">
-            <span style="font-size:10px;color:${restUsed>=2?'#ff8800':'var(--text-dim)'};">${restPeriodLabel}</span>
-          </div>
           <div style="display:flex;gap:6px;align-items:center;margin-top:3px;flex-wrap:wrap;">
             <span class="tb t${u.tier}" style="font-size:10px;">${TIER_NAMES[u.tier]||u.tier}</span>
             ${u.balanceTierMain?btLabel(u.balanceTierMain, u.balanceScoreMain):''}
@@ -1878,34 +1655,14 @@ async function loadAdmin(){
             <input id="amemo-${d.id}" type="text" class="inp" placeholder="기타 메모" value="${u.adminMemo||''}" style="flex:1;min-width:100px;font-size:11px;padding:3px 6px;" oninput="admMemoChange('${d.id}')">
           </div>
         </div>
-        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0;">
-          <span class="adm-pts">${pts}pt</span>
-          <span style="font-size:10px;color:var(--gold-light);">면제권 ${exCount}장 보유</span>
-          <span style="font-size:10px;color:var(--text-dim);">사용 ${usedEx}장</span>
-        </div>
-        <div style="display:flex;flex-direction:column;align-items:center;gap:2px;flex-shrink:0;">
-          <span class="adm-warn ${wc}">${ws}</span>
-          <div style="display:flex;gap:2px;">
-            ${[1,2,3].map(n=>`<div style="width:16px;height:16px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;${w>=n?(n===1?'background:#ffffff18;color:#ccc;border:1px solid #ffffff25;':n===2?'background:#ff880020;color:#ff8800;border:1px solid #ff880035;':'background:#ff222220;color:#ff5555;border:1px solid #ff222235;'):'background:#ffffff08;color:#ffffff15;border:1px solid #ffffff10;'}">${n}</div>`).join('')}
-          </div>
-        </div>
         <div class="adm-btns">
-          <button class="adm-btn warn" onclick="openWarnModal('${d.id}','${u.realname||u.nick}',${w})">경고+</button>
-          <button class="adm-btn" onclick="adminUnwarn('${d.id}',${w})">경고-</button>
-          <button class="adm-btn" onclick="openPtsModal('${d.id}','${u.nick}',${pts})">점수수정</button>
           <button class="adm-btn" style="border-color:#3a5a7a;color:#88aacc;" onclick="openRecManageModal('${d.id}','${u.realname||u.nick}')">기록관리</button>
-          <button class="adm-btn" style="border-color:#7a6a22;color:var(--gold-light);" onclick="adminAddExemption('${d.id}','${u.nick}')">면제권+</button>
-          <button class="adm-btn" style="border-color:#5a5020;color:#aaa860;" onclick="adminRemoveExemption('${d.id}','${u.nick}',${exCount})">면제권-</button>
-          <button class="adm-btn" style="border-color:#4a4a7a;color:#8888cc;" onclick="toggleRest('${d.id}','${u.nick}',${!!isResting})">
-            ${isResting?'휴식기 종료':'휴식기 처리'}
-          </button>
-          <button class="adm-btn" style="border-color:#3a5a3a;color:#88cc88;" onclick="adminResetRest('${d.id}','${u.nick}')">휴식기 리셋</button>
           ${u.isAdmin?`<button class="adm-btn" style="border-color:#7a5f22;color:var(--gold);" onclick="adminDemote('${d.id}','${u.nick}')">👑 관리자 해제</button>`:`<button class="adm-btn" style="border-color:#5a7a22;color:#aadd44;" onclick="adminPromote('${d.id}','${u.nick}')">관리자 승격</button>`}
           ${u.active?`<button class="adm-btn kick" onclick="adminKick('${d.id}','${u.nick}')">탈퇴</button>`:`<button class="adm-btn" onclick="adminRestore('${d.id}','${u.nick}')">복구</button>`}
           <button class="adm-btn" style="border-color:#5a3a7a;color:#bb88ee;" onclick="adminResetPassword('${u.email||''}','${u.realname||u.nick}')">🔑 비번재설정</button>
         </div>
       </div>`;
-      admAllMembers.push({ name: (u.realname||u.nick||'') + ' ' + (u.nick||''), html: memberHtml, uid: d.id, isResting: !!(u.restActive && u.restFrom), hasWarn: (u.warnings||0) > 0 });
+      admAllMembers.push({ name: (u.realname||u.nick||'') + ' ' + (u.nick||''), html: memberHtml, uid: d.id });
     }
     // 가나다 정렬
     admAllMembers.sort((a,b) => a.name.localeCompare(b.name, 'ko'));
@@ -1919,224 +1676,6 @@ async function loadAdmin(){
   }
 }
 
-window.openWarnModal = (uid, name, cur) => {
-  document.getElementById('warn-modal-name').textContent = name;
-  document.getElementById('warn-modal-uid').value = uid;
-  document.getElementById('warn-modal-cur').value = cur;
-  document.getElementById('warn-modal-reason').value = '';
-  const defaultRadio = document.querySelector('input[name="warn-amount"][value="1"]');
-  if(defaultRadio) defaultRadio.checked = true;
-  document.getElementById('warn-modal').style.display = 'flex';
-};
-window.confirmWarn = async () => {
-  const uid = document.getElementById('warn-modal-uid').value;
-  const cur = parseFloat(document.getElementById('warn-modal-cur').value);
-  const reason = document.getElementById('warn-modal-reason').value.trim();
-  const amountEl = document.querySelector('input[name="warn-amount"]:checked');
-  const amount = amountEl ? parseFloat(amountEl.value) : 1;
-  document.getElementById('warn-modal').style.display = 'none';
-  await adminWarn(uid, cur, reason, amount);
-};
-async function autoReduceWarnings(){
-  const usersSnap = await getDocs(collection(db,'users'));
-  const now = new Date();
-  const cutoff = new Date(now.getFullYear(), now.getMonth()-3, now.getDate()).toISOString().slice(0,10);
-  let count = 0;
-  for(const d of usersSnap.docs){
-    const u = d.data();
-    if(!u.active || !u.warnings || u.warnings <= 0) continue;
-    const lastWarnDate = u.lastWarnDate || null;
-    if(!lastWarnDate || lastWarnDate > cutoff) continue;
-    const newW = Math.max(u.warnings-1, 0);
-    const updates = {warnings: newW, lastWarnDate: todayStr()};
-    if(newW < 2) updates.status = 'active';
-    await updateDoc(doc(db,'users',d.id), updates);
-    await addDoc(collection(db,'warnlogs'),{
-      uid: d.id, reason:'경고 자동 차감 (3개월 이상 추가 경고 없음)',
-      warnings: newW, date: todayStr(), month: ym(now),
-      createdAt: now.toISOString(), issuedBy: 'system'
-    });
-    count++;
-  }
-  if(count > 0) showToast(`경고 자동 차감: ${count}명 처리됐습니다`);
-}
-
-window.adminWarn = async (uid, cur, reason='', amount=1) => {
-  const next = Math.min(cur + amount, 3);
-  const updates = {warnings: next};
-  if(next >= 3) updates.status = 'suspended';
-  else if(next >= 2) updates.status = 'disqualified';
-  else updates.status = 'active';
-  updates.lastWarnDate = todayStr();
-  await updateDoc(doc(db,'users',uid),updates);
-  const month = ym(new Date());
-  await addDoc(collection(db,'warnlogs'),{
-    uid, reason, warnings: next, amount, date: todayStr(),
-    month, createdAt: new Date().toISOString(), issuedBy: currentUser.uid
-  });
-  const msg = next>=3 ? '⚠️ 경고 3회 — 1개월 활동정지 처리됨' : next>=2 ? '⚠️ 경고 2회 — 자격박탈 처리됨' : `경고 ${amount}회 부여됐습니다`;
-  showToast(msg); loadAdmin();
-};
-window.adminUnwarn = async (uid, cur) => {
-  if(cur<=0) return;
-  const next = Math.max(cur-1,0);
-  const updates = {warnings: next};
-  if(next < 2) updates.status = 'active';
-  await updateDoc(doc(db,'users',uid),updates);
-  showToast('경고 취소됐습니다'); loadAdmin();
-};
-window.adminUnwarn = async (uid, cur) => {
-  if(cur<=0) return;
-  const next = Math.max(cur-1,0);
-  await updateDoc(doc(db,'users',uid),{warnings:next});
-  showToast('경고 취소됐습니다'); loadAdmin();
-};
-window.calcAndGiveExemption = async () => {
-  const sel = document.getElementById('king-month-select');
-  const month = sel ? sel.value : ym(new Date());
-  if(!month){ showToast('정산 월을 선택해주세요'); return; }
-  const usersSnap = await getDocs(collection(db,'users'));
-  const stats = [];
-  for(const d of usersSnap.docs){
-    const u = d.data();
-    if(!u.active) continue;
-    const recSnap = await getDocs(query(collection(db,'records'), where('uid','==',d.id), where('month','==',month)));
-    let totalPts=0, naejeonPts=0;
-    recSnap.forEach(r=>{ const rec=r.data(); totalPts+=rec.pts||0;
-      if(rec.type==='naejeon'){ naejeonPts += rec.result==='win'?2:1; }
-    });
-    stats.push({uid:d.id, nick:u.nick, realname:u.realname||'', totalPts, naejeonPts, exemptions:u.exemptions||0});
-  }
-  if(!stats.length){ showToast('데이터가 없습니다'); return; }
-  stats.sort((a,b)=>b.naejeonPts-a.naejeonPts);
-  const naejeonKing = stats[0];
-  stats.sort((a,b)=>b.totalPts-a.totalPts);
-  const partKing = stats[0];
-
-  const preview = document.getElementById('king-preview');
-  preview.innerHTML = `
-    <div style="background:var(--bg3);border:1px solid #8050c055;border-radius:8px;padding:10px 14px;flex:1;">
-      <div style="font-size:10px;color:#c080ff;letter-spacing:1px;margin-bottom:4px;">⚔️ 내전왕</div>
-      <div style="font-size:14px;font-weight:500;">${naejeonKing.realname||naejeonKing.nick}</div>
-      <div style="font-size:11px;color:var(--text-dim);">내전 ${naejeonKing.naejeonPts}pt</div>
-    </div>
-    <div style="background:var(--bg3);border:1px solid #40c07055;border-radius:8px;padding:10px 14px;flex:1;">
-      <div style="font-size:10px;color:#40c070;letter-spacing:1px;margin-bottom:4px;">🌟 참여왕</div>
-      <div style="font-size:14px;font-weight:500;">${partKing.realname||partKing.nick}</div>
-      <div style="font-size:11px;color:var(--text-dim);">총 ${partKing.totalPts}pt</div>
-    </div>`;
-
-  // 해당 월 이미 지급했는지 체크
-  const dupCheck = await getDocs(query(collection(db,'records'), where('month','==',month), where('type','==','exemption'), where('addedByAdmin','==',true)));
-  const alreadyGiven = dupCheck.docs.some(d => d.data().reason?.includes('왕 면제권'));
-  if(alreadyGiven){ showToast(`⚠️ ${month}월 면제권이 이미 지급되었습니다`); return; }
-
-  if(!confirm(`내전왕: ${naejeonKing.realname||naejeonKing.nick}\n참여왕: ${partKing.realname||partKing.nick}\n\n각 1장씩 면제권을 지급하시겠습니까?`)) return;
-
-  // 최신 데이터 다시 읽어서 현재 면제권 수 확인
-  const nkSnap = await getDoc(doc(db,'users',naejeonKing.uid));
-  const nkEx = nkSnap.exists() ? (nkSnap.data().exemptions||0) : 0;
-
-  if(partKing.uid !== naejeonKing.uid){
-    // 서로 다른 사람
-    await updateDoc(doc(db,'users',naejeonKing.uid),{exemptions: nkEx+1});
-    await addDoc(collection(db,'records'),{
-      uid:naejeonKing.uid, nick:naejeonKing.nick, type:'exemption',
-      pts:0, month, date:todayStr(), reason:'내전왕 면제권 지급',
-      createdAt:new Date().toISOString(), addedByAdmin:true
-    });
-    const pkSnap = await getDoc(doc(db,'users',partKing.uid));
-    const pkEx = pkSnap.exists() ? (pkSnap.data().exemptions||0) : 0;
-    await updateDoc(doc(db,'users',partKing.uid),{exemptions: pkEx+1});
-    await addDoc(collection(db,'records'),{
-      uid:partKing.uid, nick:partKing.nick, type:'exemption',
-      pts:0, month, date:todayStr(), reason:'참여왕 면제권 지급',
-      createdAt:new Date().toISOString(), addedByAdmin:true
-    });
-  } else {
-    // 같은 사람이 내전왕 + 참여왕 → 2장
-    await updateDoc(doc(db,'users',naejeonKing.uid),{exemptions: nkEx+2});
-    await addDoc(collection(db,'records'),{
-      uid:naejeonKing.uid, nick:naejeonKing.nick, type:'exemption',
-      pts:0, month, date:todayStr(), reason:'내전왕+참여왕 면제권 2장 지급',
-      createdAt:new Date().toISOString(), addedByAdmin:true
-    });
-  }
-
-  showToast('면제권 지급 완료! 🏆'); loadAdmin();
-};
-
-window.adminAddExemption = async (uid, nick) => {
-  const snap = await getDoc(doc(db,'users',uid));
-  const cur = snap.exists()?(snap.data().exemptions||0):0;
-  await updateDoc(doc(db,'users',uid),{exemptions: cur+1});
-  await addDoc(collection(db,'warnlogs'),{
-    uid, reason:'관리자 면제권 수동 지급', warnings:0,
-    date: todayStr(), month: ym(new Date()), createdAt: new Date().toISOString(), issuedBy: currentUser.uid
-  });
-  showToast(`${nick}님 면제권 +1장 (총 ${cur+1}장)`); loadAdmin();
-};
-
-window.adminRemoveExemption = async (uid, nick, cur) => {
-  if(cur <= 0){ showToast('면제권이 없습니다'); return; }
-  if(!confirm(`${nick}님 면제권 1장을 회수하시겠습니까? (현재 ${cur}장)`)) return;
-  await updateDoc(doc(db,'users',uid),{exemptions: cur-1});
-  await addDoc(collection(db,'warnlogs'),{
-    uid, reason:'관리자 면제권 회수', warnings:0,
-    date: todayStr(), month: ym(new Date()), createdAt: new Date().toISOString(), issuedBy: currentUser.uid
-  });
-  showToast(`${nick}님 면제권 회수 (남은 ${cur-1}장)`); loadAdmin();
-};
-
-window.toggleRest = async (uid, nick, isResting) => {
-  if(isResting){
-    if(!confirm(`${nick}님의 휴식기를 종료하시겠습니까?`)) return;
-    await updateDoc(doc(db,'users',uid),{restActive:false, restFrom:null});
-    await addDoc(collection(db,'restlogs'),{ uid, nick, reason:'관리자 종료', applyFrom:null, endedAt:new Date().toISOString(), createdAt:new Date().toISOString(), addedByAdmin:true });
-    showToast(`${nick}님 휴식기 종료됐습니다`);
-    loadAdmin();
-    return;
-  }
-  const now = new Date();
-  const thisMonth = ym(now);
-  const nextMonth = ym(new Date(now.getFullYear(), now.getMonth()+1, 1));
-  // 기간 문자열 생성
-  function periodLabel(m){
-    const [y,mo] = m.split('-').map(Number);
-    const lastDay = new Date(y, mo, 0).getDate();
-    const startDay = (m === thisMonth) ? now.getDate() : 1;
-    return `${mo}월 ${startDay}일 ~ ${mo}월 ${lastDay}일`;
-  }
-  const applyFrom = await new Promise(resolve => {
-    const overlay = document.createElement('div');
-    overlay.style.cssText = 'position:fixed;inset:0;background:#000b;z-index:9999;display:flex;align-items:center;justify-content:center;';
-    overlay.innerHTML = `
-      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:20px 24px;min-width:240px;">
-        <div style="font-size:13px;font-weight:600;margin-bottom:14px;color:var(--text);">${nick}님 휴식기 시작 월 선택</div>
-        <div style="display:flex;flex-direction:column;gap:8px;">
-          <button class="btn btn-sm" style="background:#1a3a5a;border:1px solid #3a6a9a;" id="rt-this">이번달 (${periodLabel(thisMonth)})</button>
-          <button class="btn btn-sm" style="background:#1a2a4a;border:1px solid #3a5a8a;" id="rt-next">다음달 (${periodLabel(nextMonth)})</button>
-          <button class="btn btn-ghost btn-sm" id="rt-cancel">취소</button>
-        </div>
-      </div>`;
-    document.body.appendChild(overlay);
-    overlay.querySelector('#rt-this').onclick  = () => { document.body.removeChild(overlay); resolve(thisMonth); };
-    overlay.querySelector('#rt-next').onclick  = () => { document.body.removeChild(overlay); resolve(nextMonth); };
-    overlay.querySelector('#rt-cancel').onclick = () => { document.body.removeChild(overlay); resolve(null); };
-  });
-  if(!applyFrom) return;
-  if(!confirm(`${nick}님을 ${periodLabel(applyFrom)} 휴식기로 처리하시겠습니까?`)) return;
-  const snap = await getDoc(doc(db,'users',uid));
-  const ud = snap.exists() ? snap.data() : {};
-  await updateDoc(doc(db,'users',uid),{
-    restActive: true, restFrom: applyFrom,
-    restCount: (ud.restCount||0)+1,
-    restUsedThisPeriod: (ud.restUsedThisPeriod||0)+1
-  });
-  await addDoc(collection(db,'restlogs'),{ uid, nick, reason:'관리자 처리', applyFrom, createdAt:new Date().toISOString(), addedByAdmin:true });
-  showToast(`${nick}님 휴식기 처리됐습니다 (${periodLabel(applyFrom)})`);
-  loadAdmin();
-};
 
 window.adminPromote = async (uid, nick) => {
   if(!confirm(`${nick}님을 관리자로 승격하시겠습니까?`)) return;
@@ -2154,11 +1693,6 @@ window.adminKick = async (uid, nick) => {
   await updateDoc(doc(db,'users',uid),{active:false});
   showToast(`${nick}님 탈퇴 처리됨`); loadAdmin();
 };
-window.adminResetRest = async (uid, nick) => {
-  if(!confirm(`${nick}님의 휴식기 사용 횟수를 리셋하시겠습니까?\n(0/2회로 초기화)`)) return;
-  await updateDoc(doc(db,'users',uid),{ restUsedThisPeriod: 0, restCount: 0, lastRestReset: todayStr() });
-  showToast(`${nick}님 휴식기 리셋 완료`); loadAdmin();
-};
 window.adminRestore = async (uid, nick) => {
   if(!confirm(`${nick}님을 복구하시겠습니까?`)) return;
   await updateDoc(doc(db,'users',uid),{active:true});
@@ -2174,69 +1708,6 @@ window.adminSaveMemo = async (uid) => {
   admPage = savedPage;
   renderAdminList();
 };
-window.calcAndGiveWarning = async () => {
-  const sel = document.getElementById('auto-warn-month-select');
-  const month = sel ? sel.value : ym(new Date());
-  if(!month){ showToast('대상 월을 선택해주세요'); return; }
-  const [yr, mo] = month.split('-').map(Number);
-  // 선택 월 말일이 지나야 실행 가능
-  const lastDayOfMonth = new Date(yr, mo, 0); // mo월의 마지막 날
-  const today = new Date(); today.setHours(0,0,0,0);
-  if(today <= lastDayOfMonth){
-    showToast(`${yr}년 ${mo}월은 아직 종료되지 않았습니다 (말일: ${mo}/${lastDayOfMonth.getDate()})`);
-    return;
-  }
-  const monthStart = `${yr}-${String(mo).padStart(2,'0')}-01`;
-  const preview = document.getElementById('auto-warn-preview');
-  preview.innerHTML = '<div class="loading" style="font-size:12px;">대상자 확인 중...</div>';
-  // 해당 월 휴식기 사용 uid 미리 로드 (현재 종료됐어도 해당 월 restlogs 기준)
-  const restLogsSnap = await getDocs(query(collection(db,'restlogs'), where('applyFrom','==',month)));
-  const restingUids = new Set(restLogsSnap.docs.map(d => d.data().uid));
-  const usersSnap = await getDocs(collection(db,'users'));
-  const targets = [];
-  for(const d of usersSnap.docs){
-    const u = d.data();
-    if(!u.active) continue;
-    // 당월 가입자 제외 (joinedAt 기준)
-    if(u.joinedAt && u.joinedAt.slice(0,10) >= monthStart) continue;
-    // 해당 월 휴식기 회원 제외 (restlogs 기준 — 종료됐어도 해당 월 사용자 제외)
-    if(restingUids.has(d.id)) continue;
-    // 포인트 확인
-    const recSnap = await getDocs(query(collection(db,'records'), where('uid','==',d.id), where('month','==',month)));
-    let pts = 0;
-    recSnap.forEach(r => pts += r.data().pts||0);
-    if(pts < 2) targets.push({uid:d.id, nick:u.nick, realname:u.realname||'', pts, warnings:u.warnings||0});
-  }
-  if(!targets.length){
-    preview.innerHTML = '<div style="font-size:12px;color:#40c070;padding:4px 0;">✅ 경고 대상자가 없습니다</div>';
-    return;
-  }
-  preview.innerHTML = `<div style="background:var(--bg3);border:1px solid #ff5555aa;border-radius:8px;padding:10px;font-size:12px;">
-    <div style="color:#ff8888;margin-bottom:6px;font-weight:500;">⚠️ 경고 대상자 ${targets.length}명</div>
-    ${targets.map(t=>`<div style="color:var(--text-mid);padding:2px 0;">${t.realname||t.nick} — <span style="color:#ff8800;">${t.pts}pt</span></div>`).join('')}
-  </div>`;
-  // 해당 월 이미 자동 경고 부여했는지 체크
-  const warnDupCheck = await getDocs(query(collection(db,'warnlogs'), where('month','==',month), where('reason','==',`${month} 당월 2pt 미만 자동 경고`)));
-  if(!warnDupCheck.empty){ showToast(`⚠️ ${month}월 자동 경고가 이미 부여되었습니다`); return; }
-
-  if(!confirm(`경고 대상자 ${targets.length}명:\n${targets.map(t=>`${t.realname||t.nick} (${t.pts}pt)`).join('\n')}\n\n경고를 일괄 부여하시겠습니까?`)) return;
-  for(const t of targets){
-    const next = Math.min((t.warnings||0)+1, 3);
-    const updates = {warnings:next, lastWarnDate:todayStr()};
-    if(next>=3) updates.status='suspended';
-    else if(next>=2) updates.status='disqualified';
-    else updates.status='active';
-    await updateDoc(doc(db,'users',t.uid), updates);
-    await addDoc(collection(db,'warnlogs'),{
-      uid:t.uid, nick:t.nick, warnings:next,
-      reason:`${month} 당월 2pt 미만 자동 경고`, month,
-      date:todayStr(), createdAt:new Date().toISOString(), issuedBy:currentUser.uid
-    });
-  }
-  showToast(`✅ ${targets.length}명 경고 부여 완료`);
-  preview.innerHTML = '';
-  loadAdmin();
-};
 window.adminResetPassword = async (email, name) => {
   if(!email){ showToast('이메일 정보가 없습니다'); return; }
   if(!confirm(`${name}님(${email})에게 비밀번호 재설정 이메일을 발송하시겠습니까?`)) return;
@@ -2249,6 +1720,38 @@ window.adminResetPassword = async (email, name) => {
   }
 };
 
+let lowParticipantsData = [];
+window.calcLowParticipants = async () => {
+  const listEl = document.getElementById('low-participants-list');
+  const copyBtn = document.getElementById('copy-low-btn');
+  listEl.innerHTML = '<div class="loading" style="font-size:12px;">확인 중...</div>';
+  copyBtn.style.display = 'none';
+  lowParticipantsData = [];
+  const month = ym(new Date());
+  const usersSnap = await getDocs(collection(db,'users'));
+  for(const d of usersSnap.docs){
+    const u = d.data();
+    if(!u.active) continue;
+    const recSnap = await getDocs(query(collection(db,'records'), where('uid','==',d.id), where('month','==',month)));
+    let jarangCnt=0, naejeonCnt=0;
+    recSnap.forEach(r=>{ const rec=r.data(); if(rec.type==='jarang') jarangCnt+=(rec.games||1); if(rec.type==='naejeon') naejeonCnt++; });
+    if(jarangCnt + naejeonCnt <= 1) lowParticipantsData.push({ realname: u.realname||u.nick, nick: u.nick, total: jarangCnt+naejeonCnt });
+  }
+  if(!lowParticipantsData.length){
+    listEl.innerHTML = '<div style="font-size:12px;color:#40c070;padding:4px 0;">✅ 미참여자가 없습니다</div>';
+    return;
+  }
+  listEl.innerHTML = `<div style="background:var(--bg3);border:1px solid #ff555555;border-radius:8px;padding:10px;font-size:12px;">
+    <div style="color:#ff8888;margin-bottom:6px;font-weight:500;">미참여자 ${lowParticipantsData.length}명 (${month})</div>
+    ${lowParticipantsData.map(t=>`<div style="color:var(--text-mid);padding:2px 0;">${t.realname} (${t.nick}) — ${t.total}회</div>`).join('')}
+  </div>`;
+  copyBtn.style.display = '';
+};
+window.copyLowParticipants = () => {
+  const text = lowParticipantsData.map(t=>`${t.realname} (${t.nick})`).join('\n');
+  navigator.clipboard.writeText(text).then(()=>showToast('복사됐습니다 📋')).catch(()=>showToast('복사 실패'));
+};
+
 let showInactiveMembers = false;
 window.toggleShowInactive = () => {
   showInactiveMembers = !showInactiveMembers;
@@ -2256,16 +1759,6 @@ window.toggleShowInactive = () => {
   loadAdmin();
 };
 
-let ptsModalUid = null, ptsModalMonth = null, ptsModalCur = 0;
-window.openPtsModal = (uid, nick, pts) => {
-  ptsModalUid = uid;
-  ptsModalMonth = ym(new Date());
-  ptsModalCur = pts;
-  document.getElementById('pts-modal-name').textContent = nick + ' — ' + (new Date().getMonth()+1) + '월 (현재 ' + pts + 'pt)';
-  document.getElementById('pts-modal-val').value = pts;
-  document.getElementById('pts-modal').style.display = 'flex';
-};
-window.closePtsModal = () => { document.getElementById('pts-modal').style.display='none'; };
 
 let recManageUid = null, recManageNick = null;
 window.openRecManageModal = async (uid, nick) => {
@@ -2315,17 +1808,6 @@ window.adminDelRecord = async (rid) => {
   showToast('삭제됐습니다');
   await renderRecManageList();
   loadAdmin(); loadRanking();
-};
-window.savePtsModal = async () => {
-  const val = parseFloat(document.getElementById('pts-modal-val').value)||0;
-  const diff = Math.round((val - ptsModalCur) * 10) / 10;
-  if(diff === 0){ closePtsModal(); return; }
-  await addDoc(collection(db,'records'),{
-    uid: ptsModalUid, nick:'(관리자수정)',
-    type:'adjust', pts:diff, month:ptsModalMonth,
-    date: todayStr(), createdAt: new Date().toISOString()
-  });
-  closePtsModal(); showToast(`점수 수정 완료 (${diff>0?'+':''}${diff}pt)`); loadAdmin(); loadRanking();
 };
 
 // ── 운영 규정 ──
