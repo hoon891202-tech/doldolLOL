@@ -3044,8 +3044,8 @@ async function jpRenderSlots(){
           <span class="card-title">자랭파티</span>
           <span class="card-note" style="color:${isFull?'#40c070':'var(--text-dim)'};">${filled}/${JP_SLOTS.length}명</span>
         </div>
-        ${isFull && myUid ? `<div style="padding:12px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-          <span style="font-size:13px;">판수 입력:</span>
+        ${filled > 0 && myUid ? `<div style="padding:12px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+          <span style="font-size:13px;">판수 기록:</span>
           <select id="jp-games-sel" class="inp" style="width:120px;">
             <option value="1">1판</option>
             <option value="2">2판</option>
@@ -3084,12 +3084,13 @@ function jpRenderSlotCard(n, snap, myUid, mySlotN){
     const actionBtn = isMySlot
       ? `<button class="btn btn-ghost btn-sm" style="margin-top:8px;width:100%;" onclick="jpCancel(${n})">✅ 신청완료 (취소)</button>`
       : '';
-    const adminBtns = isAdmin ? `<div style="margin-top:6px;"><button onclick="jpAdminClose(${n})" style="font-size:11px;padding:2px 8px;background:#3a1010;border:1px solid #6a2020;color:#ff6666;border-radius:4px;cursor:pointer;">🗑 초기화</button></div>` : '';
+    const removeBtn = myUid && !isMySlot ? `<button onclick="jpRemove(${n})" style="font-size:11px;padding:2px 6px;background:#3a1010;border:1px solid #6a2020;color:#ff6666;border-radius:4px;cursor:pointer;margin-left:6px;">제외</button>` : '';
     content = `<div>
-      <div style="padding:8px 0;">
+      <div style="padding:8px 0;display:flex;align-items:center;">
         <span style="font-size:14px;color:#ffffff;font-weight:600;">${occupiedNick||occupiedUid}</span>
+        ${removeBtn}
       </div>
-      ${actionBtn}${adminBtns}
+      ${actionBtn}
     </div>`;
   }
 
@@ -3126,6 +3127,13 @@ window.jpCancel = async (n) => {
   if(!snap.exists() || snap.data().uid !== currentUser.uid){ showToast('신청 내역이 없습니다'); await jpRenderSlots(); return; }
   await setDoc(slotRef, {});
   showToast('자랭파티 신청을 취소했습니다');
+  await jpRenderSlots();
+};
+
+window.jpRemove = async (n) => {
+  if(!currentUser) return;
+  await setDoc(doc(db,'jarPartySlots',`slot${n}`), {});
+  showToast(`자랭파티 ${n} 제외됐습니다`);
   await jpRenderSlots();
 };
 
