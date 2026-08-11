@@ -411,6 +411,7 @@ select.inp option{background:#1e1e1e;}
   <div id="jp-time-card" style="display:none;margin-bottom:12px;" class="card">
     <div class="card-header"><span class="card-icon">⏰</span><span id="jp-time-display" class="card-title" style="color:#88ccff;"></span></div>
   </div>
+  <div id="jp-count-card" style="margin-bottom:12px;"></div>
   <div id="jp-slots-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;"></div>
   <div class="card">
     <div class="card-header"><span class="card-icon">📋</span><span class="card-title">자랭파티 기록</span><span class="card-note">날짜별</span></div>
@@ -3031,7 +3032,31 @@ async function jpRenderSlots(){
     if(jpTimeEl)   jpTimeEl.textContent = jpTime || '';
     const myUid = currentUser ? currentUser.uid : null;
     const mySlotN = myUid ? JP_SLOTS.find((s,i) => snaps[i].exists() && snaps[i].data().uid === myUid) : null;
+    const filled = snaps.filter(s => s.exists() && s.data().uid).length;
     grid.innerHTML = snaps.map((snap,i) => jpRenderSlotCard(i+1, snap, myUid, mySlotN)).join('');
+
+    const countCard = document.getElementById('jp-count-card');
+    if(countCard){
+      const isFull = filled === JP_SLOTS.length;
+      countCard.innerHTML = `<div class="card">
+        <div class="card-header">
+          <span class="card-icon">👥</span>
+          <span class="card-title">자랭파티</span>
+          <span class="card-note" style="color:${isFull?'#40c070':'var(--text-dim)'};">${filled}/${JP_SLOTS.length}명</span>
+        </div>
+        ${isFull && myUid ? `<div style="padding:12px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+          <span style="font-size:13px;">판수 입력:</span>
+          <select id="jp-games-sel" class="inp" style="width:120px;">
+            <option value="1">1판</option>
+            <option value="2">2판</option>
+            <option value="3">3판</option>
+            <option value="4">4판</option>
+            <option value="5">5판</option>
+          </select>
+          <button class="btn btn-red btn-sm" onclick="jpRecordGames()">✅ 기록 완료</button>
+        </div>` : ''}
+      </div>`;
+    }
   } catch(e){ console.error('jpRenderSlots error:', e); }
 }
 
@@ -3110,6 +3135,27 @@ window.jpAdminClose = async (n) => {
   await setDoc(doc(db,'jarPartySlots',`slot${n}`), {});
   showToast(`자랭파티 ${n} 초기화됐습니다`);
   await jpRenderSlots();
+};
+
+window.jpRecordGames = async () => {
+  if(!currentUser) return;
+  const games = parseInt(document.getElementById('jp-games-sel')?.value || '1', 10);
+  const allSnaps = await Promise.all(JP_SLOTS.map(n => getDoc(doc(db,'jarPartySlots',`slot${n}`))));
+  const players = allSnaps.filter(s => s.exists() && s.data().uid).map(s => s.data());
+  if(players.length === 0){ showToast('신청된 인원이 없습니다'); return; }
+  const now = new Date();
+  const dateStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+  const month = dateStr.slice(0,7);
+  for(const p of players){
+    await addDoc(collection(db,'records'),{
+      uid:p.uid, nick:p.nick, type:'jarang', date:dateStr, games, pts:games*0.5, month, createdAt:new Date().toISOString()
+    });
+  }
+  await Promise.all(JP_SLOTS.map(n => setDoc(doc(db,'jarPartySlots',`slot${n}`), {})));
+  await setDoc(doc(db,'jarPartyInfo','current'), {time:''});
+  showToast(`자랭파티 ${games}판 기록 완료! ${players.length}명`);
+  await jpRenderSlots();
+  await loadJpHistory();
 };
 
 async function loadJpHistory(){
