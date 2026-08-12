@@ -2602,17 +2602,36 @@ window.njAutoSuggest = (game) => {
   suggestions.push({label:'안 5 — 완전 최적 균형', desc:'252가지 5vs5 조합을 전부 탐색해 포인트 격차가 가장 적은 배분 도출',
     ...optimizeSwap(bestT5a, bestT5b)});
 
-  // 포인트 격차 최소 안을 자동 적용
-  const best = suggestions.reduce((a, b) => a.diff <= b.diff ? a : b);
-  const autoPlayers = njPlayers[game];
-  autoPlayers.forEach(p => p.loc = 'pool');
-  best.t1.forEach(p => { const pl = autoPlayers.find(x => x.uid === p.uid); if(pl) pl.loc = `t1-${p.assignedPos}`; });
-  best.t2.forEach(p => { const pl = autoPlayers.find(x => x.uid === p.uid); if(pl) pl.loc = `t2-${p.assignedPos}`; });
-  renderNjPlayers(game);
-  setDoc(doc(db,'naejeonArrange',`game${game}`), {players: autoPlayers.map(p=>({uid:p.uid,loc:p.loc})), updatedAt:new Date()}).catch(()=>{});
+  // 5개 제안안을 카드로 표시
+  window[`_njSuggestions_${game}`] = suggestions;
   const tNamesAuto = game===1 ? ['1팀','2팀'] : ['3팀','4팀'];
-  const s1Auto = teamScore(best.t1), s2Auto = teamScore(best.t2);
-  showToast(`⚡ 자동 팀 구성 완료! 격차 ${best.diff}pt — ${tNamesAuto[0]} ${s1Auto}pt / ${tNamesAuto[1]} ${s2Auto}pt`);
+  const bestDiffVal = Math.min(...suggestions.map(s=>s.diff));
+  const sugEl = document.getElementById(`nj${game}-suggestions`);
+  if(!sugEl) return;
+  sugEl.innerHTML = suggestions.map((s,i) => {
+    const t1names = s.t1.map(p=>`<span style="font-size:10px;">${p.assignedPos} ${p.realname||p.nick}</span>`).join(' ');
+    const t2names = s.t2.map(p=>`<span style="font-size:10px;">${p.assignedPos} ${p.realname||p.nick}</span>`).join(' ');
+    const isBest = s.diff === bestDiffVal;
+    return `<div style="background:var(--bg3);border:1px solid ${isBest?'var(--green)':'var(--border)'};border-radius:8px;padding:10px;margin-bottom:8px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px;">
+        <span style="font-weight:700;font-size:13px;color:var(--text);">${s.label}${isBest?' ⭐':''}</span>
+        <span style="font-size:11px;color:var(--blue);font-weight:700;">격차 ${s.diff}pt</span>
+      </div>
+      <div style="font-size:11px;color:var(--text-dim);margin-bottom:7px;">${s.desc}</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px;">
+        <div style="background:var(--bg4);border-radius:5px;padding:5px;">
+          <div style="font-size:11px;color:#ff5555;font-weight:700;margin-bottom:3px;">🔴 ${tNamesAuto[0]} ${teamScore(s.t1)}pt</div>
+          <div style="display:flex;flex-direction:column;gap:2px;">${t1names}</div>
+        </div>
+        <div style="background:var(--bg4);border-radius:5px;padding:5px;">
+          <div style="font-size:11px;color:#5090d0;font-weight:700;margin-bottom:3px;">🔵 ${tNamesAuto[1]} ${teamScore(s.t2)}pt</div>
+          <div style="display:flex;flex-direction:column;gap:2px;">${t2names}</div>
+        </div>
+      </div>
+      <button class="btn btn-sm" style="background:var(--green);color:#fff;border:none;width:100%;" onclick="njApplySuggestion(${game},${i})">✅ 이 배분 적용</button>
+    </div>`;
+  }).join('');
+  sugEl.style.display = 'block';
 };
 
 window.njApplySuggestion = (game, idx) => {
@@ -2622,8 +2641,6 @@ window.njApplySuggestion = (game, idx) => {
   const players = njPlayers[game];
   // 전원 pool로 초기화
   players.forEach(p => p.loc = 'pool');
-  // 배정
-  const tNames = game===1 ? ['t1','t2'] : ['t1','t2'];
   t1.forEach(p => { const player = players.find(x => x.uid === p.uid); if(player) player.loc = `t1-${p.assignedPos}`; });
   t2.forEach(p => { const player = players.find(x => x.uid === p.uid); if(player) player.loc = `t2-${p.assignedPos}`; });
   renderNjPlayers(game);
