@@ -408,11 +408,7 @@ select.inp option{background:#1e1e1e;}
 <!-- ══ 자랭파티 ══ -->
 <div id="page-jarparty" class="page">
 <div class="wrap">
-  <div id="jp-time-card" style="display:none;margin-bottom:12px;" class="card">
-    <div class="card-header"><span class="card-icon">⏰</span><span id="jp-time-display" class="card-title" style="color:#88ccff;"></span></div>
-  </div>
-  <div id="jp-count-card" style="margin-bottom:12px;"></div>
-  <div id="jp-slots-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;"></div>
+  <div id="jp-groups-container" style="margin-bottom:14px;"></div>
   <div class="card">
     <div class="card-header"><span class="card-icon">📋</span><span class="card-title">자랭파티 기록</span><span class="card-note">날짜별</span></div>
     <div id="jp-history" style="padding:12px;"><div class="loading">불러오는 중...</div></div>
@@ -3001,155 +2997,101 @@ window.njDeleteSession = async function(sid){
 };
 
 // ── 자랭파티 시스템 ──
-const JP_SLOTS = [1,2,3,4,5];
+const JP_GROUPS = [1,2,3,4,5];
+const JP_SLOTS_PER_GROUP = [1,2,3,4,5];
 let jpHistoryDocs = [];
 let jpHistoryPage = 1;
 const JP_HISTORY_PER_PAGE = 10;
 
 async function loadJarPartyPage(){
-  // 슬롯 문서가 없으면 생성 (카카오 웹훅이 빈 슬롯을 인식할 수 있도록)
-  await Promise.all(JP_SLOTS.map(async n => {
-    const ref = doc(db,'jarPartySlots',`slot${n}`);
-    const s = await getDoc(ref);
-    if(!s.exists()) await setDoc(ref, {});
-  }));
-  await jpRenderSlots();
+  await jpRenderAllGroups();
   await loadJpHistory();
 }
 
-async function jpRenderSlots(){
-  const grid = document.getElementById('jp-slots-grid');
-  if(!grid) return;
+async function jpRenderAllGroups(){
+  const container = document.getElementById('jp-groups-container');
+  if(!container) return;
   try {
-    const [snaps, timeSnap] = await Promise.all([
-      Promise.all(JP_SLOTS.map(n => getDoc(doc(db,'jarPartySlots',`slot${n}`)))),
-      getDoc(doc(db,'jarPartyInfo','current'))
-    ]);
-    const jpTime = timeSnap.exists() ? timeSnap.data().time || '' : '';
-    const jpTimeCard = document.getElementById('jp-time-card');
-    const jpTimeEl   = document.getElementById('jp-time-display');
-    if(jpTimeCard) jpTimeCard.style.display = jpTime ? 'block' : 'none';
-    if(jpTimeEl)   jpTimeEl.textContent = jpTime || '';
     const myUid = currentUser ? currentUser.uid : null;
-    const mySlotN = myUid ? JP_SLOTS.find((s,i) => snaps[i].exists() && snaps[i].data().uid === myUid) : null;
-    const filled = snaps.filter(s => s.exists() && s.data().uid).length;
-    grid.innerHTML = snaps.map((snap,i) => jpRenderSlotCard(i+1, snap, myUid, mySlotN)).join('');
+    const allSlotSnaps = await Promise.all(
+      JP_GROUPS.flatMap(g => JP_SLOTS_PER_GROUP.map(n => getDoc(doc(db,'jarPartySlots',`g${g}-slot${n}`))))
+    );
+    const timeSnap = await getDoc(doc(db,'jarPartyInfo','current'));
+    const jpTime = timeSnap.exists() ? timeSnap.data().time || '' : '';
 
-    const countCard = document.getElementById('jp-count-card');
-    if(countCard){
-      const isFull = filled === JP_SLOTS.length;
-      countCard.innerHTML = `<div class="card">
-        <div class="card-header">
-          <span class="card-icon">👥</span>
-          <span class="card-title">자랭파티</span>
-          <span class="card-note" style="color:${isFull?'#40c070':'var(--text-dim)'};">${filled}/${JP_SLOTS.length}명</span>
-        </div>
-        ${filled > 0 && myUid ? `<div style="padding:12px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-          <span style="font-size:13px;">판수 기록:</span>
-          <select id="jp-games-sel" class="inp" style="width:120px;">
-            <option value="1">1판</option>
-            <option value="2">2판</option>
-            <option value="3">3판</option>
-            <option value="4">4판</option>
-            <option value="5">5판</option>
-          </select>
-          <button class="btn btn-red btn-sm" onclick="jpRecordGames()">✅ 기록 완료</button>
-        </div>` : ''}
-      </div>`;
+    let html = '';
+    if(jpTime) html += `<div class="card" style="margin-bottom:10px;"><div class="card-header"><span class="card-icon">⏰</span><span class="card-title" style="color:#88ccff;">${jpTime}</span></div></div>`;
+    html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">';
+
+    for(let gi=0; gi<JP_GROUPS.length; gi++){
+      const g = JP_GROUPS[gi];
+      const groupSnaps = allSlotSnaps.slice(gi*5, gi*5+5);
+      const filled = groupSnaps.filter(s => s.exists() && s.data().uid).length;
+      const isFull = filled === 5;
+      const slot1Data = groupSnaps[0].exists() ? groupSnaps[0].data() : {};
+      const isSlot1Mine = !!(myUid && slot1Data.uid === myUid);
+      const mySlotN = myUid ? JP_SLOTS_PER_GROUP.find((_,i) => groupSnaps[i].exists() && groupSnaps[i].data().uid === myUid) : null;
+
+      let slotsHtml = '';
+      for(let si=0; si<JP_SLOTS_PER_GROUP.length; si++){
+        const n = JP_SLOTS_PER_GROUP[si];
+        const snap = groupSnaps[si];
+        const slotD = snap.exists() ? snap.data() : {};
+        const occupiedUid = slotD.uid || null;
+        const isOccupied = !!occupiedUid;
+        const isMySlot = isOccupied && occupiedUid === myUid;
+        if(isOccupied){
+          const removeBtn = myUid && !isMySlot ? `<button onclick="jpRemove(${g},${n})" style="font-size:10px;padding:1px 5px;background:#3a1010;border:1px solid #6a2020;color:#ff6666;border-radius:4px;cursor:pointer;margin-left:4px;">제외</button>` : '';
+          const cancelBtn = isMySlot ? `<button onclick="jpCancel(${g},${n})" style="font-size:10px;padding:1px 5px;background:#1a3a1a;border:1px solid #205020;color:#70e070;border-radius:4px;cursor:pointer;margin-left:4px;">취소</button>` : '';
+          slotsHtml += `<div style="display:flex;align-items:center;padding:4px 0;border-bottom:1px solid var(--border);"><span style="font-size:10px;color:var(--text-dim);width:16px;flex-shrink:0;">${n}</span><span style="font-size:13px;color:#fff;font-weight:600;flex:1;">${slotD.nick||slotD.uid}</span>${removeBtn}${cancelBtn}</div>`;
+        } else {
+          const applyBtn = myUid && !mySlotN ? `<button onclick="jpApply(${g},${n})" style="font-size:10px;padding:1px 7px;background:var(--red);border:none;color:#fff;border-radius:4px;cursor:pointer;margin-left:4px;">신청</button>` : '';
+          slotsHtml += `<div style="display:flex;align-items:center;padding:4px 0;border-bottom:1px solid var(--border);"><span style="font-size:10px;color:var(--text-dim);width:16px;flex-shrink:0;">${n}</span><span style="font-size:12px;color:var(--text-dim);flex:1;">빈 자리</span>${applyBtn}</div>`;
+        }
+      }
+
+      const recordHtml = isSlot1Mine && filled > 0 ? `<div style="padding:6px 10px;border-top:1px solid var(--border);display:flex;align-items:center;gap:6px;flex-wrap:wrap;"><span style="font-size:11px;color:var(--text-dim);">판수:</span><input id="jp-games-input-${g}" type="number" min="1" max="20" value="1" class="inp" style="width:55px;padding:3px 6px;font-size:12px;"><button class="btn btn-red btn-sm" style="font-size:11px;" onclick="jpRecordGames(${g})">✅ 기록</button></div>` : '';
+
+      html += `<div class="card"><div class="card-header"><span class="card-icon">🎮</span><span class="card-title">자랭${g}</span><span class="card-note" style="color:${isFull?'#40c070':'var(--text-dim)'};">${filled}/5명</span></div><div style="padding:8px 10px;">${slotsHtml}</div>${recordHtml}</div>`;
     }
-  } catch(e){ console.error('jpRenderSlots error:', e); }
+    html += '</div>';
+    container.innerHTML = html;
+  } catch(e){ console.error('jpRenderAllGroups error:', e); }
 }
 
-function jpRenderSlotCard(n, snap, myUid, mySlotN){
-  const slot = snap.exists() ? snap.data() : {};
-  const occupiedUid = slot.uid || null;
-  const occupiedNick = slot.nick || null;
-  const isOccupied = !!occupiedUid;
-  const isMySlot = isOccupied && occupiedUid === myUid;
-  const alreadyInOther = !!mySlotN && mySlotN !== n;
-
-  let content = '';
-  if(!isOccupied){
-    let applyBtn = '';
-    if(myUid && !alreadyInOther){
-      applyBtn = `<button class="btn btn-red btn-sm" style="margin-top:10px;width:100%;" onclick="jpApply(${n})">신청하기</button>`;
-    } else if(myUid && alreadyInOther){
-      applyBtn = '<div style="font-size:12px;color:var(--text-dim);text-align:center;margin-top:10px;">다른 슬롯에 신청됨</div>';
-    }
-    content = `<div style="text-align:center;padding:14px 0;">
-      <div style="font-size:13px;color:var(--text-dim);">빈 자리</div>
-      ${applyBtn}
-    </div>`;
-  } else {
-    const actionBtn = isMySlot
-      ? `<button class="btn btn-ghost btn-sm" style="margin-top:8px;width:100%;" onclick="jpCancel(${n})">✅ 신청완료 (취소)</button>`
-      : '';
-    const removeBtn = myUid && !isMySlot ? `<button onclick="jpRemove(${n})" style="font-size:11px;padding:2px 6px;background:#3a1010;border:1px solid #6a2020;color:#ff6666;border-radius:4px;cursor:pointer;margin-left:6px;">제외</button>` : '';
-    content = `<div>
-      <div style="padding:8px 0;display:flex;align-items:center;">
-        <span style="font-size:14px;color:#ffffff;font-weight:600;">${occupiedNick||occupiedUid}</span>
-        ${removeBtn}
-      </div>
-      ${actionBtn}
-    </div>`;
-  }
-
-  const headerNote = isOccupied
-    ? '<span class="card-note" style="color:#40c070;">신청완료</span>'
-    : '<span class="card-note">빈 자리</span>';
-
-  return `<div class="card">
-    <div class="card-header">
-      <span class="card-icon">🎮</span>
-      <span class="card-title">자랭파티 ${n}</span>
-      <span style="margin-left:auto;">${headerNote}</span>
-    </div>
-    <div style="padding:12px;">${content}</div>
-  </div>`;
-}
-
-window.jpApply = async (n) => {
+window.jpApply = async (g, n) => {
   if(!currentUser || !currentProfile) return;
-  const slotRef = doc(db,'jarPartySlots',`slot${n}`);
-  const allSnaps = await Promise.all(JP_SLOTS.map(k => getDoc(doc(db,'jarPartySlots',`slot${k}`))));
-  if(allSnaps.some(s => s.exists() && s.data().uid === currentUser.uid)){ showToast('이미 자랭파티에 신청되어 있습니다'); return; }
-  const slotSnap = allSnaps[n-1];
-  if(slotSnap.exists() && slotSnap.data().uid){ showToast('이미 신청된 자리입니다'); await jpRenderSlots(); return; }
-  await setDoc(slotRef, { uid: currentUser.uid, nick: currentProfile.nick }, { merge: true });
-  showToast(`자랭파티 ${n} 신청 완료!`);
-  await jpRenderSlots();
+  const groupSnaps = await Promise.all(JP_SLOTS_PER_GROUP.map(k => getDoc(doc(db,'jarPartySlots',`g${g}-slot${k}`))));
+  if(groupSnaps.some(s => s.exists() && s.data().uid === currentUser.uid)){ showToast('이미 이 그룹에 신청되어 있습니다'); return; }
+  const slotSnap = groupSnaps[n-1];
+  if(slotSnap.exists() && slotSnap.data().uid){ showToast('이미 신청된 자리입니다'); await jpRenderAllGroups(); return; }
+  await setDoc(doc(db,'jarPartySlots',`g${g}-slot${n}`), { uid: currentUser.uid, nick: currentProfile.nick }, { merge: true });
+  showToast(`자랭${g} ${n}번 신청 완료!`);
+  await jpRenderAllGroups();
 };
 
-window.jpCancel = async (n) => {
+window.jpCancel = async (g, n) => {
   if(!currentUser) return;
-  const slotRef = doc(db,'jarPartySlots',`slot${n}`);
-  const snap = await getDoc(slotRef);
-  if(!snap.exists() || snap.data().uid !== currentUser.uid){ showToast('신청 내역이 없습니다'); await jpRenderSlots(); return; }
-  await setDoc(slotRef, {});
+  const snap = await getDoc(doc(db,'jarPartySlots',`g${g}-slot${n}`));
+  if(!snap.exists() || snap.data().uid !== currentUser.uid){ showToast('신청 내역이 없습니다'); await jpRenderAllGroups(); return; }
+  await setDoc(doc(db,'jarPartySlots',`g${g}-slot${n}`), {});
   showToast('자랭파티 신청을 취소했습니다');
-  await jpRenderSlots();
+  await jpRenderAllGroups();
 };
 
-window.jpRemove = async (n) => {
+window.jpRemove = async (g, n) => {
   if(!currentUser) return;
-  await setDoc(doc(db,'jarPartySlots',`slot${n}`), {});
-  showToast(`자랭파티 ${n} 제외됐습니다`);
-  await jpRenderSlots();
+  await setDoc(doc(db,'jarPartySlots',`g${g}-slot${n}`), {});
+  showToast(`자랭${g} ${n}번 제외됐습니다`);
+  await jpRenderAllGroups();
 };
 
-window.jpAdminClose = async (n) => {
-  if(!isAdmin) return;
-  if(!confirm(`자랭파티 ${n}을 초기화하시겠습니까?`)) return;
-  await setDoc(doc(db,'jarPartySlots',`slot${n}`), {});
-  showToast(`자랭파티 ${n} 초기화됐습니다`);
-  await jpRenderSlots();
-};
-
-window.jpRecordGames = async () => {
+window.jpRecordGames = async (g) => {
   if(!currentUser) return;
-  const games = parseInt(document.getElementById('jp-games-sel')?.value || '1', 10);
-  const allSnaps = await Promise.all(JP_SLOTS.map(n => getDoc(doc(db,'jarPartySlots',`slot${n}`))));
-  const players = allSnaps.filter(s => s.exists() && s.data().uid).map(s => s.data());
+  const games = parseInt(document.getElementById(`jp-games-input-${g}`)?.value || '1', 10);
+  if(isNaN(games) || games < 1){ showToast('올바른 판수를 입력해주세요'); return; }
+  const groupSnaps = await Promise.all(JP_SLOTS_PER_GROUP.map(n => getDoc(doc(db,'jarPartySlots',`g${g}-slot${n}`))));
+  const players = groupSnaps.filter(s => s.exists() && s.data().uid).map(s => s.data());
   if(players.length === 0){ showToast('신청된 인원이 없습니다'); return; }
   const now = new Date();
   const dateStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
@@ -3159,10 +3101,9 @@ window.jpRecordGames = async () => {
       uid:p.uid, nick:p.nick, type:'jarang', date:dateStr, games, pts:games*0.5, month, createdAt:new Date().toISOString()
     });
   }
-  await Promise.all(JP_SLOTS.map(n => setDoc(doc(db,'jarPartySlots',`slot${n}`), {})));
-  await setDoc(doc(db,'jarPartyInfo','current'), {time:''});
-  showToast(`자랭파티 ${games}판 기록 완료! ${players.length}명`);
-  await jpRenderSlots();
+  await Promise.all(JP_SLOTS_PER_GROUP.map(n => setDoc(doc(db,'jarPartySlots',`g${g}-slot${n}`), {})));
+  showToast(`자랭${g} ${games}판 기록 완료! ${players.length}명`);
+  await jpRenderAllGroups();
   await loadJpHistory();
 };
 
@@ -3299,10 +3240,13 @@ async function comboRender(){
       const rows = Array.from({length:cfg.perGroup},(_,i)=>_comboSlotRow(gd[i+1], myUid&&gd[i+1]?.uid===myUid, type, 1, i+1)).join('');
       const btn = (myUid&&!myApplied&&filled<cfg.perGroup)
         ? `<button class="btn btn-red btn-sm" style="width:100%;margin-top:8px;font-size:11px;" onclick="comboApply('${type}',1)">신청</button>` : '';
+      const slot1Data = gd[1];
+      const isSlot1Mine = !!(myUid && slot1Data?.uid === myUid);
+      const recordHtml = isSlot1Mine && filled > 0 ? `<div style="padding:6px 12px;border-top:1px solid var(--border);display:flex;align-items:center;gap:6px;flex-wrap:wrap;"><span style="font-size:11px;color:var(--text-dim);">판수:</span><input id="combo-games-input-${type}" type="number" min="1" max="20" value="1" class="inp" style="width:55px;padding:3px 6px;font-size:12px;"><button class="btn btn-red btn-sm" style="font-size:11px;" onclick="comboRecordGames('${type}')">✅ 기록</button></div>` : '';
       const sec = document.getElementById(`combo-${type}-section`);
       if(sec) sec.innerHTML = `<div class="card" style="height:100%;">
         <div class="card-header"><span class="card-icon">${cfg.icon}</span><span class="card-title">${cfg.label}</span><span class="card-note">${filled}/${cfg.perGroup}명</span></div>
-        <div style="padding:12px;">${rows}${btn}</div></div>`;
+        <div style="padding:12px;">${rows}${btn}</div>${recordHtml}</div>`;
     }
   } catch(e){ console.error('comboRender error:', e); }
 }
@@ -3345,6 +3289,28 @@ window.comboAdminRemove = async (type, group, member) => {
   if(!isAdmin) return;
   await setDoc(doc(db,'comboSlots',`${type}-${group}-${member}`),{});
   showToast('제거됐습니다');
+  await comboRender();
+};
+
+window.comboRecordGames = async (type) => {
+  if(!currentUser) return;
+  const cfg = COMBO_CFG[type];
+  if(!cfg) return;
+  const games = parseInt(document.getElementById(`combo-games-input-${type}`)?.value || '1', 10);
+  if(isNaN(games) || games < 1){ showToast('올바른 판수를 입력해주세요'); return; }
+  const snaps = await Promise.all(Array.from({length:cfg.perGroup},(_,i) => getDoc(doc(db,'comboSlots',`${type}-1-${i+1}`))));
+  const players = snaps.filter(s => s.exists() && s.data().uid).map(s => s.data());
+  if(players.length === 0){ showToast('신청된 인원이 없습니다'); return; }
+  const now = new Date();
+  const dateStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+  const month = dateStr.slice(0,7);
+  for(const p of players){
+    await addDoc(collection(db,'records'),{
+      uid:p.uid, nick:p.nick, type:'jarang', date:dateStr, games, pts:games*0.5, month, createdAt:new Date().toISOString()
+    });
+  }
+  await Promise.all(Array.from({length:cfg.perGroup},(_,i) => setDoc(doc(db,'comboSlots',`${type}-1-${i+1}`),{})));
+  showToast(`${cfg.label} ${games}판 기록 완료! ${players.length}명`);
   await comboRender();
 };
 
