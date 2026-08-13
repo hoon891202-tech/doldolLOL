@@ -1,13 +1,13 @@
 {
-  "name": "롤슐랭 LOLCHELIN",
-  "short_name": "롤슐랭",
-  "description": "LoL 내전 커뮤니티 관리 앱",
+  "name": "돌돌LOL",
+  "short_name": "돌돌LOL",
+  "description": "돌돌LOL 내전 커뮤니티",
   "start_url": "/lolchelin/",
   "scope": "/lolchelin/",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#2c3150",
-  "theme_color": "#cc1a1a",
+  "background_color": "#1a1a2e",
+  "theme_color": "#00a882",
   "lang": "ko",
   "icons": [
     {
