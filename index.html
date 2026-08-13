@@ -247,22 +247,14 @@ select.inp option{background:#f0fdf8;color:#1a2e2c;}
         <option value="G">골드</option><option value="S">실버</option>
         <option value="B">브론즈</option><option value="I">아이언</option>
       </select>
-      <select id="signup-main" class="auth-field inp">
-        <option value="">주 라인 선택</option>
-        <option>탑</option><option>정글</option><option>미드</option>
-        <option>원딜</option><option>서폿</option>
-      </select>
-      <select id="signup-sub" class="auth-field inp">
-        <option value="">부 라인 선택</option>
-        <option>탑</option><option>정글</option><option>미드</option>
-        <option>원딜</option><option>서폿</option>
-      </select>
-      <select id="signup-sub2" class="auth-field inp">
-        <option value="">부2 라인 선택</option>
-        <option>탑</option><option>정글</option><option>미드</option>
-        <option>원딜</option><option>서폿</option>
-        <option value="all">다른 라인 상관없음</option>
-      </select>
+      <div style="font-size:11px;color:var(--text-dim);text-align:left;padding:4px 0;">포지션 점수 (0=희망안함, 1~100)</div>
+      <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;">
+        <div style="text-align:center;"><div style="font-size:10px;color:var(--text-dim);margin-bottom:3px;">탑</div><input id="signup-score-top" class="auth-field inp" type="number" min="0" max="100" placeholder="0" style="text-align:center;padding:5px;"></div>
+        <div style="text-align:center;"><div style="font-size:10px;color:var(--text-dim);margin-bottom:3px;">정글</div><input id="signup-score-jungle" class="auth-field inp" type="number" min="0" max="100" placeholder="0" style="text-align:center;padding:5px;"></div>
+        <div style="text-align:center;"><div style="font-size:10px;color:var(--text-dim);margin-bottom:3px;">미드</div><input id="signup-score-mid" class="auth-field inp" type="number" min="0" max="100" placeholder="0" style="text-align:center;padding:5px;"></div>
+        <div style="text-align:center;"><div style="font-size:10px;color:var(--text-dim);margin-bottom:3px;">원딜</div><input id="signup-score-adc" class="auth-field inp" type="number" min="0" max="100" placeholder="0" style="text-align:center;padding:5px;"></div>
+        <div style="text-align:center;"><div style="font-size:10px;color:var(--text-dim);margin-bottom:3px;">서폿</div><input id="signup-score-support" class="auth-field inp" type="number" min="0" max="100" placeholder="0" style="text-align:center;padding:5px;"></div>
+      </div>
       <button class="auth-btn" onclick="doSignup()">가입하기</button>
     </div>
     <div id="auth-err" class="auth-err"></div>
@@ -640,26 +632,9 @@ select.inp option{background:#f0fdf8;color:#1a2e2c;}
           </select>
         </div>
       </div>
-      <div style="display:flex;gap:12px;flex-wrap:wrap;">
-        <div style="flex:1;min-width:140px;">
-          <div style="font-size:11px;color:var(--text-dim);margin-bottom:5px;letter-spacing:1px;">주 라인</div>
-          <select id="my-main" class="inp" style="width:100%;">
-            <option>탑</option><option>정글</option><option>미드</option><option>원딜</option><option>서폿</option>
-          </select>
-        </div>
-        <div style="flex:1;min-width:140px;">
-          <div style="font-size:11px;color:var(--text-dim);margin-bottom:5px;letter-spacing:1px;">부 라인</div>
-          <select id="my-sub" class="inp" style="width:100%;">
-            <option>탑</option><option>정글</option><option>미드</option><option>원딜</option><option>서폿</option>
-          </select>
-        </div>
-        <div style="flex:1;min-width:140px;">
-          <div style="font-size:11px;color:var(--text-dim);margin-bottom:5px;letter-spacing:1px;">부2 라인</div>
-          <select id="my-sub2" class="inp" style="width:100%;">
-            <option>탑</option><option>정글</option><option>미드</option><option>원딜</option><option>서폿</option>
-            <option value="all">다른 라인 상관없음</option>
-          </select>
-        </div>
+      <div>
+        <div style="font-size:11px;color:var(--text-dim);margin-bottom:5px;letter-spacing:1px;">내전 포지션 점수 <span style="color:#80c0a0;">(관리자 설정 — 0=희망안함)</span></div>
+        <div id="my-pos-scores" style="display:flex;gap:6px;flex-wrap:wrap;padding:8px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;min-height:34px;font-size:12px;color:var(--text-dim);">로딩 중...</div>
       </div>
       <div style="display:flex;gap:12px;flex-wrap:wrap;">
         <div style="flex:1;min-width:200px;">
@@ -829,8 +804,9 @@ setPersistence(auth, browserLocalPersistence);
 const ADMIN_UIDS = ["0vg5Ki56xZTSNh7JJRqOOSUZ3zn1"];
 
 const TIER_NAMES = {C:'챌린저',GM:'그마',M:'마스터',D:'다이아',E:'에메',P:'플레',G:'골드',S:'실버',B:'브론즈',I:'아이언'};
-const BALANCE_TIERS = ['','아이언 하','아이언 중','아이언 상','브론즈 하','브론즈 중','브론즈 상','실버 하','실버 중','실버 상','골드 하','골드 중','골드 상','플래티넘 하','플래티넘 중','플래티넘 상','에메랄드 하','에메랄드 중','에메랄드 상','다이아 하','다이아 중','다이아 상','마스터 하','마스터 중','마스터 상'];
-function btLabel(bt, bs){ const l=BALANCE_TIERS[bt]; if(!l) return ''; const s=Number(bs)||0; const si=s>0?`<span style="color:#88ff88;font-size:9px;margin-left:2px;">+${s}</span>`:s<0?`<span style="color:#ff8888;font-size:9px;margin-left:2px;">${s}</span>`:''; return `<span style="font-size:10px;background:#1a2a4a;color:#88bbff;border:1px solid #3a5a8a;padding:1px 5px;border-radius:8px;white-space:nowrap;flex-shrink:0;">밸 ${l}${si}</span>`; }
+const POS_SCORE_MAP = {탑:'scoreTop',정글:'scoreJungle',미드:'scoreMid',원딜:'scoreAdc',서폿:'scoreSupport'};
+const POS_LABELS = ['탑','정글','미드','원딜','서폿'];
+function posScoreBadge(u){ return POS_LABELS.filter(pos=>(u[POS_SCORE_MAP[pos]]||0)>0).map(pos=>`<span style="font-size:10px;background:#1a2a4a;color:#88bbff;border:1px solid #3a5a8a;padding:1px 5px;border-radius:8px;white-space:nowrap;flex-shrink:0;">${pos} ${u[POS_SCORE_MAP[pos]]}pt</span>`).join(''); }
 // 최고티어(고정) + 현재솔랭(랭크+LP) 항상 둘 다 표시
 const RANK_NUM = {I:'1', II:'2', III:'3', IV:'4'};
 function tierBadges(tier, currentTier, size='10px', currentRank='', currentLP=''){
@@ -876,14 +852,18 @@ window.doSignup = async () => {
   const email = document.getElementById('signup-email').value.trim();
   const pw = document.getElementById('signup-pw').value;
   const tier = document.getElementById('signup-tier').value;
-  const main = document.getElementById('signup-main').value;
-  const sub = document.getElementById('signup-sub').value;
-  const sub2 = document.getElementById('signup-sub2').value;
-  if(!nick||!realname||!birthyear||!email||!pw||!tier||!main||!sub||!sub2){ document.getElementById('auth-err').textContent='모든 항목을 입력해주세요'; return; }
+  const clampScore = v => Math.max(0, Math.min(100, parseInt(v)||0));
+  const scoreTop = clampScore(document.getElementById('signup-score-top').value);
+  const scoreJungle = clampScore(document.getElementById('signup-score-jungle').value);
+  const scoreMid = clampScore(document.getElementById('signup-score-mid').value);
+  const scoreAdc = clampScore(document.getElementById('signup-score-adc').value);
+  const scoreSupport = clampScore(document.getElementById('signup-score-support').value);
+  if(!nick||!realname||!birthyear||!email||!pw||!tier){ document.getElementById('auth-err').textContent='모든 항목을 입력해주세요'; return; }
   try {
     const cred = await createUserWithEmailAndPassword(auth, email, pw);
     await setDoc(doc(db,'users',cred.user.uid), {
-      nick, realname, birthyear, email, tier, main, sub, sub2,
+      nick, realname, birthyear, email, tier, scoreTop, scoreJungle, scoreMid, scoreAdc, scoreSupport,
+      isNewMember: false, newMemberGames: 0,
       warnings: 0,
       joinedAt: new Date().toISOString(),
       active: true
@@ -996,7 +976,7 @@ async function loadRanking(){
       const recSnap = await getDocs(query(collection(db,'records'), where('uid','==',d.id), where('month','==',month)));
       let jarangCnt=0, naejeonCnt=0, wins=0;
       recSnap.forEach(r=>{ const rec=r.data(); if(rec.type==='jarang') jarangCnt+=(rec.games||1); if(rec.type==='naejeon'){ naejeonCnt++; if(rec.result==='win') wins++; } });
-      members.push({nick:u.nick, realname:u.realname||'', birthyear:u.birthyear||'', tier:u.tier, currentTier:u.currentTier||'', currentRank:u.currentRank||'', currentLP:u.currentLP??'', main:u.main, sub:u.sub||'', isAdmin:u.isAdmin||false, jarangCnt, naejeonCnt, wins, total:naejeonCnt});
+      members.push({nick:u.nick, realname:u.realname||'', birthyear:u.birthyear||'', tier:u.tier, currentTier:u.currentTier||'', currentRank:u.currentRank||'', currentLP:u.currentLP??'', scoreTop:u.scoreTop||0, scoreJungle:u.scoreJungle||0, scoreMid:u.scoreMid||0, scoreAdc:u.scoreAdc||0, scoreSupport:u.scoreSupport||0, isAdmin:u.isAdmin||false, jarangCnt, naejeonCnt, wins, total:naejeonCnt});
     }
     members.sort((a,b)=>(b.jarangCnt+b.naejeonCnt)-(a.jarangCnt+a.naejeonCnt));
     rankingCache = { month, data: members, ts: Date.now() };
@@ -1021,7 +1001,7 @@ function renderRankingList(members){
         </div>
         <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
           ${tierBadges(m.tier, m.currentTier, '10px', m.currentRank, m.currentLP)}
-          <span style="font-size:11px;color:var(--text-dim);">${m.main||''}${m.sub?' / '+(m.sub==='all'?'상관없음':m.sub):''}</span>
+          <span style="display:flex;gap:4px;flex-wrap:wrap;">${posScoreBadge(m)||'<span style="font-size:10px;color:var(--text-dim);">-</span>'}</span>
         </div>
       </div>
     </div>`;
@@ -1076,7 +1056,6 @@ function renderLolsulpam(members) {
   }
 
   if(!paged.length){ el.innerHTML='<div class="empty-hint">검색 결과가 없습니다</div>'; return; }
-  const LANE_ICON = {top:'⬆',jg:'🌲',mid:'🎯',bot:'🏹',sup:'🛡',all:'✦'};
   el.innerHTML = `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:14px;">
     ${paged.map(m=>{
       const games = m.recentSoloMatches?.length||0;
@@ -1084,8 +1063,6 @@ function renderLolsulpam(members) {
       const wr = games>0 ? Math.round(wins/games*100) : null;
       const wrColor = wr===null?'var(--text-dim)':wr>=60?'var(--green)':wr>=50?'var(--gold-light)':'#ff7070';
       const recent5 = (m.recentSoloMatches||[]).slice(0,5);
-      const subLabel = m.sub==='all'?'상관없음':(m.sub||'-');
-      const laneIcon = k => LANE_ICON[k]||'';
       const champImgs = (m.topChampions||[]).map(c=>{
         const imgSrc = c.id ? `https://ddragon.leagueoflegends.com/cdn/${ddVersion}/img/champion/${c.id}.png` : '';
         return `<div style="text-align:center;flex:1;">
@@ -1104,10 +1081,7 @@ function renderLolsulpam(members) {
           <div style="text-align:right;">${tierBadges(m.tier,m.currentTier,'12px',m.currentRank,m.currentLP)}</div>
         </div>
         ${champImgs?`<div style="display:flex;gap:8px;justify-content:flex-start;">${champImgs}</div>`:''}
-        <div style="display:flex;gap:16px;font-size:12px;color:var(--text-dim);">
-          <span>주라인 <span style="color:var(--text-mid);">${laneIcon(m.main)}${m.main||'-'}</span></span>
-          <span>부라인 <span style="color:var(--text-mid);">${laneIcon(m.sub)}${subLabel}</span></span>
-        </div>
+        <div style="display:flex;gap:5px;flex-wrap:wrap;">${posScoreBadge(m)||'<span style="font-size:11px;color:var(--text-dim);">포지션 점수 없음</span>'}</div>
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
           ${wr!==null?`<span style="font-size:13px;font-weight:500;color:${wrColor};">${wr}%</span><span style="font-size:11px;color:var(--text-dim);">${wins}승${games-wins}패 (최근${games}판)</span>`:'<span style="font-size:11px;color:var(--text-dim);">전적 없음</span>'}
           <div style="display:flex;gap:3px;margin-left:auto;">
@@ -1134,7 +1108,7 @@ window.loadLolsulpam = async (forceRefresh) => {
       members.push({
         nick: u.nick, realname: u.realname||'', tier: u.tier||'U',
         currentTier: u.currentTier||'', currentRank: u.currentRank||'', currentLP: u.currentLP??'',
-        main: u.main||'', sub: u.sub||'',
+        scoreTop: u.scoreTop||0, scoreJungle: u.scoreJungle||0, scoreMid: u.scoreMid||0, scoreAdc: u.scoreAdc||0, scoreSupport: u.scoreSupport||0,
         topChampions: u.topChampions||[],
         recentSoloMatches: u.recentSoloMatches||[]
       });
@@ -1148,7 +1122,7 @@ window.loadLolsulpam = async (forceRefresh) => {
 function renderStatsTable() {
   const sorted = [...statsRows].sort((a,b) => {
     let va = a[statsSort], vb = b[statsSort];
-    if(statsSort === 'nick' || statsSort === 'main') { va = va||''; vb = vb||''; return statsSortDir==='asc' ? va.localeCompare(vb,'ko') : vb.localeCompare(va,'ko'); }
+    if(statsSort === 'nick') { va = va||''; vb = vb||''; return statsSortDir==='asc' ? va.localeCompare(vb,'ko') : vb.localeCompare(va,'ko'); }
     if(statsSort === 'tier') { va = TIER_PTS_MAP[a.tier]||0; vb = TIER_PTS_MAP[b.tier]||0; }
     if(statsSort === 'currentTier') {
       const rankVal = {I:4,II:3,III:2,IV:1};
@@ -1161,7 +1135,6 @@ function renderStatsTable() {
     {key:'nick',        label:'닉네임'},
     {key:'tier',        label:'최고티어'},
     {key:'currentTier', label:'현재솔랭'},
-    {key:'main',        label:'라인'},
     {key:'jarangGames', label:'자랭판수'},
     {key:'wins',        label:'내전 승'},
     {key:'loses',       label:'내전 패'},
@@ -1179,7 +1152,6 @@ function renderStatsTable() {
       <td style="font-weight:500;">${r.realname||r.nick} ${r.birthyear?`<span style="font-size:11px;color:var(--text-dim);">${r.birthyear}년생</span>`:''} <span style="font-size:11px;color:var(--text-mid);">(${r.nick})</span></td>
       <td><span class="tb t${r.tier}" style="font-size:11px;">${TIER_NAMES[r.tier]||r.tier}</span></td>
       <td style="white-space:nowrap;">${r.currentTier ? `<span class="tb t${r.currentTier}" style="font-size:11px;">${TIER_NAMES[r.currentTier]||r.currentTier}${RANK_NUM[r.currentRank]||''}</span><span style="font-size:11px;color:var(--text-dim);margin-left:3px;">${r.currentLP!==''?r.currentLP+'LP':''}</span>` : '<span style="font-size:11px;color:var(--text-dim);">-</span>'}</td>
-      <td style="font-size:12px;">${r.main||'-'}</td>
       <td>${r.jarangGames}판</td>
       <td class="v-green">${r.wins}</td>
       <td class="v-red">${r.loses}</td>
@@ -1229,7 +1201,7 @@ window.loadStats = async (forceRefresh) => {
       let pts=0,wins=0,loses=0,jarangGames=0;
       recSnap.forEach(r=>{ const rec=r.data(); pts+=rec.pts||0; if(rec.type==='naejeon'){ if(rec.result==='win')wins++;else loses++; } if(rec.type==='jarang') jarangGames+=rec.games||0; });
       const total=wins+loses;
-      rows.push({nick:u.nick,realname:u.realname||'',birthyear:u.birthyear||'',tier:u.tier,currentTier:u.currentTier||'',currentRank:u.currentRank||'',currentLP:u.currentLP??'',main:u.main||'',topChampions:u.topChampions||[],pts,wins,loses,total,jarangGames,wr:total>0?Math.round(wins/total*100):0});
+      rows.push({nick:u.nick,realname:u.realname||'',birthyear:u.birthyear||'',tier:u.tier,currentTier:u.currentTier||'',currentRank:u.currentRank||'',currentLP:u.currentLP??'',topChampions:u.topChampions||[],pts,wins,loses,total,jarangGames,wr:total>0?Math.round(wins/total*100):0});
     }
     statsCache[month] = { data: rows, ts: Date.now() };
     statsRows = rows;
@@ -1269,6 +1241,25 @@ window.adminAddRecord = async () => {
       uid, nick, type:'naejeon', date, result, pts:1, month, reason,
       createdAt: new Date().toISOString(), addedByAdmin: true
     });
+    try {
+      const uSnap = await getDoc(doc(db,'users',uid));
+      if(uSnap.exists()){
+        const u = uSnap.data();
+        const isNew = u.isNewMember || false;
+        const delta = result === 'win' ? (isNew ? 5 : 2) : (isNew ? -5 : -2);
+        const posUpdate = {};
+        for(const key of ['scoreTop','scoreJungle','scoreMid','scoreAdc','scoreSupport']){
+          const cur = u[key]||0;
+          if(cur > 0) posUpdate[key] = Math.max(1, Math.min(100, cur + delta));
+        }
+        if(isNew){
+          const nextGames = (u.newMemberGames||0) + 1;
+          posUpdate.newMemberGames = nextGames;
+          if(nextGames >= 5) posUpdate.isNewMember = false;
+        }
+        if(Object.keys(posUpdate).length > 0) await updateDoc(doc(db,'users',uid), posUpdate);
+      }
+    } catch(e){ console.error('점수 업데이트 실패:', e); }
     showToast(`${nick} 내전 ${result==='win'?'승':'패'} 추가!`);
   } else if(type==='penalty'){
     const ptype = document.getElementById('adm-penalty-type').value;
@@ -1290,9 +1281,11 @@ function prefillMyPage(){
   document.getElementById('my-realname').value = currentProfile.realname || '';
   document.getElementById('my-birthyear').value = currentProfile.birthyear || '';
   document.getElementById('my-tier').value = currentProfile.tier || 'G';
-  document.getElementById('my-main').value = currentProfile.main || '미드';
-  document.getElementById('my-sub').value = currentProfile.sub || '미드';
-  document.getElementById('my-sub2').value = currentProfile.sub2 || 'all';
+  const psEl = document.getElementById('my-pos-scores');
+  if(psEl){
+    const badges = posScoreBadge(currentProfile);
+    psEl.innerHTML = badges || '<span style="color:var(--text-dim);">점수 없음 (관리자에게 문의)</span>';
+  }
   document.getElementById('my-email').value = currentUser.email || '';
   document.getElementById('my-bank').value = currentProfile.bankName || '';
   document.getElementById('my-account').value = currentProfile.accountNum || '';
@@ -1362,16 +1355,12 @@ window.saveMyProfile = async () => {
   const realname = document.getElementById('my-realname').value.trim();
   const birthyear = document.getElementById('my-birthyear').value.trim();
   const tier = document.getElementById('my-tier').value;
-  const main = document.getElementById('my-main').value;
-  const sub = document.getElementById('my-sub').value;
-  const sub2 = document.getElementById('my-sub2').value;
   const bankName = document.getElementById('my-bank').value.trim();
   const accountNum = document.getElementById('my-account').value.trim();
   const accountHolder = document.getElementById('my-account-holder').value.trim();
   if(!nick||!realname||!birthyear){ showToast('닉네임, 이름, 년생을 모두 입력해주세요'); return; }
-  if(!main||!sub||!sub2){ showToast('주/부/부2 라인을 모두 선택해주세요'); return; }
-  await updateDoc(doc(db,'users',currentUser.uid),{ nick, realname, birthyear, tier, main, sub, sub2, bankName, accountNum, accountHolder });
-  currentProfile = {...currentProfile, nick, realname, birthyear, tier, main, sub, sub2, bankName, accountNum, accountHolder};
+  await updateDoc(doc(db,'users',currentUser.uid),{ nick, realname, birthyear, tier, bankName, accountNum, accountHolder });
+  currentProfile = {...currentProfile, nick, realname, birthyear, tier, bankName, accountNum, accountHolder};
   const dn = realname ? `${realname} (${nick})` : nick;
   document.getElementById('nav-nick').textContent = dn;
   showToast('프로필이 저장됐습니다 ✅');
@@ -1489,16 +1478,20 @@ window.setAdmFilter = (f) => {
   admPage = 1; renderAdminList();
 };
 const ADM_PER_PAGE = 10;
-let admMemoChanges = {}; // {uid: {balanceTier, adminMemo}}
+let admMemoChanges = {};
 
 window.admMemoChange = (uid) => {
-  const btMain = parseInt(document.getElementById(`btier-main-${uid}`)?.value)||0;
-  const btSub  = parseInt(document.getElementById(`btier-sub-${uid}`)?.value)||0;
-  const btSub2 = parseInt(document.getElementById(`btier-sub2-${uid}`)?.value)||0;
+  const clamp = v => Math.max(0, Math.min(100, parseInt(v)||0));
+  const scoreTop = clamp(document.getElementById(`score-top-${uid}`)?.value);
+  const scoreJungle = clamp(document.getElementById(`score-jungle-${uid}`)?.value);
+  const scoreMid = clamp(document.getElementById(`score-mid-${uid}`)?.value);
+  const scoreAdc = clamp(document.getElementById(`score-adc-${uid}`)?.value);
+  const scoreSupport = clamp(document.getElementById(`score-support-${uid}`)?.value);
+  const isNewMember = document.getElementById(`newmember-${uid}`)?.checked || false;
   const am = document.getElementById(`amemo-${uid}`)?.value||'';
-  admMemoChanges[uid] = {balanceTierMain:btMain||'', balanceTierSub:btSub||'', balanceTierSub2:btSub2||'', adminMemo: am.trim()};
+  admMemoChanges[uid] = {scoreTop, scoreJungle, scoreMid, scoreAdc, scoreSupport, isNewMember, adminMemo: am.trim()};
   const btn = document.getElementById('adm-save-all-btn');
-  if(btn){ const cnt = Object.keys(admMemoChanges).length; btn.textContent = `📝 메모 일괄저장 (${cnt}건)`; btn.style.borderColor='#ff8800'; btn.style.color='#ffaa44'; }
+  if(btn){ const cnt = Object.keys(admMemoChanges).length; btn.textContent = `📝 점수 일괄저장 (${cnt}건)`; btn.style.borderColor='#ff8800'; btn.style.color='#ffaa44'; }
 };
 window.adminSyncTiers = async () => {
   const btn = document.getElementById('sync-tier-btn');
@@ -1531,7 +1524,7 @@ window.adminSaveAllMemos = async () => {
   if(!entries.length){ showToast('변경된 내용이 없습니다'); return; }
   const savedPage = admPage;
   for(const [uid, data] of entries){
-    await updateDoc(doc(db,'users',uid),{ balanceTierMain:data.balanceTierMain, balanceTierSub:data.balanceTierSub, balanceTierSub2:data.balanceTierSub2, adminMemo:data.adminMemo, balanceScoreMain:0, balanceScoreSub:0, balanceScoreSub2:0 });
+    await updateDoc(doc(db,'users',uid),{ scoreTop:data.scoreTop, scoreJungle:data.scoreJungle, scoreMid:data.scoreMid, scoreAdc:data.scoreAdc, scoreSupport:data.scoreSupport, isNewMember:data.isNewMember, adminMemo:data.adminMemo });
   }
   admMemoChanges = {};
   showToast(`✅ ${entries.length}명 메모 저장됐습니다`);
@@ -1596,26 +1589,24 @@ async function loadAdmin(){
           <div style="font-size:11px;color:var(--text-dim);margin-top:2px;">${u.email||''}</div>
           <div style="display:flex;gap:6px;align-items:center;margin-top:3px;flex-wrap:wrap;">
             <span class="tb t${u.tier}" style="font-size:10px;">${TIER_NAMES[u.tier]||u.tier}</span>
-            ${u.balanceTierMain?btLabel(u.balanceTierMain, u.balanceScoreMain):''}
-            ${u.balanceTierSub?btLabel(u.balanceTierSub, u.balanceScoreSub):''}
-            ${u.balanceTierSub2?btLabel(u.balanceTierSub2, u.balanceScoreSub2):''}
-            <span style="font-size:11px;color:var(--text-dim);">${u.main||''}${u.sub?' / '+u.sub:''}${u.sub2?' / '+(u.sub2==='all'?'상관없음':u.sub2):''}</span>
+            ${posScoreBadge(u)||'<span style="font-size:10px;color:var(--text-dim);">점수 없음</span>'}
+            ${u.isNewMember?`<span style="font-size:10px;background:#1a3a1a;color:#66cc66;border:1px solid #2a6a2a;padding:1px 6px;border-radius:10px;">🌱 신규 ${u.newMemberGames||0}/5</span>`:''}
           </div>
           ${u.adminMemo?`<div style="font-size:11px;color:#bbaa88;margin-top:2px;">📝 ${u.adminMemo}</div>`:''}
-          <div style="display:flex;gap:6px;align-items:center;margin-top:6px;flex-wrap:wrap;">
-            <select id="btier-main-${d.id}" class="inp" style="width:120px;font-size:11px;padding:3px 6px;" onchange="admMemoChange('${d.id}')">
-              <option value="">주라인 밸티어</option>
-              ${BALANCE_TIERS.slice(1).map((l,i)=>`<option value="${i+1}"${(u.balanceTierMain==i+1)?` selected`:''}>${l}</option>`).join('')}
-            </select>
-            <select id="btier-sub-${d.id}" class="inp" style="width:120px;font-size:11px;padding:3px 6px;" onchange="admMemoChange('${d.id}')">
-              <option value="">부라인 밸티어</option>
-              ${BALANCE_TIERS.slice(1).map((l,i)=>`<option value="${i+1}"${(u.balanceTierSub==i+1)?` selected`:''}>${l}</option>`).join('')}
-            </select>
-            <select id="btier-sub2-${d.id}" class="inp" style="width:120px;font-size:11px;padding:3px 6px;" onchange="admMemoChange('${d.id}')">
-              <option value="">부2라인 밸티어</option>
-              ${BALANCE_TIERS.slice(1).map((l,i)=>`<option value="${i+1}"${(u.balanceTierSub2==i+1)?` selected`:''}>${l}</option>`).join('')}
-            </select>
-            <input id="amemo-${d.id}" type="text" class="inp" placeholder="기타 메모" value="${u.adminMemo||''}" style="flex:1;min-width:100px;font-size:11px;padding:3px 6px;" oninput="admMemoChange('${d.id}')">
+          <div style="margin-top:6px;">
+            <div style="font-size:10px;color:var(--text-dim);margin-bottom:4px;">포지션 점수 (0=희망안함)</div>
+            <div style="display:flex;gap:4px;flex-wrap:wrap;align-items:center;">
+              ${['탑','정글','미드','원딜','서폿'].map((pos,i)=>{
+                const keys=['scoreTop','scoreJungle','scoreMid','scoreAdc','scoreSupport'];
+                const id=`score-${['top','jungle','mid','adc','support'][i]}-${d.id}`;
+                return `<div style="display:flex;flex-direction:column;align-items:center;gap:2px;"><span style="font-size:9px;color:var(--text-dim);">${pos}</span><input id="${id}" type="number" min="0" max="100" value="${u[keys[i]]||0}" class="inp" style="width:46px;text-align:center;font-size:11px;padding:2px 4px;" oninput="admMemoChange('${d.id}')"></div>`;
+              }).join('')}
+              <label style="font-size:11px;color:var(--text-dim);display:flex;align-items:center;gap:4px;cursor:pointer;margin-left:6px;">
+                <input type="checkbox" id="newmember-${d.id}" ${u.isNewMember?'checked':''} onchange="admMemoChange('${d.id}')">
+                🌱 신규회원 ${u.isNewMember?`(${u.newMemberGames||0}/5)` :''}
+              </label>
+            </div>
+            <div style="margin-top:4px;"><input id="amemo-${d.id}" type="text" class="inp" placeholder="기타 메모" value="${u.adminMemo||''}" style="width:100%;font-size:11px;padding:3px 6px;" oninput="admMemoChange('${d.id}')"></div>
           </div>
         </div>
         <div class="adm-btns">
@@ -1663,16 +1654,7 @@ window.adminRestore = async (uid, nick) => {
   await updateDoc(doc(db,'users',uid),{active:true});
   showToast(`${nick}님 복구됨`); loadAdmin();
 };
-window.adminSaveMemo = async (uid) => {
-  const savedPage = admPage;
-  const bt = (document.getElementById(`btier-${uid}`)?.value||'').trim();
-  const am = (document.getElementById(`amemo-${uid}`)?.value||'').trim();
-  await updateDoc(doc(db,'users',uid),{ balanceTier: bt, adminMemo: am });
-  showToast('메모 저장됐습니다');
-  await loadAdmin();
-  admPage = savedPage;
-  renderAdminList();
-};
+
 window.adminResetPassword = async (email, name) => {
   if(!email){ showToast('이메일 정보가 없습니다'); return; }
   if(!confirm(`${name}님(${email})에게 비밀번호 재설정 이메일을 발송하시겠습니까?`)) return;
@@ -2272,7 +2254,8 @@ window.njAdminAdd = async (game) => {
   const u = userSnap.data();
   await setDoc(doc(db,'naejeonApply',uid),{
     uid, nick:u.nick, realname:u.realname||'',
-    tier:u.tier, main:u.main||'', sub:u.sub||'',
+    tier:u.tier,
+    scoreTop:u.scoreTop||0, scoreJungle:u.scoreJungle||0, scoreMid:u.scoreMid||0, scoreAdc:u.scoreAdc||0, scoreSupport:u.scoreSupport||0,
     [`game${game}`]:true, updatedAt:new Date().toISOString()
   },{merge:true});
   showToast(`${u.realname||u.nick}님 내전${game} 추가됨!`);
@@ -2313,15 +2296,15 @@ async function njAutoRestoreArrange(game){
     savedArrange.forEach(p=>{ savedMap[p.uid]=p.loc; });
 
     const usersSnap3 = await getDocs(collection(db,'users'));
-    const balanceMap2 = {};
-    usersSnap3.forEach(d=>{ const ud=d.data(); balanceMap2[d.id] = {balanceTierMain:ud.balanceTierMain||0,balanceScoreMain:ud.balanceScoreMain||0,balanceTierSub:ud.balanceTierSub||0,balanceScoreSub:ud.balanceScoreSub||0,balanceTierSub2:ud.balanceTierSub2||0,balanceScoreSub2:ud.balanceScoreSub2||0,currentTier:ud.currentTier||'',currentRank:ud.currentRank||'',currentLP:ud.currentLP??''}; });
+    const scoreMap2 = {};
+    usersSnap3.forEach(d=>{ const ud=d.data(); scoreMap2[d.id] = {scoreTop:ud.scoreTop||0,scoreJungle:ud.scoreJungle||0,scoreMid:ud.scoreMid||0,scoreAdc:ud.scoreAdc||0,scoreSupport:ud.scoreSupport||0,currentTier:ud.currentTier||'',currentRank:ud.currentRank||'',currentLP:ud.currentLP??''}; });
 
     const players = [];
     activeUids.forEach(uid=>{
       const u = allApplicants[uid];
       const savedLoc = savedMap[uid] || 'pool';
-      const bm = balanceMap2[uid]||{};
-      players.push({uid,nick:u.nick,realname:u.realname||'',tier:u.tier,currentTier:bm.currentTier,currentRank:bm.currentRank,currentLP:bm.currentLP,main:u.main||'',sub:u.sub||'',sub2:u.sub2||'all',loc:savedLoc,balanceTierMain:bm.balanceTierMain,balanceScoreMain:bm.balanceScoreMain,balanceTierSub:bm.balanceTierSub,balanceScoreSub:bm.balanceScoreSub,balanceTierSub2:bm.balanceTierSub2,balanceScoreSub2:bm.balanceScoreSub2});
+      const bm = scoreMap2[uid]||{};
+      players.push({uid,nick:u.nick,realname:u.realname||'',tier:u.tier,currentTier:bm.currentTier,currentRank:bm.currentRank,currentLP:bm.currentLP,loc:savedLoc,scoreTop:bm.scoreTop,scoreJungle:bm.scoreJungle,scoreMid:bm.scoreMid,scoreAdc:bm.scoreAdc,scoreSupport:bm.scoreSupport});
     });
     njPlayers[game] = players;
     renderNjPlayers(game);
@@ -2339,7 +2322,7 @@ async function njLoadApplyStatus(){
       <div style="display:flex;align-items:center;gap:6px;padding:4px 0;border-bottom:1px solid var(--border);font-size:12px;">
         <span class="tb t${u.tier}" style="font-size:10px;">${TIER_NAMES[u.tier]||u.tier}</span>
         <span style="flex:1;">${u.realname||u.nick} <span style="color:var(--text-dim);font-size:11px;">(${u.nick})</span></span>
-        <span style="font-size:11px;color:var(--text-dim);">${u.main||''}${u.sub&&u.sub!=='all'?' / '+u.sub:u.sub==='all'?' / 무관':''}</span>
+        <span style="font-size:11px;color:var(--text-dim);">${posScoreBadge(u)||''}</span>
         ${isAdmin?`<button onclick="njAdminRemove('${u.uid}',${game})" style="font-size:10px;padding:2px 7px;background:#fff0f0;border:1px solid #ffb0a0;color:#cc2020;border-radius:4px;cursor:pointer;flex-shrink:0;">취소</button>`:''}
       </div>`).join('') || '<div style="font-size:12px;color:var(--text-dim);padding:4px 0;">신청자 없음</div>';
     document.getElementById('nj1-list').innerHTML = renderList(list1,1);
@@ -2407,7 +2390,10 @@ window.njToggleApply = async (game) => {
   const newVal = !my[field];
   await setDoc(doc(db,'naejeonApply',currentUser.uid),{
     uid:currentUser.uid, nick:currentProfile.nick, realname:currentProfile.realname||'',
-    tier:currentProfile.tier, main:currentProfile.main||'', sub:currentProfile.sub||'',
+    tier:currentProfile.tier,
+    scoreTop:currentProfile.scoreTop||0, scoreJungle:currentProfile.scoreJungle||0,
+    scoreMid:currentProfile.scoreMid||0, scoreAdc:currentProfile.scoreAdc||0,
+    scoreSupport:currentProfile.scoreSupport||0,
     [field]:newVal, updatedAt:new Date().toISOString()
   },{merge:true});
   showToast(newVal?`내전${game} 신청 완료!`:`내전${game} 신청 취소`);
@@ -2465,25 +2451,17 @@ function renderNjTeamBuilder(game){
 
 function njBalanceScore(p){
   const pos = p.loc.replace(/^t[12]-/,'');
-  if(pos === p.main) return Number(p.balanceTierMain)||0;
-  if(pos === p.sub) return Number(p.balanceTierSub)||0;
-  return Number(p.balanceTierSub2)||0;
+  return njGetPosScore(p, pos);
 }
 
-// 선수가 특정 포지션에서 갖는 밸런스 티어 (배치 전 계산용)
 function njGetPosScore(p, pos){
-  if(pos === p.main) return Number(p.balanceTierMain)||0;
-  if(pos === p.sub)  return Number(p.balanceTierSub)||0;
-  if(p.sub2 && p.sub2 !== 'all' && pos === p.sub2) return Number(p.balanceTierSub2)||0;
-  return Number(p.balanceTierSub2)||0;
+  const key = POS_SCORE_MAP[pos];
+  return key ? (Number(p[key])||0) : 0;
 }
 
-// 선수가 해당 포지션을 소화할 수 있는 우선순위 (낮을수록 적합)
+// 0점 = 희망안함(999), 점수있으면 0 (score는 2nd sort key에서 처리)
 function njPosPriority(p, pos){
-  if(pos === p.main) return 0;
-  if(pos === p.sub)  return 1;
-  if(p.sub2 && p.sub2 !== 'all' && pos === p.sub2) return 2;
-  return 3;
+  return njGetPosScore(p, pos) > 0 ? 0 : 999;
 }
 
 window.njAutoSuggest = (game) => {
@@ -2538,17 +2516,18 @@ window.njAutoSuggest = (game) => {
 
   // === 안 2: 원딜/서폿 시너지 ===
   // 각 팀에 원딜·서폿 주라인 선수 1명씩 확보 → 나머지 포인트 균형
-  const adcMains = ten.filter(p => p.main==='원딜');
-  const supMains = ten.filter(p => p.main==='서폿');
+  const maxPosScore = p => Math.max(...POS_LABELS.map(pos => njGetPosScore(p,pos)));
+  const sortedAdc = [...ten].filter(p => njGetPosScore(p,'원딜') > 0).sort((a,b) => njGetPosScore(b,'원딜') - njGetPosScore(a,'원딜'));
   const t2a = [], t2b = [];
-  // 주라인 원딜·서폿을 팀별 1명씩 고정
-  if(adcMains.length>=2){ t2a.push(adcMains[0]); t2b.push(adcMains[1]); }
-  else if(adcMains.length===1){ t2a.push(adcMains[0]); }
-  if(supMains.length>=2){ t2a.push(supMains[0]); t2b.push(supMains[1]); }
-  else if(supMains.length===1){ t2b.push(supMains[0]); }
+  if(sortedAdc.length>=2){ t2a.push(sortedAdc[0]); t2b.push(sortedAdc[1]); }
+  else if(sortedAdc.length===1){ t2a.push(sortedAdc[0]); }
+  const adcFixed = new Set([...t2a,...t2b].map(p=>p.uid));
+  const sortedSup = [...ten].filter(p => !adcFixed.has(p.uid) && njGetPosScore(p,'서폿') > 0).sort((a,b) => njGetPosScore(b,'서폿') - njGetPosScore(a,'서폿'));
+  if(sortedSup.length>=2){ t2a.push(sortedSup[0]); t2b.push(sortedSup[1]); }
+  else if(sortedSup.length===1){ t2b.push(sortedSup[0]); }
   const fixed2 = new Set([...t2a,...t2b].map(p=>p.uid));
   [...ten].filter(p=>!fixed2.has(p.uid))
-    .sort((a,b)=>Math.max(Number(b.balanceTierMain)||0,Number(b.balanceTierSub)||0)-Math.max(Number(a.balanceTierMain)||0,Number(a.balanceTierSub)||0))
+    .sort((a,b) => maxPosScore(b) - maxPosScore(a))
     .forEach(p => (t2a.length<=t2b.length ? t2a : t2b).push(p));
   suggestions.push({label:'안 2 — 원딜/서폿 시너지', desc:'원딜·서폿 주라인 선수를 각 팀에 먼저 확보 후 나머지 균형 배분',
     ...optimizeSwap(assignPositions(t2a.slice(0,5)), assignPositions(t2b.slice(0,5)))});
@@ -2572,13 +2551,13 @@ window.njAutoSuggest = (game) => {
   const used4 = new Set();
   const t4a = [], t4b = [];
   for(const pos of NJ_POSITIONS){
-    const mains = ten.filter(p=>!used4.has(p.uid)&&p.main===pos)
-      .sort((a,b)=>njGetPosScore(b,pos)-njGetPosScore(a,pos));
-    if(mains.length>=2){ t4a.push(mains[0]); t4b.push(mains[1]); used4.add(mains[0].uid); used4.add(mains[1].uid); }
-    else if(mains.length===1){ (t4a.length<=t4b.length?t4a:t4b).push(mains[0]); used4.add(mains[0].uid); }
+    const topTwo = ten.filter(p=>!used4.has(p.uid) && njGetPosScore(p,pos) > 0)
+      .sort((a,b)=>njGetPosScore(b,pos)-njGetPosScore(a,pos)).slice(0,2);
+    if(topTwo.length>=2){ t4a.push(topTwo[0]); t4b.push(topTwo[1]); used4.add(topTwo[0].uid); used4.add(topTwo[1].uid); }
+    else if(topTwo.length===1){ (t4a.length<=t4b.length?t4a:t4b).push(topTwo[0]); used4.add(topTwo[0].uid); }
   }
   ten.filter(p=>!used4.has(p.uid))
-    .sort((a,b)=>Math.max(Number(b.balanceTierMain)||0,Number(b.balanceTierSub)||0)-Math.max(Number(a.balanceTierMain)||0,Number(a.balanceTierSub)||0))
+    .sort((a,b)=>maxPosScore(b)-maxPosScore(a))
     .forEach(p=>(t4a.length<=t4b.length?t4a:t4b).push(p));
   suggestions.push({label:'안 4 — 주라인 배치 극대화', desc:'최대한 많은 선수가 주라인 포지션에 배치되도록 우선 매칭',
     ...optimizeSwap(assignPositions(t4a.slice(0,5)), assignPositions(t4b.slice(0,5)))});
@@ -2652,26 +2631,26 @@ window.njApplySuggestion = (game, idx) => {
 };
 function njCard(p, game){
   const isPlaced = p.loc !== 'pool';
-  const bScore = isPlaced ? njBalanceScore(p) : 0;
-  const bScoreHtml = isPlaced
-    ? (bScore
-        ? `<span style="font-size:10px;color:#aaddff;font-weight:700;flex-shrink:0;">${bScore}pt</span>`
+  const assignedScore = isPlaced ? njBalanceScore(p) : 0;
+  const assignedScoreHtml = isPlaced
+    ? (assignedScore
+        ? `<span style="font-size:10px;color:#aaddff;font-weight:700;flex-shrink:0;">${assignedScore}pt</span>`
         : `<span style="font-size:10px;color:#555;flex-shrink:0;">─pt</span>`)
     : '';
-  const grayBadge = t => `<span style="font-size:10px;color:#555;border:1px solid #2a2a2a;border-radius:8px;padding:1px 5px;white-space:nowrap;">${t}─</span>`;
-  const btMain = p.balanceTierMain ? btLabel(p.balanceTierMain, p.balanceScoreMain) : grayBadge('주');
-  const btSub  = p.balanceTierSub  ? btLabel(p.balanceTierSub,  p.balanceScoreSub)  : grayBadge('부');
-  const btSub2 = p.balanceTierSub2 ? btLabel(p.balanceTierSub2, p.balanceScoreSub2) : grayBadge('부2');
+  const posScores = !isPlaced && isAdmin
+    ? POS_LABELS.filter(pos => njGetPosScore(p,pos) > 0)
+        .map(pos => `<span style="font-size:9px;background:#1a2a4a;color:#88bbff;border:1px solid #3a5a8a;padding:1px 4px;border-radius:5px;">${pos.slice(0,1)}${njGetPosScore(p,pos)}</span>`)
+        .join('')
+    : '';
   return `<div draggable="true" ondragstart="njDragStart(event,${game},'${p.uid}')" ontouchstart="njTouchStart(event,${game},'${p.uid}')"
     style="background:var(--bg4);border:1px solid var(--border);border-radius:5px;padding:5px 7px;cursor:grab;user-select:none;font-size:12px;overflow:hidden;"
     onmouseover="this.style.borderColor='#8a3030'" onmouseout="this.style.borderColor='var(--border)'">
     <div style="display:flex;align-items:center;gap:5px;">
       ${tierBadges(p.tier, '')}
       <span style="flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${p.realname||p.nick}</span>
-      ${bScoreHtml}
-      <span style="font-size:10px;color:var(--text-dim);white-space:nowrap;flex-shrink:0;">${p.main||''}${p.sub?' / '+p.sub:''}</span>
+      ${assignedScoreHtml}
     </div>
-    ${isAdmin?`<div style="display:flex;gap:3px;flex-wrap:wrap;margin-top:3px;">${btMain}${btSub}${btSub2}</div>`:''}
+    ${posScores?`<div style="display:flex;gap:3px;flex-wrap:wrap;margin-top:3px;">${posScores}</div>`:''}
   </div>`;
 }
 
@@ -2791,18 +2770,16 @@ window.njLoadTeam = async (game) => {
   const savedMap = {};
   savedArrange.forEach(p=>{ savedMap[p.uid]=p.loc; });
 
-  // users에서 balanceTier + currentTier 가져오기
   const usersSnap2 = await getDocs(collection(db,'users'));
-  const balanceMap = {};
-  usersSnap2.forEach(d=>{ const ud=d.data(); balanceMap[d.id] = {balanceTierMain:ud.balanceTierMain||0,balanceScoreMain:ud.balanceScoreMain||0,balanceTierSub:ud.balanceTierSub||0,balanceScoreSub:ud.balanceScoreSub||0,balanceTierSub2:ud.balanceTierSub2||0,balanceScoreSub2:ud.balanceScoreSub2||0,currentTier:ud.currentTier||'',currentRank:ud.currentRank||'',currentLP:ud.currentLP??''}; });
+  const scoreMap = {};
+  usersSnap2.forEach(d=>{ const ud=d.data(); scoreMap[d.id] = {scoreTop:ud.scoreTop||0,scoreJungle:ud.scoreJungle||0,scoreMid:ud.scoreMid||0,scoreAdc:ud.scoreAdc||0,scoreSupport:ud.scoreSupport||0,currentTier:ud.currentTier||'',currentRank:ud.currentRank||'',currentLP:ud.currentLP??''}; });
 
-  // 신청자 목록 구성 (저장된 배치 위치 복원)
   const players = [];
   activeUids.forEach(uid=>{
     const u = allApplicants[uid];
     const savedLoc = savedMap[uid] || 'pool';
-    const bm = balanceMap[uid]||{};
-    players.push({uid,nick:u.nick,realname:u.realname||'',tier:u.tier,currentTier:bm.currentTier,currentRank:bm.currentRank,currentLP:bm.currentLP,main:u.main||'',sub:u.sub||'',sub2:u.sub2||'all',loc:savedLoc,balanceTierMain:bm.balanceTierMain,balanceScoreMain:bm.balanceScoreMain,balanceTierSub:bm.balanceTierSub,balanceScoreSub:bm.balanceScoreSub,balanceTierSub2:bm.balanceTierSub2,balanceScoreSub2:bm.balanceScoreSub2});
+    const bm = scoreMap[uid]||{};
+    players.push({uid,nick:u.nick,realname:u.realname||'',tier:u.tier,currentTier:bm.currentTier,currentRank:bm.currentRank,currentLP:bm.currentLP,loc:savedLoc,scoreTop:bm.scoreTop,scoreJungle:bm.scoreJungle,scoreMid:bm.scoreMid,scoreAdc:bm.scoreAdc,scoreSupport:bm.scoreSupport});
   });
 
   if(!players.length){ showToast('신청자가 없습니다'); return; }
@@ -2858,7 +2835,10 @@ window.njWaitApply = async () => {
   if(!currentUser) return;
   await setDoc(doc(db,'naejeonWaitlist',currentUser.uid), {
     uid: currentUser.uid, nick: currentProfile.nick,
-    realname: currentProfile.realname||'', tier: currentProfile.tier||'', main: currentProfile.main||'',
+    realname: currentProfile.realname||'', tier: currentProfile.tier||'',
+    scoreTop:currentProfile.scoreTop||0, scoreJungle:currentProfile.scoreJungle||0,
+    scoreMid:currentProfile.scoreMid||0, scoreAdc:currentProfile.scoreAdc||0,
+    scoreSupport:currentProfile.scoreSupport||0,
     joinedAt: serverTimestamp()
   });
   showToast('내전대기 신청 완료!');
@@ -2906,24 +2886,27 @@ window.njRecordResult = async (game, winner) => {
   const winList = winner==='t1'?t1:t2, loseList = winner==='t1'?t2:t1;
   for(const p of winList) await addDoc(collection(db,'records'),{uid:p.uid,nick:p.nick,type:'naejeon',date,result:'win',pts:1,month,createdAt:now,addedByAdmin:true,naejeonGame:game,naejeonSessionId:sid});
   for(const p of loseList) await addDoc(collection(db,'records'),{uid:p.uid,nick:p.nick,type:'naejeon',date,result:'loss',pts:1,month,createdAt:now,addedByAdmin:true,naejeonGame:game,naejeonSessionId:sid});
-  // 밸런스 티어 자동 업데이트 (포지션 기준)
+  // 포지션 점수 자동 업데이트
   for(const p of [...winList.map(p=>({...p,win:true})), ...loseList.map(p=>({...p,win:false}))]){
-    const ud = (await getDoc(doc(db,'users',p.uid))).data();
-    if(!ud) continue;
-    const pos = p.loc.replace(/^t[12]-/,'');
-    const delta = p.win ? 0.5 : -0.5;
-    const updates = {};
-    let field, scoreField;
-    if(pos === (ud.main||'')){ field='balanceTierMain'; scoreField='balanceScoreMain'; }
-    else if(pos === (ud.sub||'')){ field='balanceTierSub'; scoreField='balanceScoreSub'; }
-    else { field='balanceTierSub2'; scoreField='balanceScoreSub2'; }
-    const bt = Number(ud[field]||0);
-    if(!bt) continue;
-    let bs = (Number(ud[scoreField])||0) + delta;
-    if(bs >= 1){ updates[field]=Math.min(24,bt+1); updates[scoreField]=0; }
-    else if(bs <= -1){ updates[field]=Math.max(1,bt-1); updates[scoreField]=0; }
-    else { updates[scoreField]=bs; }
-    await updateDoc(doc(db,'users',p.uid), updates);
+    try {
+      const uSnap = await getDoc(doc(db,'users',p.uid));
+      if(!uSnap.exists()) continue;
+      const ud = uSnap.data();
+      const pos = p.loc.replace(/^t[12]-/,'');
+      const scoreKey = POS_SCORE_MAP[pos];
+      if(!scoreKey) continue;
+      const cur = ud[scoreKey]||0;
+      if(cur <= 0) continue;
+      const isNew = ud.isNewMember || false;
+      const delta = p.win ? (isNew ? 5 : 2) : (isNew ? -5 : -2);
+      const posUpdate = {[scoreKey]: Math.max(1, Math.min(100, cur + delta))};
+      if(isNew){
+        const nextGames = (ud.newMemberGames||0) + 1;
+        posUpdate.newMemberGames = nextGames;
+        if(nextGames >= 5) posUpdate.isNewMember = false;
+      }
+      await updateDoc(doc(db,'users',p.uid), posUpdate);
+    } catch(e){ console.error('점수 업데이트 실패:', p.uid, e); }
   }
   showToast(`내전${game} 결과 기록 완료! 🎉`);
   njPlayers[game] = [];
@@ -3367,7 +3350,7 @@ async function loadApplicantList(){
         <span style="font-size:12px;color:var(--text-dim);width:20px;">${i+1}</span>
         <span style="flex:1;font-size:13px;font-weight:500;">${u.realname||u.nick} ${u.birthyear?u.birthyear+'년생 ':''}<span style="color:var(--text-mid);font-size:11px;">(${u.nick})</span></span>
         <span class="tb t${u.tier}">${TIER_NAMES[u.tier]||u.tier}</span>
-        <span style="font-size:11px;color:var(--text-dim);">${u.main||''} / ${u.sub==='all'?'상관없음':u.sub||''}</span>
+        <span style="font-size:11px;">${posScoreBadge(u)||'<span style="color:var(--text-dim);">-</span>'}</span>
       </div>`).join('');
   } catch(e){ console.error('loadApplicantList error:', e); }
 }
@@ -3384,7 +3367,7 @@ window.toggleApply = async () => {
       applied:true, uid:currentUser.uid,
       nick:currentProfile.nick, realname:currentProfile.realname||'',
       birthyear:currentProfile.birthyear||'', tier:currentProfile.tier,
-      main:currentProfile.main, sub:currentProfile.sub||'',
+      scoreTop:currentProfile.scoreTop||0, scoreJungle:currentProfile.scoreJungle||0, scoreMid:currentProfile.scoreMid||0, scoreAdc:currentProfile.scoreAdc||0, scoreSupport:currentProfile.scoreSupport||0,
       appliedAt: new Date().toISOString()
     });
     showToast('신청 완료! ✋');
@@ -3419,7 +3402,7 @@ window.loadDraftMembers = async () => {
   if(!appliedUids.size){ renderDraft(); showToast('신청자가 없습니다'); return; }
   const snap = await getDocs(collection(db,'users'));
   const allApplicants = {};
-  snap.forEach(d=>{ const u=d.data(); if(u.active && appliedUids.has(d.id)) allApplicants[d.id]={id:d.id,...u, balanceTier:u.balanceTier||''}; });
+  snap.forEach(d=>{ const u=d.data(); if(u.active && appliedUids.has(d.id)) allApplicants[d.id]={id:d.id,...u}; });
   // 취소자 제거 (기존 배치 유지)
   draftPlayers = draftPlayers.filter(p => appliedUids.has(p.id));
   // 신규자만 추가
@@ -3457,7 +3440,7 @@ function draftCard(p){
       ${tierBadges(p.tier, p.currentTier, '10px', p.currentRank, p.currentLP)}
       <span style="font-size:11px;color:var(--gold-light);font-weight:700;">${pts}pt</span>
     </div>
-    ${p.main?`<div style="font-size:10px;color:var(--text-dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${p.main}${p.sub?' / '+(p.sub==='all'?'all':p.sub):''}</div>`:''}
+    ${(()=>{const b=posScoreBadge(p);return b?`<div style="font-size:10px;">${b}</div>`:''})()}
   </div>`;
 }
 
