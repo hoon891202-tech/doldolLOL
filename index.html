@@ -247,13 +247,13 @@ select.inp option{background:#f0fdf8;color:#1a2e2c;}
         <option value="G">골드</option><option value="S">실버</option>
         <option value="B">브론즈</option><option value="I">아이언</option>
       </select>
-      <div style="font-size:11px;color:var(--text-dim);text-align:left;padding:4px 0;">포지션 점수 (0=희망안함, 1~100)</div>
+      <div style="font-size:11px;color:var(--text-dim);text-align:left;padding:4px 0;">포지션 점수 (0=희망안함, 1~999)</div>
       <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;">
-        <div style="text-align:center;"><div style="font-size:10px;color:var(--text-dim);margin-bottom:3px;">탑</div><input id="signup-score-top" class="auth-field inp" type="number" min="0" max="100" placeholder="0" style="text-align:center;padding:5px;"></div>
-        <div style="text-align:center;"><div style="font-size:10px;color:var(--text-dim);margin-bottom:3px;">정글</div><input id="signup-score-jungle" class="auth-field inp" type="number" min="0" max="100" placeholder="0" style="text-align:center;padding:5px;"></div>
-        <div style="text-align:center;"><div style="font-size:10px;color:var(--text-dim);margin-bottom:3px;">미드</div><input id="signup-score-mid" class="auth-field inp" type="number" min="0" max="100" placeholder="0" style="text-align:center;padding:5px;"></div>
-        <div style="text-align:center;"><div style="font-size:10px;color:var(--text-dim);margin-bottom:3px;">원딜</div><input id="signup-score-adc" class="auth-field inp" type="number" min="0" max="100" placeholder="0" style="text-align:center;padding:5px;"></div>
-        <div style="text-align:center;"><div style="font-size:10px;color:var(--text-dim);margin-bottom:3px;">서폿</div><input id="signup-score-support" class="auth-field inp" type="number" min="0" max="100" placeholder="0" style="text-align:center;padding:5px;"></div>
+        <div style="text-align:center;"><div style="font-size:10px;color:var(--text-dim);margin-bottom:3px;">탑</div><input id="signup-score-top" class="auth-field inp" type="number" min="0" max="999" placeholder="0" style="text-align:center;padding:5px;"></div>
+        <div style="text-align:center;"><div style="font-size:10px;color:var(--text-dim);margin-bottom:3px;">정글</div><input id="signup-score-jungle" class="auth-field inp" type="number" min="0" max="999" placeholder="0" style="text-align:center;padding:5px;"></div>
+        <div style="text-align:center;"><div style="font-size:10px;color:var(--text-dim);margin-bottom:3px;">미드</div><input id="signup-score-mid" class="auth-field inp" type="number" min="0" max="999" placeholder="0" style="text-align:center;padding:5px;"></div>
+        <div style="text-align:center;"><div style="font-size:10px;color:var(--text-dim);margin-bottom:3px;">원딜</div><input id="signup-score-adc" class="auth-field inp" type="number" min="0" max="999" placeholder="0" style="text-align:center;padding:5px;"></div>
+        <div style="text-align:center;"><div style="font-size:10px;color:var(--text-dim);margin-bottom:3px;">서폿</div><input id="signup-score-support" class="auth-field inp" type="number" min="0" max="999" placeholder="0" style="text-align:center;padding:5px;"></div>
       </div>
       <button class="auth-btn" onclick="doSignup()">가입하기</button>
     </div>
@@ -852,7 +852,7 @@ window.doSignup = async () => {
   const email = document.getElementById('signup-email').value.trim();
   const pw = document.getElementById('signup-pw').value;
   const tier = document.getElementById('signup-tier').value;
-  const clampScore = v => Math.max(0, Math.min(100, parseInt(v)||0));
+  const clampScore = v => Math.max(0, Math.min(999, parseInt(v)||0));
   const scoreTop = clampScore(document.getElementById('signup-score-top').value);
   const scoreJungle = clampScore(document.getElementById('signup-score-jungle').value);
   const scoreMid = clampScore(document.getElementById('signup-score-mid').value);
@@ -1250,7 +1250,7 @@ window.adminAddRecord = async () => {
         const posUpdate = {};
         for(const key of ['scoreTop','scoreJungle','scoreMid','scoreAdc','scoreSupport']){
           const cur = u[key]||0;
-          if(cur > 0) posUpdate[key] = Math.max(1, Math.min(100, cur + delta));
+          if(cur > 0) posUpdate[key] = Math.max(1, Math.min(999, cur + delta));
         }
         if(isNew){
           const nextGames = (u.newMemberGames||0) + 1;
@@ -1481,7 +1481,7 @@ const ADM_PER_PAGE = 10;
 let admMemoChanges = {};
 
 window.admMemoChange = (uid) => {
-  const clamp = v => Math.max(0, Math.min(100, parseInt(v)||0));
+  const clamp = v => Math.max(0, Math.min(999, parseInt(v)||0));
   const scoreTop = clamp(document.getElementById(`score-top-${uid}`)?.value);
   const scoreJungle = clamp(document.getElementById(`score-jungle-${uid}`)?.value);
   const scoreMid = clamp(document.getElementById(`score-mid-${uid}`)?.value);
@@ -1599,7 +1599,7 @@ async function loadAdmin(){
               ${['탑','정글','미드','원딜','서폿'].map((pos,i)=>{
                 const keys=['scoreTop','scoreJungle','scoreMid','scoreAdc','scoreSupport'];
                 const id=`score-${['top','jungle','mid','adc','support'][i]}-${d.id}`;
-                return `<div style="display:flex;flex-direction:column;align-items:center;gap:2px;"><span style="font-size:9px;color:var(--text-dim);">${pos}</span><input id="${id}" type="number" min="0" max="100" value="${u[keys[i]]||0}" class="inp" style="width:46px;text-align:center;font-size:11px;padding:2px 4px;" oninput="admMemoChange('${d.id}')"></div>`;
+                return `<div style="display:flex;flex-direction:column;align-items:center;gap:2px;"><span style="font-size:9px;color:var(--text-dim);">${pos}</span><input id="${id}" type="number" min="0" max="999" value="${u[keys[i]]||0}" class="inp" style="width:46px;text-align:center;font-size:11px;padding:2px 4px;" oninput="admMemoChange('${d.id}')"></div>`;
               }).join('')}
               <label style="font-size:11px;color:var(--text-dim);display:flex;align-items:center;gap:4px;cursor:pointer;margin-left:6px;">
                 <input type="checkbox" id="newmember-${d.id}" ${u.isNewMember?'checked':''} onchange="admMemoChange('${d.id}')">
@@ -2323,7 +2323,7 @@ async function njLoadApplyStatus(){
         <span class="tb t${u.tier}" style="font-size:10px;">${TIER_NAMES[u.tier]||u.tier}</span>
         <span style="flex:1;">${u.realname||u.nick} <span style="color:var(--text-dim);font-size:11px;">(${u.nick})</span></span>
         <span style="font-size:11px;color:var(--text-dim);">${posScoreBadge(u)||''}</span>
-        ${isAdmin?`<button onclick="njAdminRemove('${u.uid}',${game})" style="font-size:10px;padding:2px 7px;background:#fff0f0;border:1px solid #ffb0a0;color:#cc2020;border-radius:4px;cursor:pointer;flex-shrink:0;">취소</button>`:''}
+        ${currentUser?`<button onclick="njAdminRemove('${u.uid}',${game})" style="font-size:10px;padding:2px 7px;background:#fff0f0;border:1px solid #ffb0a0;color:#cc2020;border-radius:4px;cursor:pointer;flex-shrink:0;">취소</button>`:''}
       </div>`).join('') || '<div style="font-size:12px;color:var(--text-dim);padding:4px 0;">신청자 없음</div>';
     document.getElementById('nj1-list').innerHTML = renderList(list1,1);
     document.getElementById('nj2-list').innerHTML = renderList(list2,2);
@@ -2899,7 +2899,7 @@ window.njRecordResult = async (game, winner) => {
       if(cur <= 0) continue;
       const isNew = ud.isNewMember || false;
       const delta = p.win ? (isNew ? 5 : 2) : (isNew ? -5 : -2);
-      const posUpdate = {[scoreKey]: Math.max(1, Math.min(100, cur + delta))};
+      const posUpdate = {[scoreKey]: Math.max(1, Math.min(999, cur + delta))};
       if(isNew){
         const nextGames = (ud.newMemberGames||0) + 1;
         posUpdate.newMemberGames = nextGames;
