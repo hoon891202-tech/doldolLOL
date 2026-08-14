@@ -247,14 +247,6 @@ select.inp option{background:#f0fdf8;color:#1a2e2c;}
         <option value="G">골드</option><option value="S">실버</option>
         <option value="B">브론즈</option><option value="I">아이언</option>
       </select>
-      <div style="font-size:11px;color:var(--text-dim);text-align:left;padding:4px 0;">포지션 점수 (0=희망안함, 1~999)</div>
-      <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;">
-        <div style="text-align:center;"><div style="font-size:10px;color:var(--text-dim);margin-bottom:3px;">탑</div><input id="signup-score-top" class="auth-field inp" type="number" min="0" max="999" placeholder="0" style="text-align:center;padding:5px;"></div>
-        <div style="text-align:center;"><div style="font-size:10px;color:var(--text-dim);margin-bottom:3px;">정글</div><input id="signup-score-jungle" class="auth-field inp" type="number" min="0" max="999" placeholder="0" style="text-align:center;padding:5px;"></div>
-        <div style="text-align:center;"><div style="font-size:10px;color:var(--text-dim);margin-bottom:3px;">미드</div><input id="signup-score-mid" class="auth-field inp" type="number" min="0" max="999" placeholder="0" style="text-align:center;padding:5px;"></div>
-        <div style="text-align:center;"><div style="font-size:10px;color:var(--text-dim);margin-bottom:3px;">원딜</div><input id="signup-score-adc" class="auth-field inp" type="number" min="0" max="999" placeholder="0" style="text-align:center;padding:5px;"></div>
-        <div style="text-align:center;"><div style="font-size:10px;color:var(--text-dim);margin-bottom:3px;">서폿</div><input id="signup-score-support" class="auth-field inp" type="number" min="0" max="999" placeholder="0" style="text-align:center;padding:5px;"></div>
-      </div>
       <button class="auth-btn" onclick="doSignup()">가입하기</button>
     </div>
     <div id="auth-err" class="auth-err"></div>
@@ -342,9 +334,9 @@ select.inp option{background:#f0fdf8;color:#1a2e2c;}
 <!-- ══ 내전 ══ -->
 <div id="page-naejeon" class="page">
 <div class="wrap">
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:14px;">
     <div class="card">
-      <div class="card-header"><span class="card-icon">⚔️</span><span class="card-title">내전 1</span><span id="nj1-time" style="font-size:11px;color:#0070a0;margin-left:4px;"></span><span id="nj1-cnt" class="card-note">0명</span><button id="nj1-reset-btn" onclick="njClearApply(1)" style="display:none;margin-left:auto;font-size:11px;padding:2px 8px;background:#fff0f0;border:1px solid #ffb0a0;color:#cc2020;border-radius:4px;cursor:pointer;">🗑 신청 초기화</button></div>
+      <div class="card-header"><span class="card-icon">⚔️</span><span class="card-title">내전 1</span><span id="nj1-time" style="font-size:11px;color:#0070a0;margin-left:4px;"></span><button id="nj1-time-edit" onclick="njSetTime(1)" style="display:none;font-size:10px;padding:1px 5px;background:var(--bg3);border:1px solid var(--border);color:var(--text-dim);border-radius:4px;cursor:pointer;margin-left:3px;">✏️</button><span id="nj1-cnt" class="card-note">0명</span><button id="nj1-reset-btn" onclick="njClearApply(1)" style="display:none;margin-left:auto;font-size:11px;padding:2px 8px;background:#fff0f0;border:1px solid #ffb0a0;color:#cc2020;border-radius:4px;cursor:pointer;">🗑 신청 초기화</button></div>
       <div style="padding:12px;display:flex;flex-direction:column;gap:8px;">
         <button id="nj1-btn" class="btn btn-red btn-sm" onclick="njToggleApply(1)">신청하기</button>
         <div id="nj1-admin-add" style="display:none;margin-top:10px;padding:10px;background:var(--bg4);border-radius:6px;border:1px solid var(--border);">
@@ -359,7 +351,7 @@ select.inp option{background:#f0fdf8;color:#1a2e2c;}
       </div>
     </div>
     <div class="card">
-      <div class="card-header"><span class="card-icon">⚔️</span><span class="card-title">내전 2</span><span id="nj2-time" style="font-size:11px;color:#0070a0;margin-left:4px;"></span><span id="nj2-cnt" class="card-note">0명</span><button id="nj2-reset-btn" onclick="njClearApply(2)" style="display:none;margin-left:auto;font-size:11px;padding:2px 8px;background:#fff0f0;border:1px solid #ffb0a0;color:#cc2020;border-radius:4px;cursor:pointer;">🗑 신청 초기화</button></div>
+      <div class="card-header"><span class="card-icon">⚔️</span><span class="card-title">내전 2</span><span id="nj2-time" style="font-size:11px;color:#0070a0;margin-left:4px;"></span><button id="nj2-time-edit" onclick="njSetTime(2)" style="display:none;font-size:10px;padding:1px 5px;background:var(--bg3);border:1px solid var(--border);color:var(--text-dim);border-radius:4px;cursor:pointer;margin-left:3px;">✏️</button><span id="nj2-cnt" class="card-note">0명</span><button id="nj2-reset-btn" onclick="njClearApply(2)" style="display:none;margin-left:auto;font-size:11px;padding:2px 8px;background:#fff0f0;border:1px solid #ffb0a0;color:#cc2020;border-radius:4px;cursor:pointer;">🗑 신청 초기화</button></div>
       <div style="padding:12px;display:flex;flex-direction:column;gap:8px;">
         <button id="nj2-btn" class="btn btn-red btn-sm" onclick="njToggleApply(2)">신청하기</button>
         <div id="nj2-admin-add" style="display:none;margin-top:10px;padding:10px;background:var(--bg4);border-radius:6px;border:1px solid var(--border);">
@@ -371,6 +363,21 @@ select.inp option{background:#f0fdf8;color:#1a2e2c;}
           </div>
         </div>
         <div id="nj2-list"></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header"><span class="card-icon">⚔️</span><span class="card-title">내전 3</span><span id="nj3-time" style="font-size:11px;color:#0070a0;margin-left:4px;"></span><button id="nj3-time-edit" onclick="njSetTime(3)" style="display:none;font-size:10px;padding:1px 5px;background:var(--bg3);border:1px solid var(--border);color:var(--text-dim);border-radius:4px;cursor:pointer;margin-left:3px;">✏️</button><span id="nj3-cnt" class="card-note">0명</span><button id="nj3-reset-btn" onclick="njClearApply(3)" style="display:none;margin-left:auto;font-size:11px;padding:2px 8px;background:#fff0f0;border:1px solid #ffb0a0;color:#cc2020;border-radius:4px;cursor:pointer;">🗑 신청 초기화</button></div>
+      <div style="padding:12px;display:flex;flex-direction:column;gap:8px;">
+        <button id="nj3-btn" class="btn btn-red btn-sm" onclick="njToggleApply(3)">신청하기</button>
+        <div id="nj3-admin-add" style="display:none;margin-top:10px;padding:10px;background:var(--bg4);border-radius:6px;border:1px solid var(--border);">
+          <div style="font-size:11px;color:var(--gold);margin-bottom:7px;">👑 관리자 — 회원 추가</div>
+          <input id="nj3-search" class="inp" style="width:100%;font-size:12px;margin-bottom:6px;" placeholder="이름 검색..." oninput="njFilterSelect(3)">
+          <div style="display:flex;gap:6px;">
+            <select id="nj3-add-uid" class="inp" style="flex:1;font-size:12px;" size="4"></select>
+            <button class="btn btn-gold btn-sm" onclick="njAdminAdd(3)" style="align-self:flex-start;">추가</button>
+          </div>
+        </div>
+        <div id="nj3-list"></div>
       </div>
     </div>
   </div>
@@ -388,6 +395,10 @@ select.inp option{background:#f0fdf8;color:#1a2e2c;}
   <div class="card" style="margin-bottom:14px;">
     <div class="card-header"><span class="card-icon">🔵</span><span class="card-title">내전2 팀구성 — 3팀 vs 4팀</span></div>
     <div id="nj2-team-builder" style="padding:12px;"></div>
+  </div>
+  <div class="card" style="margin-bottom:14px;">
+    <div class="card-header"><span class="card-icon">🟢</span><span class="card-title">내전3 팀구성 — 5팀 vs 6팀</span></div>
+    <div id="nj3-team-builder" style="padding:12px;"></div>
   </div>
   <div class="card">
     <div class="card-header"><span class="card-icon">📋</span><span class="card-title">내전 기록</span><span class="card-note">날짜별</span></div>
@@ -852,12 +863,7 @@ window.doSignup = async () => {
   const email = document.getElementById('signup-email').value.trim();
   const pw = document.getElementById('signup-pw').value;
   const tier = document.getElementById('signup-tier').value;
-  const clampScore = v => Math.max(0, Math.min(999, parseInt(v)||0));
-  const scoreTop = clampScore(document.getElementById('signup-score-top').value);
-  const scoreJungle = clampScore(document.getElementById('signup-score-jungle').value);
-  const scoreMid = clampScore(document.getElementById('signup-score-mid').value);
-  const scoreAdc = clampScore(document.getElementById('signup-score-adc').value);
-  const scoreSupport = clampScore(document.getElementById('signup-score-support').value);
+  const scoreTop = 0, scoreJungle = 0, scoreMid = 0, scoreAdc = 0, scoreSupport = 0;
   if(!nick||!realname||!birthyear||!email||!pw||!tier){ document.getElementById('auth-err').textContent='모든 항목을 입력해주세요'; return; }
   try {
     const cred = await createUserWithEmailAndPassword(auth, email, pw);
@@ -2184,7 +2190,7 @@ window.saveRuleSettings = async () => {
 
 // ── 내전 시스템 ──
 const NJ_POSITIONS = ['탑','정글','미드','원딜','서폿'];
-let njPlayers = {1:[], 2:[]};
+let njPlayers = {1:[], 2:[], 3:[]};
 let njDrag = null;
 
 let njAllMembers = [];
@@ -2198,6 +2204,7 @@ async function njFillAdminSelect(){
       .sort((a,b)=>(a.realname||a.nick||'').localeCompare(b.realname||b.nick||'','ko'));
     njRenderSelect(1,'');
     njRenderSelect(2,'');
+    njRenderSelect(3,'');
   } catch(e){ console.error(e); }
 }
 
@@ -2249,13 +2256,17 @@ window.njAdminAdd = async (game) => {
 async function loadNaejeonPage(){
   if(isAdmin){
     await njFillAdminSelect();
-    document.getElementById('nj1-reset-btn').style.display = 'inline-block';
-    document.getElementById('nj2-reset-btn').style.display = 'inline-block';
+    [1,2,3].forEach(g => {
+      document.getElementById(`nj${g}-reset-btn`).style.display = 'inline-block';
+    });
   }
-  renderNjTeamBuilder(1);
-  renderNjTeamBuilder(2);
-  await njAutoRestoreArrange(1);
-  await njAutoRestoreArrange(2);
+  if(currentUser){
+    [1,2,3].forEach(g => {
+      document.getElementById(`nj${g}-time-edit`).style.display = 'inline-block';
+    });
+  }
+  [1,2,3].forEach(g => renderNjTeamBuilder(g));
+  await Promise.all([1,2,3].map(g => njAutoRestoreArrange(g)));
   await njLoadApplyStatus();
   await loadNjHistory();
 }
@@ -2296,10 +2307,9 @@ async function njAutoRestoreArrange(game){
 async function njLoadApplyStatus(){
   try {
     const snap = await getDocs(collection(db,'naejeonApply'));
-    let list1=[],list2=[];
-    snap.forEach(d=>{ const u=d.data(); if(u.game1) list1.push(u); if(u.game2) list2.push(u); });
-    document.getElementById('nj1-cnt').textContent = list1.length+'명';
-    document.getElementById('nj2-cnt').textContent = list2.length+'명';
+    const lists = {1:[],2:[],3:[]};
+    snap.forEach(d=>{ const u=d.data(); [1,2,3].forEach(g=>{ if(u[`game${g}`]) lists[g].push(u); }); });
+    [1,2,3].forEach(g => { document.getElementById(`nj${g}-cnt`).textContent = lists[g].length+'명'; });
     const renderList = (list, game) => list.map(u=>`
       <div style="display:flex;align-items:center;gap:6px;padding:4px 0;border-bottom:1px solid var(--border);font-size:12px;">
         <span class="tb t${u.tier}" style="font-size:10px;">${TIER_NAMES[u.tier]||u.tier}</span>
@@ -2307,28 +2317,24 @@ async function njLoadApplyStatus(){
         <span style="font-size:11px;color:var(--text-dim);">${posScoreBadge(u)||''}</span>
         ${currentUser?`<button onclick="njAdminRemove('${u.uid}',${game})" style="font-size:10px;padding:2px 7px;background:#fff0f0;border:1px solid #ffb0a0;color:#cc2020;border-radius:4px;cursor:pointer;flex-shrink:0;">취소</button>`:''}
       </div>`).join('') || '<div style="font-size:12px;color:var(--text-dim);padding:4px 0;">신청자 없음</div>';
-    document.getElementById('nj1-list').innerHTML = renderList(list1,1);
-    document.getElementById('nj2-list').innerHTML = renderList(list2,2);
+    [1,2,3].forEach(g => { document.getElementById(`nj${g}-list`).innerHTML = renderList(lists[g],g); });
     if(isAdmin){
-      document.getElementById('nj1-admin-add').style.display='block';
-      document.getElementById('nj2-admin-add').style.display='block';
+      [1,2,3].forEach(g => { document.getElementById(`nj${g}-admin-add`).style.display='block'; });
     }
     if(currentUser){
       const mySnap = await getDoc(doc(db,'naejeonApply',currentUser.uid));
       const my = mySnap.exists() ? mySnap.data() : {};
-      const b1=document.getElementById('nj1-btn'), b2=document.getElementById('nj2-btn');
-      if(b1){ b1.textContent=my.game1?'✅ 신청완료 (취소)':'신청하기'; b1.className=my.game1?'btn btn-ghost btn-sm':'btn btn-red btn-sm'; }
-      if(b2){ b2.textContent=my.game2?'✅ 신청완료 (취소)':'신청하기'; b2.className=my.game2?'btn btn-ghost btn-sm':'btn btn-red btn-sm'; }
+      [1,2,3].forEach(g => {
+        const btn = document.getElementById(`nj${g}-btn`);
+        if(btn){ btn.textContent=my[`game${g}`]?'✅ 신청완료 (취소)':'신청하기'; btn.className=my[`game${g}`]?'btn btn-ghost btn-sm':'btn btn-red btn-sm'; }
+      });
     }
     // ── 내전 시간 ──
-    const [t1Snap, t2Snap] = await Promise.all([
-      getDoc(doc(db,'naejeonInfo','game1')),
-      getDoc(doc(db,'naejeonInfo','game2'))
-    ]);
-    const t1El = document.getElementById('nj1-time');
-    const t2El = document.getElementById('nj2-time');
-    if(t1El) t1El.textContent = t1Snap.exists() && t1Snap.data().time ? `⏰ ${t1Snap.data().time}` : '';
-    if(t2El) t2El.textContent = t2Snap.exists() && t2Snap.data().time ? `⏰ ${t2Snap.data().time}` : '';
+    const timeSnaps = await Promise.all([1,2,3].map(g => getDoc(doc(db,'naejeonInfo',`game${g}`))));
+    [1,2,3].forEach((g,i) => {
+      const el = document.getElementById(`nj${g}-time`);
+      if(el) el.textContent = timeSnaps[i].exists() && timeSnaps[i].data().time ? `⏰ ${timeSnaps[i].data().time}` : '';
+    });
     // ── 내전대기 ──
     const waitSnap = await getDocs(query(collection(db,'naejeonWaitlist'), orderBy('joinedAt','asc')));
     const waitList = [];
@@ -2385,7 +2391,7 @@ window.njToggleApply = async (game) => {
 function renderNjTeamBuilder(game){
   const el = document.getElementById(`nj${game}-team-builder`);
   if(!el) return;
-  const tNames = game===1?['1팀','2팀']:['3팀','4팀'];
+  const tNames = game===1?['1팀','2팀']:game===2?['3팀','4팀']:['5팀','6팀'];
   el.innerHTML = `
     <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
       <button class="btn btn-red btn-sm" onclick="njLoadTeam(${game})">📥 신청자 불러오기</button>
@@ -2576,7 +2582,7 @@ window.njAutoSuggest = (game) => {
 
   // 5개 제안안을 카드로 표시
   window[`_njSuggestions_${game}`] = suggestions;
-  const tNamesAuto = game===1 ? ['1팀','2팀'] : ['3팀','4팀'];
+  const tNamesAuto = game===1 ? ['1팀','2팀'] : game===2 ? ['3팀','4팀'] : ['5팀','6팀'];
   const bestDiffVal = Math.min(...suggestions.map(s=>s.diff));
   const sugEl = document.getElementById(`nj${game}-suggestions`);
   if(!sugEl) return;
@@ -2789,7 +2795,7 @@ window.njResetArrange = async (game) => {
 };
 
 window.njCopyTeamText = (game) => {
-  const tNames = game===1?['1팀','2팀']:['3팀','4팀'];
+  const tNames = game===1?['1팀','2팀']:game===2?['3팀','4팀']:['5팀','6팀'];
   const players = njPlayers[game] || [];
   const lines = [`📢 내전${game} 팀 구성`, ''];
   ['t1','t2'].forEach((tk, ti) => {
@@ -2822,6 +2828,16 @@ window.njClearApply = async (game) => {
   renderNjPlayers(game);
   await njLoadApplyStatus();
   showToast(`내전${game} 신청 초기화됐습니다`);
+};
+
+window.njSetTime = async (game) => {
+  const current = document.getElementById(`nj${game}-time`).textContent.replace(/^⏰\s*/,'');
+  const val = prompt(`내전${game} 시간 설정 (예: 토요일 20:00)\n비워두면 삭제됩니다.`, current);
+  if(val === null) return;
+  await setDoc(doc(db,'naejeonInfo',`game${game}`), {time: val.trim()}, {merge:true});
+  const el = document.getElementById(`nj${game}-time`);
+  if(el) el.textContent = val.trim() ? `⏰ ${val.trim()}` : '';
+  showToast(`내전${game} 시간 ${val.trim() ? '설정' : '삭제'}됐습니다`);
 };
 
 window.njWaitApply = async () => {
@@ -2866,7 +2882,7 @@ window.njRecordResult = async (game, winner) => {
   const t1 = players.filter(p=>p.loc.startsWith('t1-'));
   const t2 = players.filter(p=>p.loc.startsWith('t2-'));
   if(t1.length!==5||t2.length!==5){ showToast('각 팀 5명이 모두 배치되어야 합니다'); return; }
-  const tNames = game===1?['1팀','2팀']:['3팀','4팀'];
+  const tNames = game===1?['1팀','2팀']:game===2?['3팀','4팀']:['5팀','6팀'];
   const winnerName = winner==='t1'?tNames[0]:tNames[1];
   if(!confirm(`내전${game} — ${winnerName} 승리로 기록하시겠습니까?\n선수 전원 승/패가 자동 기록됩니다.`)) return;
   const date = todayStr(), month = ym(new Date()), now = new Date().toISOString();
@@ -2931,7 +2947,7 @@ function renderNjHistory(){
   const totalPages = Math.ceil(njHistoryDocs.length / NJ_HISTORY_PER_PAGE);
   const start = (njHistoryPage-1)*NJ_HISTORY_PER_PAGE;
   const pageDocs = njHistoryDocs.slice(start, start+NJ_HISTORY_PER_PAGE);
-  const tMap = {1:['1팀','2팀'],2:['3팀','4팀']};
+  const tMap = {1:['1팀','2팀'],2:['3팀','4팀'],3:['5팀','6팀']};
   const rTeam=(team)=>team.map(p=>`<span style="font-size:11px;padding:2px 5px;background:var(--bg3);border-radius:4px;border:1px solid var(--border);white-space:nowrap;">
     <span style="font-size:10px;color:var(--text-dim);">${p.pos}</span> ${p.realname||p.nick}</span>`).join('');
   const cards = pageDocs.map(d=>{
@@ -3042,13 +3058,24 @@ async function jpRenderAllGroups(){
       const recordHtml = isSlot1Mine && filled > 0 ? `<div style="padding:6px 10px;border-top:1px solid var(--border);display:flex;align-items:center;gap:6px;flex-wrap:wrap;"><span style="font-size:11px;color:var(--text-dim);">판수:</span><input id="jp-games-input-${g}" type="number" min="1" max="20" value="1" class="inp" style="width:55px;padding:3px 6px;font-size:12px;"><button class="btn btn-red btn-sm" style="font-size:11px;" onclick="jpRecordGames(${g})">✅ 기록</button></div>` : '';
 
       const jpTime = timeSnaps[gi].exists() ? timeSnaps[gi].data().time || '' : '';
-      const timeTag = jpTime ? `<span style="font-size:11px;color:#0070a0;margin-left:6px;">⏰ ${jpTime}</span>` : '';
+      const timeTag = (jpTime ? `<span style="font-size:11px;color:#0070a0;margin-left:6px;">⏰ ${jpTime}</span>` : '')
+        + (myUid ? `<button onclick="jpSetTime(${g})" style="font-size:10px;padding:1px 5px;background:var(--bg3);border:1px solid var(--border);color:var(--text-dim);border-radius:4px;cursor:pointer;margin-left:3px;">✏️</button>` : '');
       html += `<div class="card"><div class="card-header"><span class="card-icon">🎮</span><span class="card-title">자랭${g}</span><span class="card-note" style="color:${isFull?'#007a60':'var(--text-dim)'};">${filled}/5명</span>${timeTag}</div><div style="padding:8px 10px;">${slotsHtml}</div>${recordHtml}</div>`;
     }
     html += '</div>';
     container.innerHTML = html;
   } catch(e){ console.error('jpRenderAllGroups error:', e); }
 }
+
+window.jpSetTime = async (g) => {
+  const timeSnap = await getDoc(doc(db,'jarPartyInfo',`g${g}`));
+  const current = timeSnap.exists() ? timeSnap.data().time || '' : '';
+  const val = prompt(`자랭${g} 시간 설정 (예: 일요일 20:00)\n비워두면 삭제됩니다.`, current);
+  if(val === null) return;
+  await setDoc(doc(db,'jarPartyInfo',`g${g}`), {time: val.trim()}, {merge:true});
+  await jpRenderAllGroups();
+  showToast(`자랭${g} 시간 ${val.trim() ? '설정' : '삭제'}됐습니다`);
+};
 
 window.jpApply = async (g, n) => {
   if(!currentUser || !currentProfile) return;
