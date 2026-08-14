@@ -2473,17 +2473,28 @@ window.njAutoSuggest = (game) => {
     return best;
   }
 
-  // 팀 내 포지션 그리디 배정 (라인 적합도 → 포인트 높은 순)
+  // 팀 내 포지션 배정: 5! = 120가지 전체 탐색 → 0점 배치 최소화 → 총점 최대화
   function assignPositions(team){
-    const used = new Set();
-    const result = [];
-    for(const pos of NJ_POSITIONS){
-      const best = team
-        .filter(p => !used.has(p.uid))
-        .sort((a, b) => njPosPriority(a,pos) - njPosPriority(b,pos) || njGetPosScore(b,pos) - njGetPosScore(a,pos))[0];
-      if(best){ result.push({...best, assignedPos:pos}); used.add(best.uid); }
+    function perms(arr){
+      if(!arr.length) return [[]];
+      return arr.flatMap((v,i) => perms([...arr.slice(0,i),...arr.slice(i+1)]).map(p=>[v,...p]));
     }
-    team.filter(p => !used.has(p.uid)).forEach(p => result.push({...p, assignedPos:'기타'}));
+    const n = Math.min(team.length, NJ_POSITIONS.length);
+    let bestAssign = null, bestZero = Infinity, bestScore = -1;
+    for(const perm of perms([...Array(n).keys()])){
+      let zeros = 0, score = 0;
+      for(let i=0; i<n; i++){
+        const s = njGetPosScore(team[perm[i]], NJ_POSITIONS[i]);
+        if(!s) zeros++;
+        score += s;
+      }
+      if(zeros < bestZero || (zeros === bestZero && score > bestScore)){
+        bestZero = zeros; bestScore = score; bestAssign = perm;
+      }
+    }
+    if(!bestAssign) return team.map(p=>({...p, assignedPos:'기타'}));
+    const result = NJ_POSITIONS.slice(0,n).map((pos,i) => ({...team[bestAssign[i]], assignedPos:pos}));
+    team.slice(n).forEach(p => result.push({...p, assignedPos:'기타'}));
     return result;
   }
 
