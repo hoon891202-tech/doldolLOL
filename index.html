@@ -334,12 +334,18 @@ select.inp option{background:#f0fdf8;color:#1a2e2c;}
 <!-- ══ 내전 ══ -->
 <div id="page-naejeon" class="page">
 <div class="wrap">
-  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:14px;">
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;margin-bottom:14px;">
     <div class="card">
-      <div class="card-header"><span class="card-icon">⚔️</span><span class="card-title">내전 1</span><span id="nj1-time" style="font-size:11px;color:#0070a0;margin-left:4px;"></span><button id="nj1-time-edit" onclick="njSetTime(1)" style="display:none;font-size:10px;padding:1px 5px;background:var(--bg3);border:1px solid var(--border);color:var(--text-dim);border-radius:4px;cursor:pointer;margin-left:3px;">✏️</button><span id="nj1-cnt" class="card-note">0명</span><button id="nj1-reset-btn" onclick="njClearApply(1)" style="display:none;margin-left:auto;font-size:11px;padding:2px 8px;background:#fff0f0;border:1px solid #ffb0a0;color:#cc2020;border-radius:4px;cursor:pointer;">🗑 신청 초기화</button></div>
+      <div class="card-header" style="flex-wrap:wrap;gap:6px;padding:10px 12px;">
+        <span class="card-icon">⚔️</span><span class="card-title">내전 1</span>
+        <span id="nj1-time" style="font-size:11px;color:#0070a0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:120px;"></span>
+        <button id="nj1-time-edit" onclick="njSetTime(1)" style="display:none;font-size:10px;padding:1px 5px;background:var(--bg3);border:1px solid var(--border);color:var(--text-dim);border-radius:4px;cursor:pointer;flex-shrink:0;">✏️</button>
+        <span id="nj1-cnt" style="margin-left:auto;font-size:11px;color:var(--text-dim);white-space:nowrap;">0명</span>
+        <button id="nj1-reset-btn" onclick="njClearApply(1)" style="display:none;font-size:11px;padding:2px 7px;background:#fff0f0;border:1px solid #ffb0a0;color:#cc2020;border-radius:4px;cursor:pointer;flex-shrink:0;">🗑 초기화</button>
+      </div>
       <div style="padding:12px;display:flex;flex-direction:column;gap:8px;">
         <button id="nj1-btn" class="btn btn-red btn-sm" onclick="njToggleApply(1)">신청하기</button>
-        <div id="nj1-admin-add" style="display:none;margin-top:10px;padding:10px;background:var(--bg4);border-radius:6px;border:1px solid var(--border);">
+        <div id="nj1-admin-add" style="display:none;margin-top:6px;padding:10px;background:var(--bg4);border-radius:6px;border:1px solid var(--border);">
           <div style="font-size:11px;color:var(--gold);margin-bottom:7px;">👑 관리자 — 회원 추가</div>
           <input id="nj1-search" class="inp" style="width:100%;font-size:12px;margin-bottom:6px;" placeholder="이름 검색..." oninput="njFilterSelect(1)">
           <div style="display:flex;gap:6px;">
@@ -351,10 +357,16 @@ select.inp option{background:#f0fdf8;color:#1a2e2c;}
       </div>
     </div>
     <div class="card">
-      <div class="card-header"><span class="card-icon">⚔️</span><span class="card-title">내전 2</span><span id="nj2-time" style="font-size:11px;color:#0070a0;margin-left:4px;"></span><button id="nj2-time-edit" onclick="njSetTime(2)" style="display:none;font-size:10px;padding:1px 5px;background:var(--bg3);border:1px solid var(--border);color:var(--text-dim);border-radius:4px;cursor:pointer;margin-left:3px;">✏️</button><span id="nj2-cnt" class="card-note">0명</span><button id="nj2-reset-btn" onclick="njClearApply(2)" style="display:none;margin-left:auto;font-size:11px;padding:2px 8px;background:#fff0f0;border:1px solid #ffb0a0;color:#cc2020;border-radius:4px;cursor:pointer;">🗑 신청 초기화</button></div>
+      <div class="card-header" style="flex-wrap:wrap;gap:6px;padding:10px 12px;">
+        <span class="card-icon">⚔️</span><span class="card-title">내전 2</span>
+        <span id="nj2-time" style="font-size:11px;color:#0070a0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:120px;"></span>
+        <button id="nj2-time-edit" onclick="njSetTime(2)" style="display:none;font-size:10px;padding:1px 5px;background:var(--bg3);border:1px solid var(--border);color:var(--text-dim);border-radius:4px;cursor:pointer;flex-shrink:0;">✏️</button>
+        <span id="nj2-cnt" style="margin-left:auto;font-size:11px;color:var(--text-dim);white-space:nowrap;">0명</span>
+        <button id="nj2-reset-btn" onclick="njClearApply(2)" style="display:none;font-size:11px;padding:2px 7px;background:#fff0f0;border:1px solid #ffb0a0;color:#cc2020;border-radius:4px;cursor:pointer;flex-shrink:0;">🗑 초기화</button>
+      </div>
       <div style="padding:12px;display:flex;flex-direction:column;gap:8px;">
         <button id="nj2-btn" class="btn btn-red btn-sm" onclick="njToggleApply(2)">신청하기</button>
-        <div id="nj2-admin-add" style="display:none;margin-top:10px;padding:10px;background:var(--bg4);border-radius:6px;border:1px solid var(--border);">
+        <div id="nj2-admin-add" style="display:none;margin-top:6px;padding:10px;background:var(--bg4);border-radius:6px;border:1px solid var(--border);">
           <div style="font-size:11px;color:var(--gold);margin-bottom:7px;">👑 관리자 — 회원 추가</div>
           <input id="nj2-search" class="inp" style="width:100%;font-size:12px;margin-bottom:6px;" placeholder="이름 검색..." oninput="njFilterSelect(2)">
           <div style="display:flex;gap:6px;">
@@ -366,10 +378,16 @@ select.inp option{background:#f0fdf8;color:#1a2e2c;}
       </div>
     </div>
     <div class="card">
-      <div class="card-header"><span class="card-icon">⚔️</span><span class="card-title">내전 3</span><span id="nj3-time" style="font-size:11px;color:#0070a0;margin-left:4px;"></span><button id="nj3-time-edit" onclick="njSetTime(3)" style="display:none;font-size:10px;padding:1px 5px;background:var(--bg3);border:1px solid var(--border);color:var(--text-dim);border-radius:4px;cursor:pointer;margin-left:3px;">✏️</button><span id="nj3-cnt" class="card-note">0명</span><button id="nj3-reset-btn" onclick="njClearApply(3)" style="display:none;margin-left:auto;font-size:11px;padding:2px 8px;background:#fff0f0;border:1px solid #ffb0a0;color:#cc2020;border-radius:4px;cursor:pointer;">🗑 신청 초기화</button></div>
+      <div class="card-header" style="flex-wrap:wrap;gap:6px;padding:10px 12px;">
+        <span class="card-icon">⚔️</span><span class="card-title">내전 3</span>
+        <span id="nj3-time" style="font-size:11px;color:#0070a0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:120px;"></span>
+        <button id="nj3-time-edit" onclick="njSetTime(3)" style="display:none;font-size:10px;padding:1px 5px;background:var(--bg3);border:1px solid var(--border);color:var(--text-dim);border-radius:4px;cursor:pointer;flex-shrink:0;">✏️</button>
+        <span id="nj3-cnt" style="margin-left:auto;font-size:11px;color:var(--text-dim);white-space:nowrap;">0명</span>
+        <button id="nj3-reset-btn" onclick="njClearApply(3)" style="display:none;font-size:11px;padding:2px 7px;background:#fff0f0;border:1px solid #ffb0a0;color:#cc2020;border-radius:4px;cursor:pointer;flex-shrink:0;">🗑 초기화</button>
+      </div>
       <div style="padding:12px;display:flex;flex-direction:column;gap:8px;">
         <button id="nj3-btn" class="btn btn-red btn-sm" onclick="njToggleApply(3)">신청하기</button>
-        <div id="nj3-admin-add" style="display:none;margin-top:10px;padding:10px;background:var(--bg4);border-radius:6px;border:1px solid var(--border);">
+        <div id="nj3-admin-add" style="display:none;margin-top:6px;padding:10px;background:var(--bg4);border-radius:6px;border:1px solid var(--border);">
           <div style="font-size:11px;color:var(--gold);margin-bottom:7px;">👑 관리자 — 회원 추가</div>
           <input id="nj3-search" class="inp" style="width:100%;font-size:12px;margin-bottom:6px;" placeholder="이름 검색..." oninput="njFilterSelect(3)">
           <div style="display:flex;gap:6px;">
