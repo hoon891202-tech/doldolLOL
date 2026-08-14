@@ -2329,11 +2329,13 @@ async function njLoadApplyStatus(){
     snap.forEach(d=>{ const u=d.data(); [1,2,3].forEach(g=>{ if(u[`game${g}`]) lists[g].push(u); }); });
     [1,2,3].forEach(g => { document.getElementById(`nj${g}-cnt`).textContent = lists[g].length+'명'; });
     const renderList = (list, game) => list.map(u=>`
-      <div style="display:flex;align-items:center;gap:6px;padding:4px 0;border-bottom:1px solid var(--border);font-size:12px;">
-        <span class="tb t${u.tier}" style="font-size:10px;">${TIER_NAMES[u.tier]||u.tier}</span>
-        <span style="flex:1;">${u.realname||u.nick} <span style="color:var(--text-dim);font-size:11px;">(${u.nick})</span></span>
-        <span style="font-size:11px;color:var(--text-dim);">${posScoreBadge(u)||''}</span>
-        ${currentUser?`<button onclick="njAdminRemove('${u.uid}',${game})" style="font-size:10px;padding:2px 7px;background:#fff0f0;border:1px solid #ffb0a0;color:#cc2020;border-radius:4px;cursor:pointer;flex-shrink:0;">취소</button>`:''}
+      <div style="padding:5px 0;border-bottom:1px solid var(--border);">
+        <div style="display:flex;align-items:center;gap:5px;">
+          <span class="tb t${u.tier}" style="font-size:10px;flex-shrink:0;">${TIER_NAMES[u.tier]||u.tier}</span>
+          <span style="flex:1;font-size:12px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${u.realname||u.nick} <span style="color:var(--text-dim);font-size:11px;">(${u.nick})</span></span>
+          ${currentUser?`<button onclick="njAdminRemove('${u.uid}',${game})" style="font-size:10px;padding:1px 6px;background:#fff0f0;border:1px solid #ffb0a0;color:#cc2020;border-radius:4px;cursor:pointer;flex-shrink:0;">취소</button>`:''}
+        </div>
+        ${posScoreBadge(u)?`<div style="display:flex;flex-wrap:wrap;gap:3px;margin-top:3px;">${posScoreBadge(u)}</div>`:''}
       </div>`).join('') || '<div style="font-size:12px;color:var(--text-dim);padding:4px 0;">신청자 없음</div>';
     [1,2,3].forEach(g => { document.getElementById(`nj${g}-list`).innerHTML = renderList(lists[g],g); });
     if(isAdmin){
