@@ -2603,7 +2603,7 @@ window.njAutoSuggest = (game) => {
   const ten = pool.slice(0, 10);
 
   const suggestions = [];
-  function teamScore(team){ return team.reduce((s,p) => s+njGetPosScore(p,p.assignedPos), 0); }
+  function teamScore(team){ return team.reduce((s,p) => s+njRawPosScore(p,p.assignedPos), 0); }
 
   // 포인트 균형을 위해 t1/t2 스왑 최적화
   function optimizeSwap(t1, t2){
@@ -2659,7 +2659,7 @@ window.njAutoSuggest = (game) => {
 
   // === 안 1: 정글/미드 균형 ===
   // 정글·미드 포인트 기준 상위 선수를 교대 배분, 나머지는 전체 pt 기준 교대
-  const jmScore = p => Math.max(njGetPosScore(p,'정글'), njGetPosScore(p,'미드'));
+  const jmScore = p => Math.max(njRawPosScore(p,'정글'), njRawPosScore(p,'미드'));
   const jmSorted = [...ten].sort((a,b) => jmScore(b) - jmScore(a));
   const t1a = [], t1b = [];
   jmSorted.forEach((p,i) => (i%2===0 ? t1a : t1b).push(p));
@@ -2668,7 +2668,7 @@ window.njAutoSuggest = (game) => {
 
   // === 안 2: 원딜/서폿 시너지 ===
   // 각 팀에 원딜·서폿 주라인 선수 1명씩 확보 → 나머지 포인트 균형
-  const maxPosScore = p => Math.max(...POS_LABELS.map(pos => njGetPosScore(p,pos)));
+  const maxPosScore = p => Math.max(...POS_LABELS.map(pos => njRawPosScore(p,pos)));
   const sortedAdc = [...ten].filter(p => njGetPosScore(p,'원딜') > 0).sort((a,b) => njGetPosScore(b,'원딜') - njGetPosScore(a,'원딜'));
   const t2a = [], t2b = [];
   if(sortedAdc.length>=2){ t2a.push(sortedAdc[0]); t2b.push(sortedAdc[1]); }
@@ -2686,8 +2686,8 @@ window.njAutoSuggest = (game) => {
 
   // === 안 3: 탑/바텀 균형 ===
   // 상단(탑+정글), 하단(원딜+서폿) 각각 양 팀에 교대 배분
-  const topScore = p => Math.max(njGetPosScore(p,'탑'), njGetPosScore(p,'정글'));
-  const botScore = p => Math.max(njGetPosScore(p,'원딜'), njGetPosScore(p,'서폿'));
+  const topScore = p => Math.max(njRawPosScore(p,'탑'), njRawPosScore(p,'정글'));
+  const botScore = p => Math.max(njRawPosScore(p,'원딜'), njRawPosScore(p,'서폿'));
   const topSorted = [...ten].sort((a,b) => topScore(b)-topScore(a));
   const t3a = [], t3b = [];
   const topTop4 = topSorted.slice(0,4);
