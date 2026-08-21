@@ -685,6 +685,14 @@ select.inp option{background:#f0fdf8;color:#1a2e2c;}
         <div style="font-size:11px;color:var(--text-dim);margin-bottom:5px;letter-spacing:1px;">내전 포지션 점수 <span style="color:#80c0a0;">(관리자 설정 — 0=희망안함)</span></div>
         <div id="my-pos-scores" style="display:flex;gap:6px;flex-wrap:wrap;padding:8px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;min-height:34px;font-size:12px;color:var(--text-dim);">로딩 중...</div>
       </div>
+      <div>
+        <div style="font-size:11px;color:var(--text-dim);margin-bottom:7px;letter-spacing:1px;">내전 라인 ON/OFF <span style="color:#80c0a0;">(OFF = 이번 내전 해당 라인 배정 제외)</span></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;" id="my-lane-toggles"></div>
+      </div>
+      <div>
+        <div style="font-size:11px;color:var(--text-dim);margin-bottom:7px;letter-spacing:1px;">주라인 / 부라인 <span style="color:#80c0a0;">(AI 배정 시 우선 배정)</span></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;" id="my-lane-pref"></div>
+      </div>
       <div style="display:flex;gap:12px;flex-wrap:wrap;">
         <div style="flex:1;min-width:200px;">
           <div style="font-size:11px;color:var(--text-dim);margin-bottom:5px;letter-spacing:1px;">이메일 (변경불가)</div>
@@ -1331,6 +1339,8 @@ function prefillMyPage(){
     const badges = posScoreBadge(currentProfile);
     psEl.innerHTML = badges || '<span style="color:var(--text-dim);">점수 없음 (관리자에게 문의)</span>';
   }
+  renderLaneToggles();
+  renderLanePref();
   document.getElementById('my-email').value = currentUser.email || '';
   document.getElementById('my-bank').value = currentProfile.bankName || '';
   document.getElementById('my-account').value = currentProfile.accountNum || '';
@@ -1393,6 +1403,87 @@ async function loadMyPage(){
       }).join('')}</div>`
     : `<div style="color:var(--text-dim);font-size:13px;">참여 기록이 없습니다</div>`;
 }
+
+const LANE_LABELS = ['탑','정글','미드','원딜','서폿'];
+
+function getLaneEnabled() {
+  const e = currentProfile.laneEnabled || {};
+  const result = {};
+  LANE_LABELS.forEach(l => { result[l] = e[l] !== false; }); // 기본 true
+  return result;
+}
+
+function renderLaneToggles() {
+  const el = document.getElementById('my-lane-toggles');
+  if (!el || !currentProfile) return;
+  const enabled = getLaneEnabled();
+  el.innerHTML = LANE_LABELS.map(lane => {
+    const on = enabled[lane];
+    const hasScore = NJ_POSITIONS.includes(lane) && (currentProfile[POS_SCORE_MAP[lane]] || 0) > 0;
+    return `<button onclick="toggleLane('${lane}')"
+      style="padding:6px 14px;border-radius:20px;font-size:13px;cursor:pointer;font-weight:600;border:2px solid;
+        background:${on ? 'var(--red)' : 'var(--bg3)'};
+        color:${on ? '#fff' : 'var(--text-dim)'};
+        border-color:${on ? 'var(--red)' : 'var(--border)'};
+        opacity:${hasScore ? '1' : '0.45'};"
+      title="${hasScore ? '' : '점수 없음 (관리자 설정 필요)'}">
+      ${lane} ${on ? 'ON' : 'OFF'}
+    </button>`;
+  }).join('');
+}
+
+function renderLanePref() {
+  const el = document.getElementById('my-lane-pref');
+  if (!el || !currentProfile) return;
+  const main = currentProfile.mainLane || '';
+  const sub = currentProfile.subLane || '';
+  el.innerHTML = LANE_LABELS.map(lane => {
+    const isMain = main === lane;
+    const isSub = sub === lane;
+    const label = isMain ? '주' : isSub ? '부' : '';
+    const bg = isMain ? '#d4a017' : isSub ? '#559955' : 'var(--bg3)';
+    const color = (isMain || isSub) ? '#fff' : 'var(--text-dim)';
+    return `<button onclick="selectLanePref('${lane}')"
+      style="padding:6px 14px;border-radius:20px;font-size:13px;cursor:pointer;font-weight:600;border:2px solid;
+        background:${bg};color:${color};border-color:${isMain ? '#d4a017' : isSub ? '#559955' : 'var(--border)'};">
+      ${lane}${label ? ` <span style="font-size:10px;">[${label}]</span>` : ''}
+    </button>`;
+  }).join('');
+}
+
+window.toggleLane = async (lane) => {
+  if (!currentUser || !currentProfile) return;
+  const enabled = getLaneEnabled();
+  enabled[lane] = !enabled[lane];
+  await updateDoc(doc(db,'users',currentUser.uid), { laneEnabled: enabled });
+  currentProfile = { ...currentProfile, laneEnabled: enabled };
+  renderLaneToggles();
+  showToast(`${lane} ${enabled[lane] ? 'ON' : 'OFF'}`);
+};
+
+window.selectLanePref = async (lane) => {
+  if (!currentUser || !currentProfile) return;
+  let main = currentProfile.mainLane || '';
+  let sub = currentProfile.subLane || '';
+  if (main === lane) {
+    main = ''; // 주라인 해제
+  } else if (sub === lane) {
+    sub = ''; // 부라인 해제
+  } else if (!main) {
+    main = lane; // 주라인 없으면 주라인으로
+  } else if (!sub) {
+    sub = lane; // 주라인 있으면 부라인으로
+  } else {
+    // 둘 다 있으면 주라인 교체, 기존 주라인 → 부라인
+    sub = main;
+    main = lane;
+  }
+  await updateDoc(doc(db,'users',currentUser.uid), { mainLane: main, subLane: sub });
+  currentProfile = { ...currentProfile, mainLane: main, subLane: sub };
+  renderLanePref();
+  const msg = main && sub ? `주라인: ${main} / 부라인: ${sub}` : main ? `주라인: ${main}` : '라인 선택 해제';
+  showToast(msg);
+};
 
 window.saveMyProfile = async () => {
   if(!currentUser) return;
@@ -2284,6 +2375,7 @@ window.njAdminAdd = async (game) => {
     uid, nick:u.nick, realname:u.realname||'',
     tier:u.tier,
     scoreTop:u.scoreTop||0, scoreJungle:u.scoreJungle||0, scoreMid:u.scoreMid||0, scoreAdc:u.scoreAdc||0, scoreSupport:u.scoreSupport||0,
+    laneEnabled:u.laneEnabled||null, mainLane:u.mainLane||'', subLane:u.subLane||'',
     [`game${game}`]:true, updatedAt:new Date().toISOString()
   },{merge:true});
   showToast(`${u.realname||u.nick}님 내전${game} 추가됨!`);
@@ -2329,14 +2421,14 @@ async function njAutoRestoreArrange(game){
 
     const usersSnap3 = await getDocs(collection(db,'users'));
     const scoreMap2 = {};
-    usersSnap3.forEach(d=>{ const ud=d.data(); scoreMap2[d.id] = {scoreTop:ud.scoreTop||0,scoreJungle:ud.scoreJungle||0,scoreMid:ud.scoreMid||0,scoreAdc:ud.scoreAdc||0,scoreSupport:ud.scoreSupport||0,currentTier:ud.currentTier||'',currentRank:ud.currentRank||'',currentLP:ud.currentLP??''}; });
+    usersSnap3.forEach(d=>{ const ud=d.data(); scoreMap2[d.id] = {scoreTop:ud.scoreTop||0,scoreJungle:ud.scoreJungle||0,scoreMid:ud.scoreMid||0,scoreAdc:ud.scoreAdc||0,scoreSupport:ud.scoreSupport||0,currentTier:ud.currentTier||'',currentRank:ud.currentRank||'',currentLP:ud.currentLP??'',laneEnabled:ud.laneEnabled||null,mainLane:ud.mainLane||'',subLane:ud.subLane||''}; });
 
     const players = [];
     activeUids.forEach(uid=>{
       const u = allApplicants[uid];
       const savedLoc = savedMap[uid] || 'pool';
       const bm = scoreMap2[uid]||{};
-      players.push({uid,nick:u.nick,realname:u.realname||'',tier:u.tier,currentTier:bm.currentTier,currentRank:bm.currentRank,currentLP:bm.currentLP,loc:savedLoc,scoreTop:bm.scoreTop,scoreJungle:bm.scoreJungle,scoreMid:bm.scoreMid,scoreAdc:bm.scoreAdc,scoreSupport:bm.scoreSupport});
+      players.push({uid,nick:u.nick,realname:u.realname||'',tier:u.tier,currentTier:bm.currentTier,currentRank:bm.currentRank,currentLP:bm.currentLP,loc:savedLoc,scoreTop:bm.scoreTop,scoreJungle:bm.scoreJungle,scoreMid:bm.scoreMid,scoreAdc:bm.scoreAdc,scoreSupport:bm.scoreSupport,laneEnabled:bm.laneEnabled,mainLane:bm.mainLane,subLane:bm.subLane});
     });
     njPlayers[game] = players;
     renderNjPlayers(game);
@@ -2423,6 +2515,7 @@ window.njToggleApply = async (game) => {
     scoreTop:currentProfile.scoreTop||0, scoreJungle:currentProfile.scoreJungle||0,
     scoreMid:currentProfile.scoreMid||0, scoreAdc:currentProfile.scoreAdc||0,
     scoreSupport:currentProfile.scoreSupport||0,
+    laneEnabled:currentProfile.laneEnabled||null, mainLane:currentProfile.mainLane||'', subLane:currentProfile.subLane||'',
     [field]:newVal, updatedAt:new Date().toISOString()
   },{merge:true});
   showToast(newVal?`내전${game} 신청 완료!`:`내전${game} 신청 취소`);
@@ -2486,7 +2579,10 @@ function njBalanceScore(p){
 
 function njGetPosScore(p, pos){
   const key = POS_SCORE_MAP[pos];
-  return key ? (Number(p[key])||0) : 0;
+  if (!key) return 0;
+  // laneEnabled가 false면 해당 라인 점수 0으로 취급
+  if (p.laneEnabled && p.laneEnabled[pos] === false) return 0;
+  return Number(p[key]) || 0;
 }
 
 // 0점 = 희망안함(999), 점수있으면 0 (score는 2nd sort key에서 처리)
@@ -2521,23 +2617,32 @@ window.njAutoSuggest = (game) => {
     return best;
   }
 
-  // 팀 내 포지션 배정: 5! = 120가지 전체 탐색 → 0점 배치 최소화 → 총점 최대화
+  // 팀 내 포지션 배정: 5! = 120가지 전체 탐색 → 0점 배치 최소화 → 주/부라인 매칭 최대화 → 총점 최대화
   function assignPositions(team){
     function perms(arr){
       if(!arr.length) return [[]];
       return arr.flatMap((v,i) => perms([...arr.slice(0,i),...arr.slice(i+1)]).map(p=>[v,...p]));
     }
+    // 주라인=2, 부라인=1, 그외=0
+    function prefScore(p, pos){
+      if (p.mainLane === pos) return 2;
+      if (p.subLane === pos) return 1;
+      return 0;
+    }
     const n = Math.min(team.length, NJ_POSITIONS.length);
-    let bestAssign = null, bestZero = Infinity, bestScore = -1;
+    let bestAssign = null, bestZero = Infinity, bestPref = -1, bestScore = -1;
     for(const perm of perms([...Array(n).keys()])){
-      let zeros = 0, score = 0;
+      let zeros = 0, pref = 0, score = 0;
       for(let i=0; i<n; i++){
         const s = njGetPosScore(team[perm[i]], NJ_POSITIONS[i]);
         if(!s) zeros++;
         score += s;
+        pref += prefScore(team[perm[i]], NJ_POSITIONS[i]);
       }
-      if(zeros < bestZero || (zeros === bestZero && score > bestScore)){
-        bestZero = zeros; bestScore = score; bestAssign = perm;
+      if(zeros < bestZero ||
+         (zeros === bestZero && pref > bestPref) ||
+         (zeros === bestZero && pref === bestPref && score > bestScore)){
+        bestZero = zeros; bestPref = pref; bestScore = score; bestAssign = perm;
       }
     }
     if(!bestAssign) return team.map(p=>({...p, assignedPos:'기타'}));
@@ -2817,14 +2922,14 @@ window.njLoadTeam = async (game) => {
 
   const usersSnap2 = await getDocs(collection(db,'users'));
   const scoreMap = {};
-  usersSnap2.forEach(d=>{ const ud=d.data(); scoreMap[d.id] = {scoreTop:ud.scoreTop||0,scoreJungle:ud.scoreJungle||0,scoreMid:ud.scoreMid||0,scoreAdc:ud.scoreAdc||0,scoreSupport:ud.scoreSupport||0,currentTier:ud.currentTier||'',currentRank:ud.currentRank||'',currentLP:ud.currentLP??''}; });
+  usersSnap2.forEach(d=>{ const ud=d.data(); scoreMap[d.id] = {scoreTop:ud.scoreTop||0,scoreJungle:ud.scoreJungle||0,scoreMid:ud.scoreMid||0,scoreAdc:ud.scoreAdc||0,scoreSupport:ud.scoreSupport||0,currentTier:ud.currentTier||'',currentRank:ud.currentRank||'',currentLP:ud.currentLP??'',laneEnabled:ud.laneEnabled||null,mainLane:ud.mainLane||'',subLane:ud.subLane||''}; });
 
   const players = [];
   activeUids.forEach(uid=>{
     const u = allApplicants[uid];
     const savedLoc = savedMap[uid] || 'pool';
     const bm = scoreMap[uid]||{};
-    players.push({uid,nick:u.nick,realname:u.realname||'',tier:u.tier,currentTier:bm.currentTier,currentRank:bm.currentRank,currentLP:bm.currentLP,loc:savedLoc,scoreTop:bm.scoreTop,scoreJungle:bm.scoreJungle,scoreMid:bm.scoreMid,scoreAdc:bm.scoreAdc,scoreSupport:bm.scoreSupport});
+    players.push({uid,nick:u.nick,realname:u.realname||'',tier:u.tier,currentTier:bm.currentTier,currentRank:bm.currentRank,currentLP:bm.currentLP,loc:savedLoc,scoreTop:bm.scoreTop,scoreJungle:bm.scoreJungle,scoreMid:bm.scoreMid,scoreAdc:bm.scoreAdc,scoreSupport:bm.scoreSupport,laneEnabled:bm.laneEnabled,mainLane:bm.mainLane,subLane:bm.subLane});
   });
 
   if(!players.length){ showToast('신청자가 없습니다'); return; }
