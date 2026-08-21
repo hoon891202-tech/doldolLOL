@@ -2574,13 +2574,19 @@ function renderNjTeamBuilder(game){
 
 function njBalanceScore(p){
   const pos = p.loc.replace(/^t[12]-/,'');
-  return njGetPosScore(p, pos);
+  return njRawPosScore(p, pos); // 수동배치 포함, 실제 점수로 밸런스 계산
 }
 
+// 표시용: OFF 여부 무관하게 실제 저장된 점수 반환
+function njRawPosScore(p, pos){
+  const key = POS_SCORE_MAP[pos];
+  return key ? (Number(p[key]) || 0) : 0;
+}
+
+// 자동배정 알고리즘용: OFF 라인은 0으로 취급
 function njGetPosScore(p, pos){
   const key = POS_SCORE_MAP[pos];
   if (!key) return 0;
-  // laneEnabled가 false면 해당 라인 점수 0으로 취급
   if (p.laneEnabled && p.laneEnabled[pos] === false) return 0;
   return Number(p[key]) || 0;
 }
@@ -2784,8 +2790,12 @@ function njCard(p, game){
         : `<span style="font-size:10px;color:#555;flex-shrink:0;">─pt</span>`)
     : '';
   const posScores = !isPlaced && isAdmin
-    ? POS_LABELS.filter(pos => njGetPosScore(p,pos) > 0)
-        .map(pos => `<span style="font-size:9px;background:#1a2a4a;color:#88bbff;border:1px solid #3a5a8a;padding:1px 4px;border-radius:5px;">${pos.slice(0,1)}${njGetPosScore(p,pos)}</span>`)
+    ? POS_LABELS.filter(pos => njRawPosScore(p,pos) > 0)
+        .map(pos => {
+          const raw = njRawPosScore(p, pos);
+          const off = p.laneEnabled && p.laneEnabled[pos] === false;
+          return `<span style="font-size:9px;background:#1a2a4a;color:${off?'#556677':'#88bbff'};border:1px solid ${off?'#334455':'#3a5a8a'};padding:1px 4px;border-radius:5px;${off?'text-decoration:line-through;opacity:0.55;':''}">${pos.slice(0,1)}${raw}</span>`;
+        })
         .join('')
     : '';
   return `<div draggable="true" ondragstart="njDragStart(event,${game},'${p.uid}')" ontouchstart="njTouchStart(event,${game},'${p.uid}')"
