@@ -419,10 +419,6 @@ select.inp option{background:#f0fdf8;color:#1a2e2c;}
     <div class="card-header"><span class="card-icon">🟢</span><span class="card-title">내전3 팀구성 — 5팀 vs 6팀</span></div>
     <div id="nj3-team-builder" style="padding:12px;"></div>
   </div>
-  <div class="card">
-    <div class="card-header"><span class="card-icon">📋</span><span class="card-title">내전 기록</span><span class="card-note">날짜별</span></div>
-    <div id="nj-history" style="padding:12px;"><div class="loading">불러오는 중...</div></div>
-  </div>
 </div>
 </div>
 
@@ -3480,84 +3476,7 @@ function njsRenderTeam(players, label, ddVer, isWin) {
   </div>`;
 }
 
-let njHistoryDocs = [];
-let njHistoryPage = 1;
-const NJ_HISTORY_PER_PAGE = 10;
-
-async function loadNjHistory(){
-  const el = document.getElementById('nj-history');
-  if(!el) return;
-  try {
-    const snap = await getDocs(query(collection(db,'naejeonSessions'),orderBy('date','desc')));
-    njHistoryDocs = snap.docs;
-    njHistoryPage = 1;
-    renderNjHistory();
-  } catch(e){ el.innerHTML='<div class="empty-hint">기록 불러오기 실패: '+e.message+'</div>'; }
-}
-
-function renderNjHistory(){
-  const el = document.getElementById('nj-history');
-  if(!el) return;
-  if(!njHistoryDocs.length){ el.innerHTML='<div class="empty-hint">기록이 없습니다</div>'; return; }
-  const totalPages = Math.ceil(njHistoryDocs.length / NJ_HISTORY_PER_PAGE);
-  const start = (njHistoryPage-1)*NJ_HISTORY_PER_PAGE;
-  const pageDocs = njHistoryDocs.slice(start, start+NJ_HISTORY_PER_PAGE);
-  const tMap = {1:['1팀','2팀'],2:['3팀','4팀'],3:['5팀','6팀']};
-  const rTeam=(team)=>team.map(p=>`<span style="font-size:11px;padding:2px 5px;background:var(--bg3);border-radius:4px;border:1px solid var(--border);white-space:nowrap;">
-    <span style="font-size:10px;color:var(--text-dim);">${p.pos}</span> ${p.realname||p.nick}</span>`).join('');
-  const cards = pageDocs.map(d=>{
-    const s=d.data(); const sid=d.id;
-    const tn=tMap[s.game]||['1팀','2팀'];
-    const wName=s.winner==='t1'?tn[0]:tn[1];
-    const wColor=s.winner==='t1'?'#ff5555':'#5090d0';
-    const delBtn = isAdmin ? `<button onclick="njDeleteSession('${sid}')" style="margin-left:auto;font-size:11px;padding:2px 8px;background:#fff0f0;border:1px solid #ffb0a0;color:#cc2020;border-radius:4px;cursor:pointer;">🗑 삭제</button>` : '';
-    return `<div style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:8px;">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap;">
-        <span style="font-size:11px;color:var(--text-dim);">${s.date}</span>
-        <span style="font-size:12px;font-weight:700;">내전${s.game}</span>
-        <span style="font-size:11px;background:${wColor}20;color:${wColor};border:1px solid ${wColor}44;padding:2px 8px;border-radius:10px;">🏆 ${wName} 승</span>
-        ${delBtn}
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-        <div><div style="font-size:10px;color:#ff5555;margin-bottom:4px;font-weight:700;">🔴 ${tn[0]}${s.winner==='t1'?' 🏆':''}</div><div style="display:flex;flex-wrap:wrap;gap:3px;">${rTeam(s.team1)}</div></div>
-        <div><div style="font-size:10px;color:#5090d0;margin-bottom:4px;font-weight:700;">🔵 ${tn[1]}${s.winner==='t2'?' 🏆':''}</div><div style="display:flex;flex-wrap:wrap;gap:3px;">${rTeam(s.team2)}</div></div>
-      </div>
-    </div>`;
-  }).join('');
-  // 페이지네이션
-  let pagination = '';
-  if(totalPages > 1){
-    const btns = [];
-    for(let i=1;i<=totalPages;i++){
-      const active = i===njHistoryPage;
-      btns.push(`<button onclick="njHistoryGoPage(${i})" style="min-width:32px;padding:4px 8px;border-radius:4px;border:1px solid var(--border);background:${active?'var(--red)':'var(--bg4)'};color:${active?'#fff':'var(--text)'};font-size:12px;cursor:pointer;">${i}</button>`);
-    }
-    pagination = `<div style="display:flex;gap:4px;justify-content:center;margin-top:8px;">${btns.join('')}</div>`;
-  }
-  el.innerHTML = cards + pagination;
-}
-
-window.njHistoryGoPage = function(page){
-  njHistoryPage = page;
-  renderNjHistory();
-};
-
-window.njDeleteSession = async function(sid){
-  if(!confirm('이 내전 기록을 삭제하시겠습니까?\n관련 승/패 기록도 함께 삭제됩니다.')) return;
-  try {
-    const sessionDoc = njHistoryDocs.find(d=>d.id===sid);
-    if(sessionDoc){
-      const s = sessionDoc.data();
-      const allUids = [...(s.team1||[]),...(s.team2||[])].map(p=>p.uid).filter(Boolean);
-      // records 컬렉션에서 해당 세션의 기록 삭제 (naejeonSessionId 필드 기준)
-      const recSnap = await getDocs(query(collection(db,'records'),where('naejeonSessionId','==',sid)));
-      for(const rd of recSnap.docs) await deleteDoc(doc(db,'records',rd.id));
-    }
-    await deleteDoc(doc(db,'naejeonSessions',sid));
-    showToast('삭제 완료');
-    await loadNjHistory();
-  } catch(e){ showToast('삭제 실패: '+e.message); }
-};
+async function loadNjHistory(){ /* 내전기록 섹션 제거됨 */ }
 
 // ── 자랭파티 시스템 ──
 const JP_GROUPS = [1,2,3,4,5];
