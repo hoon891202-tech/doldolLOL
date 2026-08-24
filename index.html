@@ -3283,6 +3283,7 @@ async function loadNaejeonStatsPage() {
       const blueWin = blue.length > 0 && blue[0].win;
       const winColor = blueWin ? '#4488ff' : '#ff5555';
       const winLabel = blueWin ? '블루팀 승' : '레드팀 승';
+      const adminBtn = isAdmin ? `<button class="btn btn-sm btn-ghost" style="font-size:10px;padding:2px 7px;" onclick="event.stopPropagation();njsRerecordGame('${doc.matchId}')">🔄 재기록</button>` : '';
       return `<div style="border:1px solid var(--border);border-radius:10px;margin-bottom:12px;overflow:hidden;">
         <div style="display:flex;align-items:center;gap:8px;padding:10px 14px;background:var(--bg3);cursor:pointer;border-bottom:2px solid ${winColor}44;"
           onclick="(el=>{el.style.display=el.style.display==='flex'?'none':'flex'})(document.getElementById('njs-match-${idx}'))">
@@ -3290,6 +3291,7 @@ async function loadNaejeonStatsPage() {
           <span style="font-weight:700;font-size:13px;color:${winColor};">${winLabel}</span>
           <span style="font-size:11px;color:var(--text-dim);">${dur}</span>
           <span style="font-size:11px;color:var(--text-dim);margin-left:auto;">${date}</span>
+          ${adminBtn}
           <span style="font-size:11px;color:var(--text-dim);">▾</span>
         </div>
         <div id="njs-match-${idx}" style="display:none;flex-direction:column;gap:8px;padding:10px 12px;">
@@ -3305,6 +3307,24 @@ async function loadNaejeonStatsPage() {
     console.error('loadNaejeonStatsPage error:', e);
   }
 }
+
+window.njsRerecordGame = async function(matchId) {
+  if (!isAdmin) return;
+  if (!confirm(`${matchId}\n이 경기를 재기록할까요?\n현재 기록된 데이터를 덮어씁니다.`)) return;
+  showToast('재기록 중...');
+  try {
+    const fn = httpsCallable(functions, 'rerecordGame');
+    const result = await fn({ matchId });
+    if (result.data?.success) {
+      showToast('✅ 재기록 완료!');
+      await loadNaejeonStatsPage();
+    } else {
+      showToast('❌ 재기록 실패');
+    }
+  } catch(e) {
+    showToast('❌ 재기록 실패: ' + (e.message || '오류'));
+  }
+};
 
 let _njsDDVer = null;
 async function njsGetDDragonVersion() {
