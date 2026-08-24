@@ -764,6 +764,11 @@ select.inp option{background:#f0fdf8;color:#1a2e2c;}
         <button class="btn btn-ghost btn-sm" onclick="adminFixMonthFormat()" id="fix-month-btn">🔧 month 형식 일괄 수정</button>
         <span id="fix-month-status" style="font-size:12px;color:var(--text-dim);"></span>
       </div>
+      <div style="font-size:12px;color:var(--text-dim);margin-top:4px;">내전통계(naejeonStats)에는 있지만 통계(records)에 누락된 경기 기록을 보완합니다.</div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+        <button class="btn btn-ghost btn-sm" onclick="adminSyncStatsToRecords()" id="sync-stats-btn">⚙️ 내전통계 → 기록 누락 보완</button>
+        <span id="sync-stats-status" style="font-size:12px;color:var(--text-dim);"></span>
+      </div>
     </div>
   </div>
   <div class="card">
@@ -1639,6 +1644,27 @@ window.admMemoChange = (uid) => {
   const btn = document.getElementById('adm-save-all-btn');
   if(btn){ const cnt = Object.keys(admMemoChanges).length; btn.textContent = `📝 점수 일괄저장 (${cnt}건)`; btn.style.borderColor='#ff8800'; btn.style.color='#ffaa44'; }
 };
+window.adminSyncStatsToRecords = async () => {
+  if (!isAdmin) return;
+  if (!confirm('내전통계에 있지만 기록에 누락된 경기를 보완합니다. 계속할까요?')) return;
+  const btn = document.getElementById('sync-stats-btn');
+  const status = document.getElementById('sync-stats-status');
+  btn.disabled = true;
+  status.textContent = '보완 중...';
+  try {
+    const fn = httpsCallable(functions, 'syncNaejeonStatsToRecords');
+    const res = await fn({});
+    const { created, skipped } = res.data;
+    status.textContent = `✅ ${created}건 추가, ${skipped}건 이미 있음`;
+    statsCache = {};
+    showToast(`✅ 누락 기록 보완 완료: ${created}건 추가`);
+  } catch(e) {
+    status.textContent = '❌ 실패: ' + e.message;
+  } finally {
+    btn.disabled = false;
+  }
+};
+
 window.adminFixMonthFormat = async () => {
   if (!isAdmin) return;
   if (!confirm('records 컬렉션의 month 형식을 일괄 수정합니다. 계속할까요?')) return;
@@ -3299,16 +3325,18 @@ async function loadNaejeonStatsPage() {
           const avgD = (p.deaths / g).toFixed(1);
           const avgA = (p.assists / g).toFixed(1);
           const topChamps = Object.entries(p.champCount).sort((a,b) => b[1]-a[1]).slice(0,3);
-          const topPos = Object.entries(p.posCount).sort((a,b) => b[1]-a[1])[0]?.[0] || '';
+          const topPositions = Object.entries(p.posCount).sort((a,b) => b[1]-a[1]).slice(0,3).map(([pos]) => pos).filter(pos => POS_KO2[pos]);
           const nick = p.nick ? p.nick.split('#')[0] : '?';
-          const posLabel = POS_KO2[topPos] || '';
-          const posColor = POS_COLOR[topPos] || 'var(--text-dim)';
+          const posBadges = topPositions.map(pos => {
+            const c = POS_COLOR[pos];
+            return `<span style="font-size:10px;background:${c}22;color:${c};border:1px solid ${c}44;padding:1px 5px;border-radius:8px;font-weight:700;flex-shrink:0;">${POS_KO2[pos]}</span>`;
+          }).join('');
           return `<tr style="border-bottom:1px solid var(--border);" onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background=''">
             <td style="padding:10px 10px;text-align:center;font-size:12px;color:var(--text-dim);font-weight:700;">${i+1}</td>
             <td style="padding:10px 12px;">
-              <div style="display:flex;align-items:center;gap:7px;">
-                ${posLabel ? `<span style="font-size:10px;background:${posColor}22;color:${posColor};border:1px solid ${posColor}44;padding:1px 6px;border-radius:8px;font-weight:700;flex-shrink:0;">${posLabel}</span>` : ''}
+              <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;">
                 <span style="font-size:13px;font-weight:700;">${nick}</span>
+                ${posBadges}
               </div>
             </td>
             <td style="padding:10px 10px;text-align:center;font-size:13px;font-weight:500;">${p.games}</td>
