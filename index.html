@@ -2640,9 +2640,9 @@ window.njAutoSuggest = (game) => {
     for(const perm of perms([...Array(n).keys()])){
       let zeros = 0, pref = 0, score = 0;
       for(let i=0; i<n; i++){
-        const s = njGetPosScore(team[perm[i]], NJ_POSITIONS[i]);
-        if(!s) zeros++;
-        score += s;
+        const sOff = njGetPosScore(team[perm[i]], NJ_POSITIONS[i]); // OFF=0, zeros 계산용
+        if(!sOff) zeros++;
+        score += njRawPosScore(team[perm[i]], NJ_POSITIONS[i]); // 실제 점수, tiebreaker용
         pref += prefScore(team[perm[i]], NJ_POSITIONS[i]);
       }
       if(zeros < bestZero ||
@@ -2853,7 +2853,8 @@ async function njSaveArrange(game){
       updatedAt: new Date().toISOString(),
     };
     if (t1 === 5 && t2 === 5) update.lastArrangedAt = new Date().toISOString();
-    await setDoc(doc(db,'naejeonArrange',`game${game}`), update);
+    // merge:true로 저장 — 5v5 아닌 상태로 저장해도 기존 lastArrangedAt 보존됨
+    await setDoc(doc(db,'naejeonArrange',`game${game}`), update, {merge:true});
   } catch(e){ console.error('njSaveArrange error:', e); }
 }
 
