@@ -3198,7 +3198,10 @@ async function loadNaejeonStatsPage() {
   hEl.innerHTML = '<div class="loading">불러오는 중...</div>';
 
   try {
-    const snap = await getDocs(query(collection(db,'naejeonStats'), orderBy('gameCreation','desc')));
+    const [snap, ddVer] = await Promise.all([
+      getDocs(query(collection(db,'naejeonStats'), orderBy('gameCreation','desc'))),
+      njsGetDDragonVersion(),
+    ]);
     const docs = snap.docs.map(d => d.data());
 
     if (!docs.length) {
@@ -3234,58 +3237,64 @@ async function loadNaejeonStatsPage() {
 
     const players = Object.values(playerMap).sort((a,b) => b.games - a.games);
 
-    // 선수별 통계 테이블
+    // 선수별 통계 — 카드 그리드
     pEl.innerHTML = `
-      <div style="overflow-x:auto;">
-        <table class="tbl" style="font-size:12px;min-width:520px;">
-          <thead><tr>
-            <th>닉네임</th><th>경기</th><th>승률</th><th>평KDA</th><th>평딜</th><th>평CS</th><th>주챔피언</th>
-          </tr></thead>
-          <tbody>
-            ${players.map(p => {
-              const wr = p.games > 0 ? Math.round(p.wins / p.games * 100) : 0;
-              const avgK = (p.kills / p.games).toFixed(1);
-              const avgD = (p.deaths / p.games).toFixed(1);
-              const avgA = (p.assists / p.games).toFixed(1);
-              const avgDmg = Math.round(p.damage / p.games).toLocaleString();
-              const avgCs = Math.round(p.cs / p.games);
-              const topChamp = Object.entries(p.champCount).sort((a,b) => b[1]-a[1]).slice(0,3)
-                .map(([id, cnt]) => `<span title="${id}">${njsChampIcon(id)}×${cnt}</span>`).join(' ');
-              const nick = p.nick ? p.nick.split('#')[0] : '?';
-              return `<tr>
-                <td style="white-space:nowrap;">${nick}</td>
-                <td style="text-align:center;">${p.wins}W ${p.games-p.wins}L</td>
-                <td style="text-align:center;color:${wr>=50?'#33cc88':'#cc5555'};font-weight:600;">${wr}%</td>
-                <td style="text-align:center;">${avgK}/${avgD}/${avgA}</td>
-                <td style="text-align:center;">${avgDmg}</td>
-                <td style="text-align:center;">${avgCs}</td>
-                <td>${topChamp}</td>
-              </tr>`;
-            }).join('')}
-          </tbody>
-        </table>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;">
+        ${players.map(p => {
+          const g = p.games || 1;
+          const wr = Math.round(p.wins / g * 100);
+          const wrColor = wr >= 60 ? '#33cc88' : wr >= 50 ? '#88bbff' : '#cc5555';
+          const avgK = (p.kills / g).toFixed(1);
+          const avgD = (p.deaths / g).toFixed(1);
+          const avgA = (p.assists / g).toFixed(1);
+          const ratio = p.deaths > 0 ? ((p.kills + p.assists) / p.deaths).toFixed(2) : 'Perfect';
+          const avgDmg = Math.round(p.damage / g).toLocaleString();
+          const topChamps = Object.entries(p.champCount).sort((a,b) => b[1]-a[1]).slice(0,3);
+          const nick = p.nick ? p.nick.split('#')[0] : '?';
+          return `<div style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:12px;display:flex;flex-direction:column;gap:9px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:4px;">
+              <span style="font-size:13px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${nick}</span>
+              <span style="font-size:13px;font-weight:800;color:${wrColor};flex-shrink:0;">${wr}%</span>
+            </div>
+            <div style="display:flex;gap:5px;align-items:center;">
+              ${topChamps.map(([id]) =>
+                `<img src="https://ddragon.leagueoflegends.com/cdn/${ddVer}/img/champion/${id}.png"
+                  style="width:38px;height:38px;border-radius:8px;object-fit:cover;border:1px solid var(--border);"
+                  onerror="this.style.opacity=0" title="${id}">`
+              ).join('')}
+            </div>
+            <div style="font-size:11px;color:var(--text-dim);">
+              <div style="margin-bottom:2px;color:var(--text);">${avgK} / <span style="color:#cc5555;">${avgD}</span> / ${avgA} <span style="color:#888;font-size:10px;">KDA ${ratio}</span></div>
+              <div style="display:flex;justify-content:space-between;">
+                <span>${p.wins}승 ${p.games-p.wins}패</span>
+                <span>${avgDmg} 딜</span>
+              </div>
+            </div>
+          </div>`;
+        }).join('')}
       </div>`;
 
-    // 최근 경기 목록
-    const ddVer = await njsGetDDragonVersion();
+    // 최근 경기 목록 (ddVer은 위에서 이미 로드됨)
     hEl.innerHTML = docs.map((doc, idx) => {
-      const date = doc.gameCreation ? new Date(doc.gameCreation).toLocaleDateString('ko-KR', {month:'numeric',day:'numeric'}) : '';
-      const dur = doc.gameDuration ? `${Math.floor(doc.gameDuration/60)}분 ${doc.gameDuration%60}초` : '';
+      const date = doc.gameCreation ? new Date(doc.gameCreation).toLocaleDateString('ko-KR', {month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'}) : '';
+      const dur = doc.gameDuration ? `${Math.floor(doc.gameDuration/60)}분` : '';
       const blue = (doc.participants||[]).filter(p => p.teamId === 100);
       const red = (doc.participants||[]).filter(p => p.teamId === 200);
       const blueWin = blue.length > 0 && blue[0].win;
-      return `<div style="border:1px solid var(--border);border-radius:8px;margin-bottom:10px;overflow:hidden;">
-        <div style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--bg3);cursor:pointer;"
-          onclick="(el=>el.style.display=el.style.display==='none'?'':'none')(document.getElementById('njs-match-${idx}'))">
-          <span style="font-weight:700;font-size:13px;">${date}</span>
+      const winColor = blueWin ? '#4488ff' : '#ff5555';
+      const winLabel = blueWin ? '블루팀 승' : '레드팀 승';
+      return `<div style="border:1px solid var(--border);border-radius:10px;margin-bottom:12px;overflow:hidden;">
+        <div style="display:flex;align-items:center;gap:8px;padding:10px 14px;background:var(--bg3);cursor:pointer;border-bottom:2px solid ${winColor}44;"
+          onclick="(el=>{el.style.display=el.style.display==='flex'?'none':'flex'})(document.getElementById('njs-match-${idx}'))">
+          <div style="width:8px;height:8px;border-radius:50%;background:${winColor};flex-shrink:0;"></div>
+          <span style="font-weight:700;font-size:13px;color:${winColor};">${winLabel}</span>
           <span style="font-size:11px;color:var(--text-dim);">${dur}</span>
-          <span style="margin-left:auto;font-size:11px;padding:2px 8px;border-radius:10px;background:${blueWin?'#0050a022':'#a0002022'};color:${blueWin?'#4499ff':'#ff6666'};">${blueWin?'블루팀 승':'레드팀 승'}</span>
-          <span style="font-size:12px;color:var(--text-dim);">▼</span>
+          <span style="font-size:11px;color:var(--text-dim);margin-left:auto;">${date}</span>
+          <span style="font-size:11px;color:var(--text-dim);">▾</span>
         </div>
-        <div id="njs-match-${idx}" style="display:none;padding:8px 12px;">
-          ${njsRenderTeam(blue, '블루팀', ddVer)}
-          <div style="height:8px;"></div>
-          ${njsRenderTeam(red, '레드팀', ddVer)}
+        <div id="njs-match-${idx}" style="display:none;flex-direction:column;gap:8px;padding:10px 12px;">
+          ${njsRenderTeam(blue, '🔵 블루팀', ddVer, blueWin)}
+          ${njsRenderTeam(red, '🔴 레드팀', ddVer, !blueWin)}
         </div>
       </div>`;
     }).join('');
@@ -3308,47 +3317,52 @@ async function njsGetDDragonVersion() {
   return _njsDDVer;
 }
 
-function njsChampIcon(champId) {
-  return `<img src="https://ddragon.leagueoflegends.com/cdn/img/champion/tiles/${champId}_0.jpg"
-    style="width:24px;height:24px;border-radius:4px;vertical-align:middle;object-fit:cover;" onerror="this.style.display='none'">`;
-}
 
-function njsRenderTeam(players, label, ddVer) {
+function njsRenderTeam(players, label, ddVer, isWin) {
   if (!players.length) return '';
-  return `<div>
-    <div style="font-size:11px;font-weight:700;color:var(--text-dim);margin-bottom:4px;">${label}</div>
-    <div style="overflow-x:auto;">
-      <table style="width:100%;border-collapse:collapse;font-size:11px;min-width:420px;">
-        <thead><tr style="color:var(--text-dim);">
-          <th style="text-align:left;padding:2px 4px;">챔피언</th>
-          <th style="text-align:left;padding:2px 4px;">소환사</th>
-          <th style="text-align:center;padding:2px 4px;">KDA</th>
-          <th style="text-align:center;padding:2px 4px;">딜</th>
-          <th style="text-align:center;padding:2px 4px;">CS</th>
-          <th style="text-align:center;padding:2px 4px;">시야</th>
-        </tr></thead>
-        <tbody>
-          ${players.map(p => {
-            const nick = p.nick ? p.nick.split('#')[0] : '?';
-            const kda = `${p.kills}/${p.deaths}/${p.assists}`;
-            const dmg = (p.totalDamageDealtToChampions||0).toLocaleString();
-            const multi = p.pentaKills ? '🏆펜타' : p.quadraKills ? '쿼드라' : p.tripleKills ? '트리플' : '';
-            return `<tr style="border-top:1px solid var(--border);">
-              <td style="padding:3px 4px;">
-                <img src="https://ddragon.leagueoflegends.com/cdn/${ddVer}/img/champion/${p.championId}.png"
-                  style="width:28px;height:28px;border-radius:4px;vertical-align:middle;" onerror="this.style.display='none'">
-                <span style="font-size:10px;color:var(--text-dim);margin-left:3px;">${p.championName||''}</span>
-              </td>
-              <td style="padding:3px 4px;">${nick}</td>
-              <td style="text-align:center;padding:3px 4px;">${kda}${multi?` <span style="color:#f5c842;font-size:10px;">${multi}</span>`:''}</td>
-              <td style="text-align:center;padding:3px 4px;">${dmg}</td>
-              <td style="text-align:center;padding:3px 4px;">${p.cs||0}</td>
-              <td style="text-align:center;padding:3px 4px;">${p.visionScore||0}</td>
-            </tr>`;
-          }).join('')}
-        </tbody>
-      </table>
+  const isBlue = label.includes('블루');
+  const teamColor = isBlue ? '#4488ff' : '#ff5555';
+  const maxDmg = Math.max(...players.map(p => p.totalDamageDealtToChampions || 0), 1);
+  const POS_KO = { TOP:'탑', JUNGLE:'정글', MIDDLE:'미드', BOTTOM:'원딜', UTILITY:'서폿' };
+
+  return `<div style="border-radius:8px;overflow:hidden;border:1px solid ${isWin ? teamColor+'66' : 'var(--border)'};">
+    <div style="padding:6px 12px;background:${isWin ? teamColor+'22' : 'var(--bg3)'};display:flex;align-items:center;gap:6px;">
+      <span style="font-size:12px;font-weight:700;color:${teamColor};">${label}</span>
+      <span style="font-size:10px;padding:1px 7px;border-radius:10px;font-weight:700;background:${isWin ? teamColor : '#33333380'};color:${isWin ? '#fff' : '#888'};">${isWin ? '승' : '패'}</span>
     </div>
+    ${players.map(p => {
+      const nick = p.nick ? p.nick.split('#')[0] : '?';
+      const dmg = p.totalDamageDealtToChampions || 0;
+      const dmgPct = Math.round(dmg / maxDmg * 100);
+      const kda = p.deaths > 0 ? ((p.kills + p.assists) / p.deaths).toFixed(2) : '완벽';
+      const multi = p.pentaKills ? '🏆펜타' : p.quadraKills ? '✨쿼드라' : p.tripleKills ? '트리플' : '';
+      const posKo = POS_KO[p.individualPosition] || '';
+      return `<div style="display:flex;align-items:center;gap:10px;padding:8px 12px;border-top:1px solid #ffffff0d;">
+        <div style="position:relative;flex-shrink:0;">
+          <img src="https://ddragon.leagueoflegends.com/cdn/${ddVer}/img/champion/${p.championId}.png"
+            style="width:44px;height:44px;border-radius:50%;border:2px solid ${isWin ? teamColor+'88' : '#44444488'};object-fit:cover;display:block;"
+            onerror="this.style.opacity=0.3" title="${p.championName||''}">
+          ${posKo ? `<span style="position:absolute;bottom:-2px;right:-2px;font-size:8px;background:${teamColor};color:#fff;padding:0 3px;border-radius:6px;font-weight:700;">${posKo}</span>` : ''}
+        </div>
+        <div style="flex:1;min-width:0;">
+          <div style="display:flex;align-items:center;gap:5px;margin-bottom:3px;">
+            <span style="font-size:12px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${nick}</span>
+            ${multi ? `<span style="font-size:9px;color:#f5c842;flex-shrink:0;">${multi}</span>` : ''}
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+            <span style="font-size:12px;letter-spacing:0.5px;">${p.kills}/<span style="color:#cc5555;">${p.deaths}</span>/${p.assists}</span>
+            <span style="font-size:10px;color:#888;">KDA ${kda}</span>
+            <span style="font-size:10px;color:#888;margin-left:auto;">CS ${p.cs||0}</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px;">
+            <div style="flex:1;height:4px;background:#ffffff15;border-radius:2px;overflow:hidden;">
+              <div style="width:${dmgPct}%;height:100%;background:${teamColor}cc;border-radius:2px;transition:width 0.3s;"></div>
+            </div>
+            <span style="font-size:10px;color:#888;white-space:nowrap;min-width:52px;text-align:right;">${dmg.toLocaleString()}</span>
+          </div>
+        </div>
+      </div>`;
+    }).join('')}
   </div>`;
 }
 
