@@ -3053,62 +3053,71 @@ window.njAutoRecordFromRiot = async (game) => {
 
   if (!confirm(`내전${game} — Riot API로 결과를 자동 조회합니다.\n게임 종료 후 5분 이상 경과한 경우 조회 가능합니다.\n계속하시겠습니까?`)) return;
 
-  showToast('Riot API에서 경기 데이터 조회 중...', 6000);
+  showToast('Riot API에서 경기 데이터 조회 중...', 8000);
 
   const participantUids = allPlaced.map(p => p.uid);
   try {
-    const fetchFn = httpsCallable(functions, 'fetchNaejeonResult', { timeout: 70000 });
-    // API 성공 후에 세션 생성 (실패 시 orphan 방지)
+    const fetchFn = httpsCallable(functions, 'fetchNaejeonResult', { timeout: 90000 });
     const result = await fetchFn({ participantUids });
-    const { participants, gameDuration } = result.data;
+    const games = result.data?.games;
+    if (!Array.isArray(games) || !games.length) { showToast('찾은 경기가 없습니다'); return; }
 
-    const sessionRef = await addDoc(collection(db,'naejeonSessions'),{
-      game, date: todayStr(), createdAt: new Date().toISOString(), source: 'riot_auto',
-      matchId: result.data.matchId || null,
-      statsLinked: true,
-      team1: players.filter(p=>p.loc.startsWith('t1-')).map(p=>({uid:p.uid,nick:p.nick,realname:p.realname,tier:p.tier,pos:p.loc.replace('t1-','')})),
-      team2: players.filter(p=>p.loc.startsWith('t2-')).map(p=>({uid:p.uid,nick:p.nick,realname:p.realname,tier:p.tier,pos:p.loc.replace('t2-','')})),
-    });
-    const sid = sessionRef.id;
+    const date = todayStr(), month = ym(new Date());
+    const team1 = players.filter(p=>p.loc.startsWith('t1-')).map(p=>({uid:p.uid,nick:p.nick,realname:p.realname,tier:p.tier,pos:p.loc.replace('t1-','')}));
+    const team2 = players.filter(p=>p.loc.startsWith('t2-')).map(p=>({uid:p.uid,nick:p.nick,realname:p.realname,tier:p.tier,pos:p.loc.replace('t2-','')}));
 
-    const date = todayStr(), month = ym(new Date()), now = new Date().toISOString();
-    // 승패 기록 + 포지션 점수 업데이트
-    for (const p of participants) {
-      if (!p.uid) continue;
-      await addDoc(collection(db,'records'),{
-        uid: p.uid, nick: p.nick, type:'naejeon', date, result: p.win?'win':'loss',
-        pts: 1, month, createdAt: now, addedByAdmin: true, naejeonGame: game,
-        naejeonSessionId: sid, source: 'riot_auto',
+    for (const gameData of games) {
+      const { matchId, participants, gameDuration } = gameData;
+      if (!matchId || !Array.isArray(participants)) continue;
+      const now = new Date().toISOString();
+      // 세션 생성
+      const sessionRef = await addDoc(collection(db,'naejeonSessions'),{
+        game, date, createdAt: now, source: 'riot_auto',
+        matchId, statsLinked: true, team1, team2,
       });
-      // 실제 플레이 포지션 기준 점수 업데이트
-      const scoreKey = RIOT_POS_TO_SCORE_KEY[p.individualPosition];
-      if (scoreKey) {
-        try {
-          const uSnap = await getDoc(doc(db,'users',p.uid));
-          if (uSnap.exists()) {
-            const ud = uSnap.data();
-            const cur = ud[scoreKey] || 0;
-            if (cur > 0) {
-              const isNew = ud.isNewMember || false;
-              const delta = p.win ? (isNew?5:2) : (isNew?-5:-2);
-              const posUpdate = {[scoreKey]: Math.max(1, Math.min(999, cur+delta))};
-              if (isNew) {
-                const nextGames = (ud.newMemberGames||0)+1;
-                posUpdate.newMemberGames = nextGames;
-                if (nextGames >= 5) posUpdate.isNewMember = false;
+      const sid = sessionRef.id;
+      // naejeonStats에 sessionId 업데이트
+      if (matchId) await updateDoc(doc(db,'naejeonStats',matchId), { sessionId: sid }).catch(()=>{});
+
+      // 승패 기록 + 포지션 점수 업데이트
+      for (const p of participants) {
+        if (!p.uid) continue;
+        await addDoc(collection(db,'records'),{
+          uid: p.uid, nick: p.nick, type:'naejeon', date, result: p.win?'win':'loss',
+          pts: 1, month, createdAt: now, addedByAdmin: true, naejeonGame: game,
+          naejeonSessionId: sid, source: 'riot_auto',
+        });
+        const scoreKey = RIOT_POS_TO_SCORE_KEY[p.individualPosition];
+        if (scoreKey) {
+          try {
+            const uSnap = await getDoc(doc(db,'users',p.uid));
+            if (uSnap.exists()) {
+              const ud = uSnap.data();
+              const cur = ud[scoreKey] || 0;
+              if (cur > 0) {
+                const isNew = ud.isNewMember || false;
+                const delta = p.win ? (isNew?5:2) : (isNew?-5:-2);
+                const posUpdate = {[scoreKey]: Math.max(1, Math.min(999, cur+delta))};
+                if (isNew) {
+                  const nextGames = (ud.newMemberGames||0)+1;
+                  posUpdate.newMemberGames = nextGames;
+                  if (nextGames >= 5) posUpdate.isNewMember = false;
+                }
+                await updateDoc(doc(db,'users',p.uid), posUpdate);
               }
-              await updateDoc(doc(db,'users',p.uid), posUpdate);
             }
-          }
-        } catch(e) { console.error('포지션 점수 업데이트 실패:', p.uid, e); }
+          } catch(e) { console.error('포지션 점수 업데이트 실패:', p.uid, e); }
+        }
       }
+
+      const mins = Math.floor((gameDuration||0)/60);
+      const winner = participants.find(p=>p.win);
+      const winLabel = !winner ? '결과 미확인' : winner.teamId === 100 ? '블루팀' : '레드팀';
+      showToast(`기록 완료: ${winLabel} 승리 (${mins}분)`, 3000);
+      await new Promise(r => setTimeout(r, 500));
     }
 
-    const mins = Math.floor((gameDuration||0)/60);
-    const winner = participants.find(p=>p.win);
-    const winLabel = !winner ? '결과 미확인' : winner.teamId === 100 ? '블루팀' : '레드팀';
-    showToast(`내전${game} 자동 기록 완료! 🎉 ${winLabel} 승리 (${mins}분)`);
-    // 배치 초기화 (스케줄러 중복 기록 방지)
+    showToast(`내전${game} 총 ${games.length}판 자동 기록 완료! 🎉`);
     await deleteDoc(doc(db,'naejeonArrange',`game${game}`)).catch(()=>{});
     njPlayers[game] = [];
     renderNjPlayers(game);
