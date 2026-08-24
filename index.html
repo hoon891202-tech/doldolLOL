@@ -757,6 +757,16 @@ select.inp option{background:#f0fdf8;color:#1a2e2c;}
     </div>
   </div>
   <div class="card">
+    <div class="card-header"><span class="card-icon">🛠</span><span class="card-title">데이터 수정</span><span class="card-note">일회성 마이그레이션</span></div>
+    <div style="padding:14px;display:flex;flex-direction:column;gap:10px;">
+      <div style="font-size:12px;color:var(--text-dim);">records 컬렉션의 month 형식이 "202608" 형태인 경우 "2026-08" 형식으로 일괄 수정합니다.</div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+        <button class="btn btn-ghost btn-sm" onclick="adminFixMonthFormat()" id="fix-month-btn">🔧 month 형식 일괄 수정</button>
+        <span id="fix-month-status" style="font-size:12px;color:var(--text-dim);"></span>
+      </div>
+    </div>
+  </div>
+  <div class="card">
     <div class="card-header"><span class="card-icon">📝</span><span class="card-title">회원 기록 대신 입력</span><span class="card-note">관리자 전용</span></div>
     <div style="padding:14px;display:flex;flex-direction:column;gap:10px;">
       <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
@@ -1629,6 +1639,27 @@ window.admMemoChange = (uid) => {
   const btn = document.getElementById('adm-save-all-btn');
   if(btn){ const cnt = Object.keys(admMemoChanges).length; btn.textContent = `📝 점수 일괄저장 (${cnt}건)`; btn.style.borderColor='#ff8800'; btn.style.color='#ffaa44'; }
 };
+window.adminFixMonthFormat = async () => {
+  if (!isAdmin) return;
+  if (!confirm('records 컬렉션의 month 형식을 일괄 수정합니다. 계속할까요?')) return;
+  const btn = document.getElementById('fix-month-btn');
+  const status = document.getElementById('fix-month-status');
+  btn.disabled = true;
+  status.textContent = '수정 중...';
+  try {
+    const fn = httpsCallable(functions, 'fixMonthFormat');
+    const res = await fn({});
+    const { fixed, skipped } = res.data;
+    status.textContent = `✅ ${fixed}건 수정, ${skipped}건 이미 정상`;
+    statsCache = {};
+    showToast(`✅ month 형식 수정 완료: ${fixed}건`);
+  } catch(e) {
+    status.textContent = '❌ 실패: ' + e.message;
+  } finally {
+    btn.disabled = false;
+  }
+};
+
 window.adminSyncTiers = async () => {
   const btn = document.getElementById('sync-tier-btn');
   const status = document.getElementById('sync-tier-status');
@@ -3221,7 +3252,7 @@ async function loadNaejeonStatsPage() {
           games: 0, wins: 0,
           kills: 0, deaths: 0, assists: 0,
           damage: 0, cs: 0,
-          champCount: {},
+          champCount: {}, posCount: {}, lastGameTs: 0,
         };
         const m = playerMap[key];
         m.games++;
@@ -3232,47 +3263,82 @@ async function loadNaejeonStatsPage() {
         m.damage += p.totalDamageDealtToChampions || 0;
         m.cs += p.cs || 0;
         if (p.championId) m.champCount[p.championId] = (m.champCount[p.championId] || 0) + 1;
+        if (p.individualPosition) m.posCount[p.individualPosition] = (m.posCount[p.individualPosition] || 0) + 1;
+        if ((doc.gameCreation || 0) > m.lastGameTs) m.lastGameTs = doc.gameCreation || 0;
       }
     }
 
     const players = Object.values(playerMap).sort((a,b) => b.games - a.games);
 
-    // 선수별 통계 — 카드 그리드
-    pEl.innerHTML = `
-      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;">
-        ${players.map(p => {
+    const POS_KO2 = { TOP:'탑', JUNGLE:'정글', MIDDLE:'미드', BOTTOM:'원딜', UTILITY:'서폿' };
+    const POS_COLOR = { TOP:'#e67e22', JUNGLE:'#27ae60', MIDDLE:'#8e44ad', BOTTOM:'#2980b9', UTILITY:'#c0392b' };
+
+    // 선수별 통계 — DeepLol 스타일 테이블
+    pEl.innerHTML = `<div style="overflow-x:auto;">
+      <table style="width:100%;border-collapse:collapse;min-width:560px;">
+        <thead><tr style="background:var(--bg4);font-size:11px;color:var(--text-dim);letter-spacing:1px;">
+          <th style="padding:8px 10px;text-align:center;width:32px;">#</th>
+          <th style="padding:8px 12px;text-align:left;">소환사명</th>
+          <th style="padding:8px 10px;text-align:center;">게임</th>
+          <th style="padding:8px 12px;text-align:center;min-width:160px;">승률</th>
+          <th style="padding:8px 10px;text-align:center;">KDA</th>
+          <th style="padding:8px 10px;text-align:center;">모스트 챔피언</th>
+        </tr></thead>
+        <tbody>
+        ${players.map((p, i) => {
           const g = p.games || 1;
-          const wr = Math.round(p.wins / g * 100);
-          const wrColor = wr >= 60 ? '#33cc88' : wr >= 50 ? '#88bbff' : '#cc5555';
+          const loses = p.games - p.wins;
+          const wr = (p.wins / g * 100).toFixed(1);
+          const wrNum = parseFloat(wr);
+          const wrColor = wrNum >= 60 ? '#33cc88' : wrNum >= 50 ? '#88bbff' : '#cc6655';
+          const winBarW = Math.round(p.wins / g * 100);
+          const kda = p.deaths > 0 ? ((p.kills + p.assists) / p.deaths).toFixed(2) : '완벽';
+          const kdaNum = parseFloat(kda);
+          const kdaColor = kdaNum >= 3 ? '#f5c842' : kdaNum >= 2 ? '#88bbff' : 'var(--text)';
           const avgK = (p.kills / g).toFixed(1);
           const avgD = (p.deaths / g).toFixed(1);
           const avgA = (p.assists / g).toFixed(1);
-          const ratio = p.deaths > 0 ? ((p.kills + p.assists) / p.deaths).toFixed(2) : 'Perfect';
-          const avgDmg = Math.round(p.damage / g).toLocaleString();
           const topChamps = Object.entries(p.champCount).sort((a,b) => b[1]-a[1]).slice(0,3);
+          const topPos = Object.entries(p.posCount).sort((a,b) => b[1]-a[1])[0]?.[0] || '';
           const nick = p.nick ? p.nick.split('#')[0] : '?';
-          return `<div style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:12px;display:flex;flex-direction:column;gap:9px;">
-            <div style="display:flex;align-items:center;justify-content:space-between;gap:4px;">
-              <span style="font-size:13px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${nick}</span>
-              <span style="font-size:13px;font-weight:800;color:${wrColor};flex-shrink:0;">${wr}%</span>
-            </div>
-            <div style="display:flex;gap:5px;align-items:center;">
-              ${topChamps.map(([id]) =>
-                `<img src="https://ddragon.leagueoflegends.com/cdn/${ddVer}/img/champion/${id}.png"
-                  style="width:38px;height:38px;border-radius:8px;object-fit:cover;border:1px solid var(--border);"
-                  onerror="this.style.opacity=0" title="${id}">`
-              ).join('')}
-            </div>
-            <div style="font-size:11px;color:var(--text-dim);">
-              <div style="margin-bottom:2px;color:var(--text);">${avgK} / <span style="color:#cc5555;">${avgD}</span> / ${avgA} <span style="color:#888;font-size:10px;">KDA ${ratio}</span></div>
-              <div style="display:flex;justify-content:space-between;">
-                <span>${p.wins}승 ${p.games-p.wins}패</span>
-                <span>${avgDmg} 딜</span>
+          const posLabel = POS_KO2[topPos] || '';
+          const posColor = POS_COLOR[topPos] || 'var(--text-dim)';
+          return `<tr style="border-bottom:1px solid var(--border);" onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background=''">
+            <td style="padding:10px 10px;text-align:center;font-size:12px;color:var(--text-dim);font-weight:700;">${i+1}</td>
+            <td style="padding:10px 12px;">
+              <div style="display:flex;align-items:center;gap:7px;">
+                ${posLabel ? `<span style="font-size:10px;background:${posColor}22;color:${posColor};border:1px solid ${posColor}44;padding:1px 6px;border-radius:8px;font-weight:700;flex-shrink:0;">${posLabel}</span>` : ''}
+                <span style="font-size:13px;font-weight:700;">${nick}</span>
               </div>
-            </div>
-          </div>`;
+            </td>
+            <td style="padding:10px 10px;text-align:center;font-size:13px;font-weight:500;">${p.games}</td>
+            <td style="padding:10px 12px;">
+              <div style="display:flex;align-items:center;gap:7px;">
+                <div style="flex:1;height:16px;border-radius:4px;overflow:hidden;display:flex;min-width:80px;">
+                  ${p.wins > 0 ? `<div style="width:${winBarW}%;background:#4488ff;display:flex;align-items:center;justify-content:center;"><span style="font-size:10px;color:#fff;font-weight:700;padding:0 3px;white-space:nowrap;">${p.wins}</span></div>` : ''}
+                  ${loses > 0 ? `<div style="flex:1;background:#cc4444;display:flex;align-items:center;justify-content:center;"><span style="font-size:10px;color:#fff;font-weight:700;padding:0 3px;white-space:nowrap;">${loses}</span></div>` : ''}
+                </div>
+                <span style="font-size:13px;font-weight:700;color:${wrColor};flex-shrink:0;min-width:38px;">${wr}%</span>
+              </div>
+            </td>
+            <td style="padding:10px 10px;text-align:center;">
+              <div style="font-size:13px;font-weight:700;color:${kdaColor};">${kda}</div>
+              <div style="font-size:10px;color:var(--text-dim);margin-top:1px;">${avgK}/<span style="color:#cc5555;">${avgD}</span>/${avgA}</div>
+            </td>
+            <td style="padding:10px 10px;">
+              <div style="display:flex;gap:3px;align-items:center;justify-content:center;">
+                ${topChamps.map(([id]) =>
+                  `<img src="https://ddragon.leagueoflegends.com/cdn/${ddVer}/img/champion/${id}.png"
+                    style="width:32px;height:32px;border-radius:6px;object-fit:cover;border:1px solid var(--border);"
+                    onerror="this.style.opacity=0" title="${id}">`
+                ).join('')}
+              </div>
+            </td>
+          </tr>`;
         }).join('')}
-      </div>`;
+        </tbody>
+      </table>
+    </div>`;
 
     // 최근 경기 목록 (ddVer은 위에서 이미 로드됨)
     hEl.innerHTML = docs.map((doc, idx) => {
