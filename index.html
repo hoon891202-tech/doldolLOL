@@ -765,6 +765,18 @@ select.inp option{background:#f0fdf8;color:#1a2e2c;}
         <button class="btn btn-ghost btn-sm" onclick="adminSyncStatsToRecords()" id="sync-stats-btn">⚙️ 내전통계 → 기록 누락 보완</button>
         <span id="sync-stats-status" style="font-size:12px;color:var(--text-dim);"></span>
       </div>
+      <hr style="border:none;border-top:1px solid var(--border);margin:4px 0;">
+      <div style="font-size:12px;color:var(--text-dim);">중복 가입된 계정을 하나로 합칩니다. 삭제할 계정의 모든 기록이 유지할 계정으로 이전됩니다.</div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+        <select id="merge-keep-uid" class="inp" style="flex:1;min-width:120px;"></select>
+        <span style="font-size:11px;color:var(--text-dim);flex-shrink:0;">유지</span>
+        <select id="merge-del-uid" class="inp" style="flex:1;min-width:120px;"></select>
+        <span style="font-size:11px;color:var(--text-dim);flex-shrink:0;">삭제</span>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+        <button class="btn btn-ghost btn-sm" style="border-color:#cc3333;color:#cc3333;" onclick="adminMergeUser()" id="merge-user-btn">🔗 계정 합치기 (삭제계정→유지계정)</button>
+        <span id="merge-user-status" style="font-size:12px;color:var(--text-dim);"></span>
+      </div>
     </div>
   </div>
   <div class="card">
@@ -847,7 +859,7 @@ select.inp option{background:#f0fdf8;color:#1a2e2c;}
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, browserLocalPersistence, setPersistence }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-import { getFirestore, doc, setDoc, getDoc, getDocs, collection, addDoc, deleteDoc, updateDoc, query, where, orderBy, writeBatch, serverTimestamp }
+import { getFirestore, doc, setDoc, getDoc, getDocs, collection, addDoc, deleteDoc, updateDoc, query, where, orderBy, writeBatch, serverTimestamp, runTransaction }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 import { getFunctions, httpsCallable }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-functions.js";
@@ -1682,6 +1694,34 @@ window.adminFixMonthFormat = async () => {
   }
 };
 
+window.adminMergeUser = async () => {
+  if (!isAdmin) return;
+  const keepUid = document.getElementById('merge-keep-uid').value;
+  const deleteUid = document.getElementById('merge-del-uid').value;
+  if (!keepUid || !deleteUid) { showToast('유지할 계정과 삭제할 계정을 모두 선택하세요'); return; }
+  if (keepUid === deleteUid) { showToast('같은 계정입니다'); return; }
+  const keepName = document.getElementById('merge-keep-uid').options[document.getElementById('merge-keep-uid').selectedIndex].textContent;
+  const delName = document.getElementById('merge-del-uid').options[document.getElementById('merge-del-uid').selectedIndex].textContent;
+  if (!confirm(`⚠️ 정말 합칩니까?\n\n유지: ${keepName}\n삭제(기록 이전): ${delName}\n\n삭제 계정의 모든 기록(records, naejeonStats, warnlogs, restlogs)이 유지 계정으로 이전되고 삭제 계정은 영구 삭제됩니다.`)) return;
+  const btn = document.getElementById('merge-user-btn');
+  const status = document.getElementById('merge-user-status');
+  btn.disabled = true;
+  status.textContent = '처리 중...';
+  try {
+    const fn = httpsCallable(functions, 'mergeAndDeleteUser');
+    const res = await fn({ keepUid, deleteUid });
+    const { movedRecords, skippedRecords, updatedStats } = res.data;
+    status.textContent = `✅ records ${movedRecords}건 이전, 중복 ${skippedRecords}건 삭제, naejeonStats ${updatedStats}건 업데이트`;
+    statsCache = {}; rankingCache = null;
+    showToast(`✅ 계정 합치기 완료`);
+    await loadAdmin();
+  } catch(e) {
+    status.textContent = '❌ 실패: ' + e.message;
+  } finally {
+    btn.disabled = false;
+  }
+};
+
 window.adminSyncTiers = async () => {
   const btn = document.getElementById('sync-tier-btn');
   const status = document.getElementById('sync-tier-status');
@@ -1763,6 +1803,23 @@ async function loadAdmin(){
     const sel = document.getElementById('adm-target-uid');
     sel.innerHTML = '<option value="">회원 선택</option>';
     snap.forEach(d=>{ if(d.data().active){ const opt=document.createElement('option'); opt.value=d.id; opt.textContent=d.data().nick; sel.appendChild(opt); }});
+    // 계정 합치기 셀렉트 채우기 (비활성 계정 포함)
+    ['merge-keep-uid','merge-del-uid'].forEach(selId => {
+      const el2 = document.getElementById(selId);
+      if(!el2) return;
+      el2.innerHTML = '';
+      const defOpt = document.createElement('option');
+      defOpt.value = ''; defOpt.textContent = '선택';
+      el2.appendChild(defOpt);
+      for(const d of snap.docs) {
+        const u = d.data();
+        const opt = document.createElement('option');
+        opt.value = d.id;
+        const label = (u.realname || u.nick || d.id) + ' (' + (u.nick||'').split('#')[0] + ')' + (u.active ? '' : ' [탈퇴]');
+        opt.textContent = label;
+        el2.appendChild(opt);
+      }
+    });
     admAllMembers = [];
     for(const d of snap.docs){
       const u = d.data();
@@ -2558,20 +2615,34 @@ async function njLoadApplyStatus(){
 
 window.njToggleApply = async (game) => {
   if(!currentUser) return;
-  const mySnap = await getDoc(doc(db,'naejeonApply',currentUser.uid));
-  const my = mySnap.exists() ? mySnap.data() : {};
   const field = `game${game}`;
-  const newVal = !my[field];
-  await setDoc(doc(db,'naejeonApply',currentUser.uid),{
-    uid:currentUser.uid, nick:currentProfile.nick, realname:currentProfile.realname||'',
-    tier:currentProfile.tier,
-    scoreTop:currentProfile.scoreTop||0, scoreJungle:currentProfile.scoreJungle||0,
-    scoreMid:currentProfile.scoreMid||0, scoreAdc:currentProfile.scoreAdc||0,
-    scoreSupport:currentProfile.scoreSupport||0,
-    laneEnabled:currentProfile.laneEnabled||null, mainLane:currentProfile.mainLane||'', subLane:currentProfile.subLane||'',
-    [field]:newVal, updatedAt:new Date().toISOString()
-  },{merge:true});
-  showToast(newVal?`내전${game} 신청 완료!`:`내전${game} 신청 취소`);
+  const cntRef = doc(db,'naejeonCounts',`game${game}`);
+  const applyRef = doc(db,'naejeonApply',currentUser.uid);
+  let resultVal;
+  try {
+    await runTransaction(db, async (tx) => {
+      const [cntSnap, mySnap] = await Promise.all([tx.get(cntRef), tx.get(applyRef)]);
+      const my = mySnap.exists() ? mySnap.data() : {};
+      const newVal = !my[field];
+      const cnt = cntSnap.exists() ? (cntSnap.data().count || 0) : 0;
+      if(newVal && cnt >= 10) throw Object.assign(new Error('FULL'), {code:'FULL'});
+      tx.set(cntRef, { count: Math.max(0, cnt + (newVal ? 1 : -1)) }, { merge: true });
+      tx.set(applyRef, {
+        uid:currentUser.uid, nick:currentProfile.nick, realname:currentProfile.realname||'',
+        tier:currentProfile.tier,
+        scoreTop:currentProfile.scoreTop||0, scoreJungle:currentProfile.scoreJungle||0,
+        scoreMid:currentProfile.scoreMid||0, scoreAdc:currentProfile.scoreAdc||0,
+        scoreSupport:currentProfile.scoreSupport||0,
+        laneEnabled:currentProfile.laneEnabled||null, mainLane:currentProfile.mainLane||'', subLane:currentProfile.subLane||'',
+        [field]:newVal, updatedAt:new Date().toISOString()
+      }, { merge: true });
+      resultVal = newVal;
+    });
+  } catch(e) {
+    if(e.code === 'FULL') { showToast(`내전${game} 정원이 가득 찼습니다 (10/10)`); return; }
+    throw e;
+  }
+  showToast(resultVal ? `내전${game} 신청 완료!` : `내전${game} 신청 취소`);
   await njLoadApplyStatus();
 };
 
