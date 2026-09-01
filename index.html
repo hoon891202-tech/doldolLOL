@@ -753,6 +753,13 @@ select.inp option{background:#f0fdf8;color:#1a2e2c;}
     </div>
   </div>
   <div class="card">
+    <div class="card-header"><span class="card-icon">⚡</span><span class="card-title">라인별 밸티어 가중치</span><span class="card-note">배치 pt·밸 합산에 ±가산</span></div>
+    <div style="padding:14px;display:flex;flex-direction:column;gap:12px;">
+      <div style="font-size:12px;color:var(--text-dim);">내전별로 라인마다 가중치를 설정하면, 배치 시 해당 선수의 밸티어 pt에 값이 더해져 밸 합산에 반영됩니다.</div>
+      <div id="admin-pos-adj-wrap" style="display:flex;flex-direction:column;gap:14px;"></div>
+    </div>
+  </div>
+  <div class="card">
     <div class="card-header"><span class="card-icon">🛠</span><span class="card-title">데이터 수정</span><span class="card-note">일회성 마이그레이션</span></div>
     <div style="padding:14px;display:flex;flex-direction:column;gap:10px;">
       <div style="font-size:12px;color:var(--text-dim);">records 컬렉션의 month 형식이 "202608" 형태인 경우 "2026-08" 형식으로 일괄 수정합니다.</div>
@@ -1820,6 +1827,28 @@ async function loadAdmin(){
         el2.appendChild(opt);
       }
     });
+    // 라인별 가중치 UI 렌더링
+    const adjWrap = document.getElementById('admin-pos-adj-wrap');
+    if(adjWrap){
+      const adjSnaps = await Promise.all([1,2,3].map(g => getDoc(doc(db,'naejeonArrange',`game${g}`))));
+      adjSnaps.forEach((s,i) => {
+        const g = i+1;
+        const saved = s.exists() ? (s.data().posAdj || {}) : {};
+        NJ_POSITIONS.forEach(pos => { njPosAdj[g][pos] = saved[pos] || 0; });
+      });
+      adjWrap.innerHTML = [1,2,3].map(g => `
+        <div>
+          <div style="font-size:12px;color:var(--text-mid);font-weight:700;margin-bottom:6px;">내전 ${g}</div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;">
+            ${NJ_POSITIONS.map(pos=>`<div style="display:flex;flex-direction:column;align-items:center;gap:3px;">
+              <span style="font-size:11px;color:var(--text-dim);">${pos}</span>
+              <input type="number" id="adm-adj-${g}-${pos}" value="${njPosAdj[g][pos]}" step="1" min="-50" max="50"
+                style="width:56px;text-align:center;background:var(--bg3);border:1px solid var(--border);border-radius:4px;color:var(--text);padding:3px 4px;font-size:14px;font-weight:700;"
+                onchange="njSetPosAdj(${g},'${pos}',this.value)">
+            </div>`).join('')}
+          </div>
+        </div>`).join('<hr style="border:none;border-top:1px solid var(--border);">');
+    }
     admAllMembers = [];
     for(const d of snap.docs){
       const u = d.data();
@@ -2660,17 +2689,6 @@ function renderNjTeamBuilder(game){
       <button class="btn btn-sm" style="background:#1a2a3a;border:1px solid #4488cc;color:#0070a0;" onclick="njAutoSuggest(${game})">⚡ 자동 팀 구성</button>
     </div>
     <div id="nj${game}-suggestions" style="display:none;margin-bottom:14px;"></div>
-    ${isAdmin ? `<div style="background:var(--bg2);border:1px solid #4a4a2a;border-radius:8px;padding:8px 12px;margin-bottom:10px;">
-      <div style="font-size:11px;color:#aaa87a;font-weight:700;margin-bottom:6px;">⚡ 라인별 점수 가중치 <span style="font-weight:300;color:var(--text-dim);">(배치 pt·밸 합산에 ±가산)</span></div>
-      <div style="display:flex;gap:10px;flex-wrap:wrap;">
-        ${NJ_POSITIONS.map(pos=>`<div style="display:flex;flex-direction:column;align-items:center;gap:2px;">
-          <span style="font-size:10px;color:var(--text-dim);">${pos}</span>
-          <input type="number" id="nj${game}-adj-${pos}" value="${njPosAdj[game][pos]||0}" step="1" min="-50" max="50"
-            style="width:52px;text-align:center;background:var(--bg3);border:1px solid var(--border);border-radius:4px;color:var(--text);padding:2px 4px;font-size:13px;font-weight:700;"
-            onchange="njSetPosAdj(${game},'${pos}',this.value)">
-        </div>`).join('')}
-      </div>
-    </div>` : ''}
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;align-items:start;">
       <div>
         <div style="font-size:11px;color:var(--text-dim);margin-bottom:6px;">대기 <span id="nj${game}-pool-cnt"></span></div>
