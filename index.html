@@ -2431,6 +2431,7 @@ window.saveRuleSettings = async () => {
 // ── 내전 시스템 ──
 const NJ_POSITIONS = ['탑','정글','미드','원딜','서폿'];
 let njPlayers = {1:[], 2:[], 3:[]};
+let njPosAdj = {1:{탑:0,정글:0,미드:0,원딜:0,서폿:0},2:{탑:0,정글:0,미드:0,원딜:0,서폿:0},3:{탑:0,정글:0,미드:0,원딜:0,서폿:0}};
 let njDrag = null;
 
 let njAllMembers = [];
@@ -2517,6 +2518,8 @@ async function njAutoRestoreArrange(game){
     const arrangeSnap = await getDoc(doc(db,'naejeonArrange',`game${game}`));
     if(!arrangeSnap.exists()) return;
     const savedArrange = arrangeSnap.data().players || [];
+    const savedPosAdj = arrangeSnap.data().posAdj || {};
+    NJ_POSITIONS.forEach(pos => { njPosAdj[game][pos] = savedPosAdj[pos] || 0; });
     if(!savedArrange.length) return;
 
     // 신청자 목록 가져오기
@@ -2657,6 +2660,17 @@ function renderNjTeamBuilder(game){
       <button class="btn btn-sm" style="background:#1a2a3a;border:1px solid #4488cc;color:#0070a0;" onclick="njAutoSuggest(${game})">⚡ 자동 팀 구성</button>
     </div>
     <div id="nj${game}-suggestions" style="display:none;margin-bottom:14px;"></div>
+    ${isAdmin ? `<div style="background:var(--bg2);border:1px solid #4a4a2a;border-radius:8px;padding:8px 12px;margin-bottom:10px;">
+      <div style="font-size:11px;color:#aaa87a;font-weight:700;margin-bottom:6px;">⚡ 라인별 점수 가중치 <span style="font-weight:300;color:var(--text-dim);">(배치 pt·밸 합산에 ±가산)</span></div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;">
+        ${NJ_POSITIONS.map(pos=>`<div style="display:flex;flex-direction:column;align-items:center;gap:2px;">
+          <span style="font-size:10px;color:var(--text-dim);">${pos}</span>
+          <input type="number" id="nj${game}-adj-${pos}" value="${njPosAdj[game][pos]||0}" step="1" min="-50" max="50"
+            style="width:52px;text-align:center;background:var(--bg3);border:1px solid var(--border);border-radius:4px;color:var(--text);padding:2px 4px;font-size:13px;font-weight:700;"
+            onchange="njSetPosAdj(${game},'${pos}',this.value)">
+        </div>`).join('')}
+      </div>
+    </div>` : ''}
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;align-items:start;">
       <div>
         <div style="font-size:11px;color:var(--text-dim);margin-bottom:6px;">대기 <span id="nj${game}-pool-cnt"></span></div>
@@ -2694,9 +2708,12 @@ function renderNjTeamBuilder(game){
   renderNjPlayers(game);
 }
 
-function njBalanceScore(p){
+function njBalanceScore(p, game){
   const pos = p.loc.replace(/^t[12]-/,'');
-  return njRawPosScore(p, pos); // 수동배치 포함, 실제 점수로 밸런스 계산
+  const base = njRawPosScore(p, pos);
+  if (!base) return 0;
+  const adj = game ? ((njPosAdj[game] || {})[pos] || 0) : 0;
+  return base + adj;
 }
 
 // 표시용: OFF 여부 무관하게 실제 저장된 점수 반환
@@ -2905,7 +2922,7 @@ window.njApplySuggestion = (game, idx) => {
 };
 function njCard(p, game){
   const isPlaced = p.loc !== 'pool';
-  const assignedScore = isPlaced ? njBalanceScore(p) : 0;
+  const assignedScore = isPlaced ? njBalanceScore(p, game) : 0;
   const assignedScoreHtml = isPlaced
     ? (assignedScore
         ? `<span style="font-size:13px;color:#f5c842;font-weight:900;flex-shrink:0;text-shadow:0 0 6px #f5c84266;">${assignedScore}pt</span>`
@@ -2956,12 +2973,18 @@ function renderNjPlayers(game){
   if(isAdmin){
     ['t1','t2'].forEach(tk=>{
       const placed = players.filter(p=>p.loc.startsWith(tk+'-'));
-      const total = placed.reduce((s,p)=>s+njBalanceScore(p),0);
+      const total = placed.reduce((s,p)=>s+njBalanceScore(p,game),0);
       const el = document.getElementById(`nj${game}-${tk}-bal`);
       if(el) el.textContent = placed.length ? `밸 합산: ${total}pt` : '';
     });
   }
 }
+
+window.njSetPosAdj = (game, pos, val) => {
+  njPosAdj[game][pos] = Number(val) || 0;
+  renderNjPlayers(game);
+  setDoc(doc(db,'naejeonArrange',`game${game}`), {posAdj: njPosAdj[game]}, {merge:true}).catch(()=>{});
+};
 
 window.njDragStart = (e, game, uid) => { njDrag = {game, uid}; };
 
@@ -2972,6 +2995,7 @@ async function njSaveArrange(game){
     const t2 = njPlayers[game].filter(p=>p.loc.startsWith('t2-')).length;
     const update = {
       players: njPlayers[game].map(p=>({uid:p.uid, loc:p.loc})),
+      posAdj: njPosAdj[game],
       updatedAt: new Date().toISOString(),
     };
     if (t1 === 5 && t2 === 5) update.lastArrangedAt = new Date().toISOString();
@@ -3109,6 +3133,7 @@ window.njClearApply = async (game) => {
   await setDoc(doc(db,'naejeonCounts',`game${game}`), {count:0});
   await setDoc(doc(db,'naejeonInfo',`game${game}`), {time:''});
   njPlayers[game] = [];
+  njPosAdj[game] = {탑:0,정글:0,미드:0,원딜:0,서폿:0};
   renderNjPlayers(game);
   await njLoadApplyStatus();
   showToast(`내전${game} 신청 초기화됐습니다`);
