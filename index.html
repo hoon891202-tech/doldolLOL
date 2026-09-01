@@ -1830,10 +1830,10 @@ async function loadAdmin(){
     // 라인별 가중치 UI 렌더링
     const adjWrap = document.getElementById('admin-pos-adj-wrap');
     if(adjWrap){
-      const adjSnaps = await Promise.all([1,2,3].map(g => getDoc(doc(db,'naejeonArrange',`game${g}`))));
-      adjSnaps.forEach((s,i) => {
-        const g = i+1;
-        const saved = s.exists() ? (s.data().posAdj || {}) : {};
+      const adjSnap = await getDoc(doc(db,'naejeonSettings','posAdj'));
+      const adjData = adjSnap.exists() ? adjSnap.data() : {};
+      [1,2,3].forEach(g => {
+        const saved = adjData[`game${g}`] || {};
         NJ_POSITIONS.forEach(pos => { njPosAdj[g][pos] = saved[pos] || 0; });
       });
       adjWrap.innerHTML = [1,2,3].map(g => `
@@ -2547,7 +2547,8 @@ async function njAutoRestoreArrange(game){
     const arrangeSnap = await getDoc(doc(db,'naejeonArrange',`game${game}`));
     if(!arrangeSnap.exists()) return;
     const savedArrange = arrangeSnap.data().players || [];
-    const savedPosAdj = arrangeSnap.data().posAdj || {};
+    const adjSnap = await getDoc(doc(db,'naejeonSettings','posAdj'));
+    const savedPosAdj = adjSnap.exists() ? (adjSnap.data()[`game${game}`] || {}) : {};
     NJ_POSITIONS.forEach(pos => { njPosAdj[game][pos] = savedPosAdj[pos] || 0; });
     if(!savedArrange.length) return;
 
@@ -3001,7 +3002,7 @@ function renderNjPlayers(game){
 window.njSetPosAdj = (game, pos, val) => {
   njPosAdj[game][pos] = Number(val) || 0;
   renderNjPlayers(game);
-  setDoc(doc(db,'naejeonArrange',`game${game}`), {posAdj: njPosAdj[game]}, {merge:true}).catch(()=>{});
+  setDoc(doc(db,'naejeonSettings','posAdj'), {[`game${game}`]: njPosAdj[game]}, {merge:true}).catch(()=>{});
 };
 
 window.njDragStart = (e, game, uid) => { njDrag = {game, uid}; };
@@ -3013,7 +3014,6 @@ async function njSaveArrange(game){
     const t2 = njPlayers[game].filter(p=>p.loc.startsWith('t2-')).length;
     const update = {
       players: njPlayers[game].map(p=>({uid:p.uid, loc:p.loc})),
-      posAdj: njPosAdj[game],
       updatedAt: new Date().toISOString(),
     };
     if (t1 === 5 && t2 === 5) update.lastArrangedAt = new Date().toISOString();
@@ -3151,7 +3151,6 @@ window.njClearApply = async (game) => {
   await setDoc(doc(db,'naejeonCounts',`game${game}`), {count:0});
   await setDoc(doc(db,'naejeonInfo',`game${game}`), {time:''});
   njPlayers[game] = [];
-  njPosAdj[game] = {탑:0,정글:0,미드:0,원딜:0,서폿:0};
   renderNjPlayers(game);
   await njLoadApplyStatus();
   showToast(`내전${game} 신청 초기화됐습니다`);
