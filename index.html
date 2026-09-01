@@ -755,7 +755,7 @@ select.inp option{background:#f0fdf8;color:#1a2e2c;}
   <div class="card">
     <div class="card-header"><span class="card-icon">⚡</span><span class="card-title">라인별 밸티어 가중치</span><span class="card-note">배치 pt·밸 합산에 ±가산</span></div>
     <div style="padding:14px;display:flex;flex-direction:column;gap:12px;">
-      <div style="font-size:12px;color:var(--text-dim);">내전별로 라인마다 가중치를 설정하면, 배치 시 해당 선수의 밸티어 pt에 값이 더해져 밸 합산에 반영됩니다.</div>
+      <div style="font-size:12px;color:var(--text-dim);">라인마다 가중치를 설정하면, 내전 1·2·3 전체 배치 시 해당 선수의 밸티어 pt에 값이 더해져 밸 합산에 반영됩니다.</div>
       <div id="admin-pos-adj-wrap" style="display:flex;flex-direction:column;gap:14px;"></div>
     </div>
   </div>
@@ -1832,22 +1832,15 @@ async function loadAdmin(){
     if(adjWrap){
       const adjSnap = await getDoc(doc(db,'naejeonSettings','posAdj'));
       const adjData = adjSnap.exists() ? adjSnap.data() : {};
-      [1,2,3].forEach(g => {
-        const saved = adjData[`game${g}`] || {};
-        NJ_POSITIONS.forEach(pos => { njPosAdj[g][pos] = saved[pos] || 0; });
-      });
-      adjWrap.innerHTML = [1,2,3].map(g => `
-        <div>
-          <div style="font-size:12px;color:var(--text-mid);font-weight:700;margin-bottom:6px;">내전 ${g}</div>
-          <div style="display:flex;gap:10px;flex-wrap:wrap;">
-            ${NJ_POSITIONS.map(pos=>`<div style="display:flex;flex-direction:column;align-items:center;gap:3px;">
-              <span style="font-size:11px;color:var(--text-dim);">${pos}</span>
-              <input type="number" id="adm-adj-${g}-${pos}" value="${njPosAdj[g][pos]}" step="1" min="-50" max="50"
-                style="width:56px;text-align:center;background:var(--bg3);border:1px solid var(--border);border-radius:4px;color:var(--text);padding:3px 4px;font-size:14px;font-weight:700;"
-                onchange="njSetPosAdj(${g},'${pos}',this.value)">
-            </div>`).join('')}
-          </div>
-        </div>`).join('<hr style="border:none;border-top:1px solid var(--border);">');
+      NJ_POSITIONS.forEach(pos => { njPosAdj[pos] = adjData[pos] || 0; });
+      adjWrap.innerHTML = `<div style="display:flex;gap:10px;flex-wrap:wrap;">
+        ${NJ_POSITIONS.map(pos=>`<div style="display:flex;flex-direction:column;align-items:center;gap:3px;">
+          <span style="font-size:11px;color:var(--text-dim);">${pos}</span>
+          <input type="number" id="adm-adj-${pos}" value="${njPosAdj[pos]}" step="1" min="-50" max="50"
+            style="width:56px;text-align:center;background:var(--bg3);border:1px solid var(--border);border-radius:4px;color:var(--text);padding:3px 4px;font-size:14px;font-weight:700;"
+            onchange="njSetPosAdj('${pos}',this.value)">
+        </div>`).join('')}
+      </div>`;
     }
     admAllMembers = [];
     for(const d of snap.docs){
@@ -2460,7 +2453,7 @@ window.saveRuleSettings = async () => {
 // ── 내전 시스템 ──
 const NJ_POSITIONS = ['탑','정글','미드','원딜','서폿'];
 let njPlayers = {1:[], 2:[], 3:[]};
-let njPosAdj = {1:{탑:0,정글:0,미드:0,원딜:0,서폿:0},2:{탑:0,정글:0,미드:0,원딜:0,서폿:0},3:{탑:0,정글:0,미드:0,원딜:0,서폿:0}};
+let njPosAdj = {탑:0,정글:0,미드:0,원딜:0,서폿:0};
 let njDrag = null;
 
 let njAllMembers = [];
@@ -2548,8 +2541,8 @@ async function njAutoRestoreArrange(game){
     if(!arrangeSnap.exists()) return;
     const savedArrange = arrangeSnap.data().players || [];
     const adjSnap = await getDoc(doc(db,'naejeonSettings','posAdj'));
-    const savedPosAdj = adjSnap.exists() ? (adjSnap.data()[`game${game}`] || {}) : {};
-    NJ_POSITIONS.forEach(pos => { njPosAdj[game][pos] = savedPosAdj[pos] || 0; });
+    const adjData = adjSnap.exists() ? adjSnap.data() : {};
+    NJ_POSITIONS.forEach(pos => { njPosAdj[pos] = adjData[pos] || 0; });
     if(!savedArrange.length) return;
 
     // 신청자 목록 가져오기
@@ -2731,7 +2724,7 @@ function njBalanceScore(p, game){
   const pos = p.loc.replace(/^t[12]-/,'');
   const base = njRawPosScore(p, pos);
   if (!base) return 0;
-  const adj = game ? ((njPosAdj[game] || {})[pos] || 0) : 0;
+  const adj = njPosAdj[pos] || 0;
   return base + adj;
 }
 
@@ -2999,10 +2992,10 @@ function renderNjPlayers(game){
   }
 }
 
-window.njSetPosAdj = (game, pos, val) => {
-  njPosAdj[game][pos] = Number(val) || 0;
-  renderNjPlayers(game);
-  setDoc(doc(db,'naejeonSettings','posAdj'), {[`game${game}`]: njPosAdj[game]}, {merge:true}).catch(()=>{});
+window.njSetPosAdj = (pos, val) => {
+  njPosAdj[pos] = Number(val) || 0;
+  [1,2,3].forEach(g => renderNjPlayers(g));
+  setDoc(doc(db,'naejeonSettings','posAdj'), njPosAdj, {merge:true}).catch(()=>{});
 };
 
 window.njDragStart = (e, game, uid) => { njDrag = {game, uid}; };
