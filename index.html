@@ -759,7 +759,7 @@ select.inp option{background:#f0fdf8;color:#1a2e2c;}
       <div id="admin-pos-adj-wrap" style="display:flex;flex-direction:column;gap:14px;"></div>
     </div>
   </div>
-  <div class="card">
+  <div class="card" style="display:none;">
     <div class="card-header"><span class="card-icon">🛠</span><span class="card-title">데이터 수정</span><span class="card-note">일회성 마이그레이션</span></div>
     <div style="padding:14px;display:flex;flex-direction:column;gap:10px;">
       <div style="font-size:12px;color:var(--text-dim);">records 컬렉션의 month 형식이 "202608" 형태인 경우 "2026-08" 형식으로 일괄 수정합니다.</div>
@@ -792,7 +792,7 @@ select.inp option{background:#f0fdf8;color:#1a2e2c;}
       </div>
     </div>
   </div>
-  <div class="card">
+  <div class="card" style="display:none;">
     <div class="card-header"><span class="card-icon">📝</span><span class="card-title">회원 기록 대신 입력</span><span class="card-note">관리자 전용</span></div>
     <div style="padding:14px;display:flex;flex-direction:column;gap:10px;">
       <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
@@ -2863,6 +2863,7 @@ window.njAutoSuggest = (game) => {
 
   const suggestions = [];
   function teamScore(team){ return team.reduce((s,p) => s+njRawPosScore(p,p.assignedPos), 0); }
+  function round2(n){ return Math.round(n*100)/100; }
 
   // 포인트 균형을 위해 t1/t2 스왑 최적화
   function optimizeSwap(t1, t2){
@@ -3005,16 +3006,16 @@ window.njAutoSuggest = (game) => {
     return `<div style="background:var(--bg3);border:1px solid ${isBest?'var(--green)':'var(--border)'};border-radius:8px;padding:10px;margin-bottom:8px;">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px;">
         <span style="font-weight:700;font-size:13px;color:var(--text);">${s.label}${isBest?' ⭐':''}</span>
-        <span style="font-size:11px;color:var(--blue);font-weight:700;">격차 ${s.diff}pt</span>
+        <span style="font-size:11px;color:var(--blue);font-weight:700;">격차 ${round2(s.diff)}pt</span>
       </div>
       <div style="font-size:11px;color:var(--text-dim);margin-bottom:7px;">${s.desc}</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px;">
         <div style="background:var(--bg4);border-radius:5px;padding:5px;">
-          <div style="font-size:11px;color:#ff5555;font-weight:700;margin-bottom:3px;">🔴 ${tNamesAuto[0]} ${teamScore(s.t1)}pt</div>
+          <div style="font-size:11px;color:#ff5555;font-weight:700;margin-bottom:3px;">🔴 ${tNamesAuto[0]} ${round2(teamScore(s.t1))}pt</div>
           <div style="display:flex;flex-direction:column;gap:2px;">${t1names}</div>
         </div>
         <div style="background:var(--bg4);border-radius:5px;padding:5px;">
-          <div style="font-size:11px;color:#5090d0;font-weight:700;margin-bottom:3px;">🔵 ${tNamesAuto[1]} ${teamScore(s.t2)}pt</div>
+          <div style="font-size:11px;color:#5090d0;font-weight:700;margin-bottom:3px;">🔵 ${tNamesAuto[1]} ${round2(teamScore(s.t2))}pt</div>
           <div style="display:flex;flex-direction:column;gap:2px;">${t2names}</div>
         </div>
       </div>
