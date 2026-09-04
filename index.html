@@ -3326,13 +3326,15 @@ window.njAutoRecordFromRiot = async (game) => {
     const games = result.data?.games;
     if (!Array.isArray(games) || !games.length) { showToast('찾은 경기가 없습니다'); return; }
 
-    const date = todayStr(), month = ym(new Date());
     const team1 = players.filter(p=>p.loc.startsWith('t1-')).map(p=>({uid:p.uid,nick:p.nick,realname:p.realname,tier:p.tier,pos:p.loc.replace('t1-','')}));
     const team2 = players.filter(p=>p.loc.startsWith('t2-')).map(p=>({uid:p.uid,nick:p.nick,realname:p.realname,tier:p.tier,pos:p.loc.replace('t2-','')}));
 
     for (const gameData of games) {
-      const { matchId, participants, gameDuration } = gameData;
+      const { matchId, participants, gameDuration, gameCreation } = gameData;
       if (!matchId || !Array.isArray(participants)) continue;
+      // 실제 경기가 열린 날짜로 기록 (오늘 날짜가 아니라 Riot이 준 gameCreation 기준 — 하루 지나 기록해도 통계가 정확한 날짜에 잡히도록)
+      const gDate = gameCreation ? new Date(gameCreation) : new Date();
+      const date = gDate.toISOString().slice(0,10), month = ym(gDate);
       const now = new Date().toISOString();
       // 세션 생성
       const sessionRef = await addDoc(collection(db,'naejeonSessions'),{
