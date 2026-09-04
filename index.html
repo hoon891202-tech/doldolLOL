@@ -2824,7 +2824,8 @@ function renderNjTeamBuilder(game){
     </div>
     <div id="nj${game}-result-btns" style="display:none;gap:8px;margin-top:12px;flex-wrap:wrap;align-items:center;">
       ${isAdmin ? `<span style="font-size:12px;color:var(--text-dim);">결과 입력:</span>
-      <button class="btn btn-sm" style="background:var(--red);color:#fff;font-weight:700;" onclick="njAutoRecordFromRiot(${game})">🔮 Riot 자동 기록</button>` : ''}
+      <button class="btn btn-sm" style="background:var(--red);color:#fff;font-weight:700;" onclick="njAutoRecordFromRiot(${game})">🔮 Riot 자동 기록</button>
+      <button class="btn btn-sm btn-ghost" style="font-size:11px;" onclick="njDebugFindMatch(${game})">🔍 디버그 검색</button>` : ''}
       <button class="btn btn-sm" style="background:#1a2a1a;color:#66cc66;border:1px solid #44aa4444;" onclick="njCopyTeamText(${game})">📋 팀 공유</button>
     </div>`;
   renderNjPlayers(game);
@@ -3309,6 +3310,24 @@ window.njClearWaitlist = async () => {
 const RIOT_POS_TO_SCORE_KEY = {
   TOP: 'scoreTop', JUNGLE: 'scoreJungle', MIDDLE: 'scoreMid',
   BOTTOM: 'scoreAdc', UTILITY: 'scoreSupport',
+};
+
+// 일회성 디버그: 캐시된 puuid를 무시하고 재조회해 매치를 찾음. 결과는 Cloud Functions 로그에서 확인.
+window.njDebugFindMatch = async (game) => {
+  if (!isAdmin) return;
+  const players = njPlayers[game];
+  const allPlaced = players.filter(p => p.loc.startsWith('t1-') || p.loc.startsWith('t2-'));
+  if (allPlaced.length < 5) { showToast('팀에 배치된 선수가 없습니다.'); return; }
+  showToast('디버그 검색 중... (최대 몇 분 소요)', 10000);
+  try {
+    const fn = httpsCallable(functions, 'debugFindNaejeonMatch', { timeout: 280000 });
+    const result = await fn({ participantUids: allPlaced.map(p => p.uid), lookbackDays: 10 });
+    console.log('[njDebugFindMatch] result:', result.data);
+    showToast(`디버그 완료 — 후보 ${result.data.candidates.length}건. 콘솔/로그 확인`, 6000);
+  } catch(e) {
+    console.error('njDebugFindMatch error:', e);
+    showToast('디버그 검색 실패: ' + (e.message || e.code), 6000);
+  }
 };
 
 window.njAutoRecordFromRiot = async (game) => {
