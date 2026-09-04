@@ -3321,7 +3321,7 @@ window.njAutoRecordFromRiot = async (game) => {
 
   const participantUids = allPlaced.map(p => p.uid);
   try {
-    const fetchFn = httpsCallable(functions, 'fetchNaejeonResult', { timeout: 90000 });
+    const fetchFn = httpsCallable(functions, 'fetchNaejeonResult', { timeout: 130000 });
     const result = await fetchFn({ participantUids });
     const games = result.data?.games;
     if (!Array.isArray(games) || !games.length) { showToast('찾은 경기가 없습니다'); return; }
