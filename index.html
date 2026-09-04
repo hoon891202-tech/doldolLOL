@@ -760,6 +760,22 @@ select.inp option{background:#f0fdf8;color:#1a2e2c;}
       <div id="admin-pos-adj-wrap" style="display:flex;flex-direction:column;gap:14px;"></div>
     </div>
   </div>
+  <div class="card">
+    <div class="card-header"><span class="card-icon">📌</span><span class="card-title">경기 수동 기록</span><span class="card-note">Riot 자동 검색 실패 시</span></div>
+    <div style="padding:14px;display:flex;flex-direction:column;gap:10px;">
+      <div style="font-size:12px;color:var(--text-dim);">matchId를 알고 있는 경기를 직접 기록합니다 (예: op.gg 매치 URL의 번호 앞에 KR_ 붙이기). naejeonSessions/records/라인 점수까지 자동 기록 파이프라인과 동일하게 처리됩니다.</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+        <select id="adm-matchid-game" class="inp" style="width:90px;">
+          <option value="1">내전1</option>
+          <option value="2">내전2</option>
+          <option value="3">내전3</option>
+        </select>
+        <input id="adm-matchid-input" class="inp" style="flex:1;min-width:160px;" placeholder="예: KR_1234567890">
+        <button class="btn btn-red btn-sm" onclick="njRecordByMatchId()">📌 이 경기로 기록</button>
+      </div>
+      <span id="adm-matchid-status" style="font-size:12px;color:var(--text-dim);"></span>
+    </div>
+  </div>
   <div class="card" style="display:none;">
     <div class="card-header"><span class="card-icon">🛠</span><span class="card-title">데이터 수정</span><span class="card-note">일회성 마이그레이션</span></div>
     <div style="padding:14px;display:flex;flex-direction:column;gap:10px;">
@@ -2841,12 +2857,7 @@ function renderNjTeamBuilder(game){
       <button class="btn btn-sm btn-ghost" style="font-size:11px;" onclick="njDebugFindMatch(${game})">🔍 디버그 검색</button>
       <button class="btn btn-sm btn-ghost" style="font-size:11px;" onclick="njDebugPlayerMatches()">🔎 개인전적 진단</button>` : ''}
       <button class="btn btn-sm" style="background:#1a2a1a;color:#66cc66;border:1px solid #44aa4444;" onclick="njCopyTeamText(${game})">📋 팀 공유</button>
-    </div>
-    ${isAdmin ? `<div style="display:flex;gap:6px;margin-top:6px;align-items:center;flex-wrap:wrap;">
-      <span style="font-size:11px;color:var(--text-dim);">자동 검색 실패 시 matchId 직접 입력:</span>
-      <input id="nj${game}-matchid" class="inp" style="width:150px;font-size:11px;padding:3px 6px;" placeholder="예: KR_1234567890">
-      <button class="btn btn-sm btn-ghost" style="font-size:11px;" onclick="njRecordByMatchId(${game})">📌 이 경기로 기록</button>
-    </div>` : ''}`;
+    </div>`;
   renderNjPlayers(game);
 }
 
@@ -3370,28 +3381,36 @@ window.njDebugPlayerMatches = async () => {
 };
 
 // 자동 검색이 못 찾을 때 관리자가 matchId를 직접 입력해 기록 (naejeonSessions/records/라인점수까지 전부 처리)
-window.njRecordByMatchId = async (game) => {
+// 관리자 페이지 "📌 경기 수동 기록" 카드에서 사용 — 내전1/2/3 화면이 아니라 한 곳에서만 처리
+window.njRecordByMatchId = async () => {
   if (!isAdmin) return;
-  const input = document.getElementById(`nj${game}-matchid`);
+  const gameSel = document.getElementById('adm-matchid-game');
+  const input = document.getElementById('adm-matchid-input');
+  const status = document.getElementById('adm-matchid-status');
+  const game = gameSel ? Number(gameSel.value) : null;
   const matchId = input ? input.value.trim() : '';
   if (!matchId) { showToast('matchId를 입력해주세요 (예: KR_1234567890)'); return; }
   if (!confirm(`내전${game} — matchId "${matchId}"로 직접 기록하시겠습니까?\n선수 전원 승/패와 점수가 반영됩니다.`)) return;
 
+  if (status) status.textContent = '조회 및 기록 중...';
   showToast('경기 조회 및 기록 중...', 8000);
   try {
     const fn = httpsCallable(functions, 'recordMatchById', { timeout: 55000 });
     const result = await fn({ matchId, game });
-    showToast(`✅ 기록 완료: ${result.data.recordedCount}/${result.data.totalParticipants}명 (${result.data.date})`, 5000);
+    const msg = `✅ 기록 완료: ${result.data.recordedCount}/${result.data.totalParticipants}명 (${result.data.date})`;
+    if (status) status.textContent = msg;
+    showToast(msg, 5000);
     if (input) input.value = '';
     await deleteDoc(doc(db,'naejeonArrange',`game${game}`)).catch(()=>{});
-    njPlayers[game] = [];
-    renderNjPlayers(game);
-    await njLoadApplyStatus();
-    await loadNjHistory();
+    if (njPlayers && njPlayers[game]) { njPlayers[game] = []; }
+    await njLoadApplyStatus().catch(()=>{});
+    await loadNjHistory().catch(()=>{});
     loadRanking();
   } catch(e) {
     console.error('njRecordByMatchId error:', e);
-    showToast('기록 실패: ' + (e.message || e.code), 6000);
+    const msg = '❌ 기록 실패: ' + (e.message || e.code);
+    if (status) status.textContent = msg;
+    showToast(msg, 6000);
   }
 };
 
@@ -3547,7 +3566,15 @@ async function loadNaejeonStatsPage() {
       getDocs(collection(db,'users')),
       njsGetDDragonVersion(),
     ]);
-    njsAllDocs = statsSnap.docs.map(d => d.data());
+    // matchId 기준 중복 제거(안전장치) + 리메이크(3분 내 재시작) 경기 숨김 — 같은 로비에서
+    // 리메이크가 나면 그 짧은 경기도 별도 matchId로 잡혀서 실제 경기와 겹쳐 보임
+    const seenMatchIds = new Set();
+    njsAllDocs = statsSnap.docs.map(d => d.data()).filter(d => {
+      if (!d.matchId || seenMatchIds.has(d.matchId)) return false;
+      if ((d.gameDuration || 0) < 300) return false; // 리메이크: 5분 미만
+      seenMatchIds.add(d.matchId);
+      return true;
+    });
     njsValidUidSet = new Set(usersSnap.docs.filter(d => d.data().active).map(d => d.id));
     njsDDVer = ddVer;
     njsRenderMonthSelect();
