@@ -904,7 +904,12 @@ const POS_LABELS = ['탑','정글','미드','원딜','서폿'];
 // 멸망전 스탯 기반 라인별×티어별 밸런스 점수표 (오름차순, 돌돌롤_2026_멸망점수추가.xlsx 기준, 2026-09-02)
 // 주의: functions/index.js의 BAL_TIER_TABLE과 동일한 데이터를 유지해야 함
 const BAL_TIER_TABLE = [
-  {label:'실버3↓', full:'실버3 이하', code:'S', 탑:11,   정글:10,   미드:13,   원딜:10,   서폿:15},
+  {label:'브론즈4↓', full:'브론즈4 이하', code:'B', 탑:6.5,  정글:6.5,  미드:5.5,  원딜:6,    서폿:8.5},
+  {label:'브론즈3', full:'브론즈3',      code:'B', 탑:7.2,  정글:7.4,  미드:6.5,  원딜:6.7,  서폿:9.7},
+  {label:'브론즈2', full:'브론즈2',      code:'B', 탑:8,    정글:8.1,  미드:7.2,  원딜:7.4,  서폿:11},
+  {label:'브론즈1', full:'브론즈1',      code:'B', 탑:9.1,  정글:8.7,  미드:8,    원딜:8.2,  서폿:12.4},
+  {label:'실버4',  full:'실버4',       code:'S', 탑:10.2, 정글:9.5,  미드:10,   원딜:9,    서폿:13.8},
+  {label:'실버3',  full:'실버3',       code:'S', 탑:11,   정글:10,   미드:13,   원딜:10,   서폿:15},
   {label:'실버2',  full:'실버2',      code:'S', 탑:12,   정글:11,   미드:13.9, 원딜:10.6, 서폿:15.9},
   {label:'실버1',  full:'실버1',      code:'S', 탑:13,   정글:11.9, 미드:14.8, 원딜:11.3, 서폿:16.7},
   {label:'골드4',  full:'골드4',      code:'G', 탑:14.6, 정글:12.8, 미드:15.9, 원딜:11.9, 서폿:17.6},
@@ -943,7 +948,7 @@ const BAL_TIER_TABLE = [
   {label:'마스터+', full:'마스터+ (1700~1799 LP)', code:'M', 탑:66,   정글:64.3, 미드:61.1, 원딜:64.7, 서폿:51.5},
   {label:'마스터+', full:'마스터+ (1800 이상)',    code:'M', 탑:67,   정글:66,   미드:62,   원딜:65,   서폿:52},
 ];
-const TIER_DOT_COLOR = {S:'#8fa8c0', G:'#e0b030', P:'#3ab0d8', E:'#20c090', D:'#5060e0', M:'#a040e0'};
+const TIER_DOT_COLOR = {B:'#b07840', S:'#8fa8c0', G:'#e0b030', P:'#3ab0d8', E:'#20c090', D:'#5060e0', M:'#a040e0'};
 function balTierDot(code){ return `<span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:${TIER_DOT_COLOR[code]||'#888'};flex-shrink:0;"></span>`; }
 // 점수 → 현재 티어 구간(내림 탐색) 반환. score<=0 이면 null(미지원)
 function balTierLookup(posKor, score){
