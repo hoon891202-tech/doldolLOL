@@ -1192,6 +1192,7 @@ let lspSortName = false;
 const LSP_PAGE_SIZE = 10;
 
 function filterLolsulpam() { lspPage = 1; renderLolsulpam(lspCache?.data||[]); }
+window.filterLolsulpam = filterLolsulpam;
 window.lspSortByName = () => { lspSortName = !lspSortName; lspPage = 1; renderLolsulpam(lspCache?.data||[]); };
 window.lspGoPage = (p) => { lspPage = p; renderLolsulpam(lspCache?.data||[]); };
 
@@ -3606,6 +3607,7 @@ async function loadNaejeonStatsPage() {
     console.error('loadNaejeonStatsPage error:', e);
   }
 }
+window.loadNaejeonStatsPage = loadNaejeonStatsPage;
 
 window.njsRerecordGame = async function(matchId) {
   if (!isAdmin) return;
