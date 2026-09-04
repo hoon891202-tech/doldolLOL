@@ -430,9 +430,10 @@ select.inp option{background:#f0fdf8;color:#1a2e2c;}
       <button class="btn btn-sm" style="margin-left:auto;" onclick="loadNaejeonStatsPage()">🔄 새로고침</button>
     </div>
     <div style="padding:10px 12px;">
-      <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;">
+      <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;align-items:center;">
         <button class="btn btn-sm" id="njs-tab-player" style="background:var(--red);color:#fff;" onclick="njsShowTab('player')">선수별 통계</button>
         <button class="btn btn-sm" id="njs-tab-history" onclick="njsShowTab('history')">최근 경기</button>
+        <select id="njs-month-select" class="inp" style="width:120px;margin-left:auto;" onchange="njsChangeMonth(this.value)"></select>
       </div>
       <div id="njs-player-section"><div class="loading">불러오는 중...</div></div>
       <div id="njs-history-section" style="display:none;"><div class="loading">불러오는 중...</div></div>
@@ -3445,6 +3446,11 @@ window.njsShowTab = (tab) => {
   document.getElementById('njs-tab-history').style.color = tab === 'history' ? '#fff' : '';
 };
 
+let njsAllDocs = [];
+let njsValidUidSet = new Set();
+let njsDDVer = null;
+let njsSelectedMonth = 'all';
+
 async function loadNaejeonStatsPage() {
   const pEl = document.getElementById('njs-player-section');
   const hEl = document.getElementById('njs-history-section');
@@ -3452,23 +3458,62 @@ async function loadNaejeonStatsPage() {
   hEl.innerHTML = '<div class="loading">불러오는 중...</div>';
 
   try {
-    const [snap, ddVer] = await Promise.all([
+    const [statsSnap, usersSnap, ddVer] = await Promise.all([
       getDocs(query(collection(db,'naejeonStats'), orderBy('gameCreation','desc'))),
+      getDocs(collection(db,'users')),
       njsGetDDragonVersion(),
     ]);
-    const docs = snap.docs.map(d => d.data());
+    njsAllDocs = statsSnap.docs.map(d => d.data());
+    njsValidUidSet = new Set(usersSnap.docs.filter(d => d.data().active).map(d => d.id));
+    njsDDVer = ddVer;
+    njsRenderMonthSelect();
+    njsRenderStatsPage();
+  } catch(e) {
+    pEl.innerHTML = `<div style="color:#cc3333;padding:12px;">오류: ${e.message}</div>`;
+    hEl.innerHTML = pEl.innerHTML;
+    console.error('loadNaejeonStatsPage error:', e);
+  }
+}
+window.loadNaejeonStatsPage = loadNaejeonStatsPage;
 
-    if (!docs.length) {
-      pEl.innerHTML = '<div style="padding:16px;color:var(--text-dim);font-size:13px;">아직 Riot API로 수집된 경기 데이터가 없습니다.<br>내전 결과 기록 후 자동으로 수집됩니다.</div>';
-      hEl.innerHTML = pEl.innerHTML;
-      return;
-    }
+function njsRenderMonthSelect() {
+  const sel = document.getElementById('njs-month-select');
+  if (!sel) return;
+  const months = [...new Set(njsAllDocs.filter(d => d.gameCreation).map(d => new Date(d.gameCreation).toISOString().slice(0,7)))].sort().reverse();
+  if (njsSelectedMonth !== 'all' && !months.includes(njsSelectedMonth)) njsSelectedMonth = 'all';
+  sel.innerHTML = `<option value="all">전체 기간</option>` + months.map(m => `<option value="${m}">${m}</option>`).join('');
+  sel.value = njsSelectedMonth;
+}
 
-    // 선수별 집계
+window.njsChangeMonth = (val) => { njsSelectedMonth = val; njsRenderStatsPage(); };
+
+function njsRenderStatsPage() {
+  const pEl = document.getElementById('njs-player-section');
+  const hEl = document.getElementById('njs-history-section');
+  const ddVer = njsDDVer;
+
+  if (!njsAllDocs.length) {
+    pEl.innerHTML = '<div style="padding:16px;color:var(--text-dim);font-size:13px;">아직 Riot API로 수집된 경기 데이터가 없습니다.<br>내전 결과 기록 후 자동으로 수집됩니다.</div>';
+    hEl.innerHTML = pEl.innerHTML;
+    return;
+  }
+
+  const docs = njsSelectedMonth === 'all'
+    ? njsAllDocs
+    : njsAllDocs.filter(d => d.gameCreation && new Date(d.gameCreation).toISOString().slice(0,7) === njsSelectedMonth);
+
+  if (!docs.length) {
+    pEl.innerHTML = '<div style="padding:16px;color:var(--text-dim);font-size:13px;">선택한 기간에 기록된 경기가 없습니다.</div>';
+    hEl.innerHTML = pEl.innerHTML;
+    return;
+  }
+
+  try {
+    // 선수별 집계 (탈퇴/미등록 회원 제외)
     const playerMap = {};
     for (const doc of docs) {
       for (const p of (doc.participants || [])) {
-        if (!p.uid) continue;
+        if (!p.uid || !njsValidUidSet.has(p.uid)) continue;
         const key = p.uid;
         if (!playerMap[key]) playerMap[key] = {
           uid: p.uid, nick: p.nick,
@@ -3574,13 +3619,16 @@ async function loadNaejeonStatsPage() {
       </table>
     </div>`;
 
-    // 최근 경기 목록 (ddVer은 위에서 이미 로드됨)
+    // 최근 경기 목록 (ddVer은 위에서 이미 로드됨) — 탈퇴/미등록 회원은 명단에서 제외
     hEl.innerHTML = docs.map((doc, idx) => {
       const date = doc.gameCreation ? new Date(doc.gameCreation).toLocaleDateString('ko-KR', {month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'}) : '';
       const dur = doc.gameDuration ? `${Math.floor(doc.gameDuration/60)}분` : '';
-      const blue = (doc.participants||[]).filter(p => p.teamId === 100);
-      const red = (doc.participants||[]).filter(p => p.teamId === 200);
-      const blueWin = blue.length > 0 && blue[0].win;
+      const allParticipants = doc.participants || [];
+      const blue = allParticipants.filter(p => p.teamId === 100 && p.uid && njsValidUidSet.has(p.uid));
+      const red = allParticipants.filter(p => p.teamId === 200 && p.uid && njsValidUidSet.has(p.uid));
+      // 승패 표시는 탈퇴 여부와 무관하게 실제 팀 전체 기준으로 판단
+      const blueRaw = allParticipants.find(p => p.teamId === 100);
+      const blueWin = !!(blueRaw && blueRaw.win);
       const winColor = blueWin ? '#4488ff' : '#ff5555';
       const winLabel = blueWin ? '블루팀 승' : '레드팀 승';
       const adminBtn = isAdmin ? `<button class="btn btn-sm btn-ghost" style="font-size:10px;padding:2px 7px;" onclick="event.stopPropagation();njsRerecordGame('${doc.matchId}')">🔄 재기록</button>` : '';
@@ -3604,10 +3652,9 @@ async function loadNaejeonStatsPage() {
   } catch(e) {
     pEl.innerHTML = `<div style="color:#cc3333;padding:12px;">오류: ${e.message}</div>`;
     hEl.innerHTML = pEl.innerHTML;
-    console.error('loadNaejeonStatsPage error:', e);
+    console.error('njsRenderStatsPage error:', e);
   }
 }
-window.loadNaejeonStatsPage = loadNaejeonStatsPage;
 
 window.njsRerecordGame = async function(matchId) {
   if (!isAdmin) return;
