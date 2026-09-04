@@ -2688,9 +2688,17 @@ async function njAutoRestoreArrange(game){
 
 async function njLoadApplyStatus(){
   try {
-    const snap = await getDocs(collection(db,'naejeonApply'));
+    const [snap, usersSnap] = await Promise.all([
+      getDocs(collection(db,'naejeonApply')),
+      getDocs(collection(db,'users')),
+    ]);
+    // 신청/대기 문서는 신청 시점의 티어·점수를 스냅샷으로 저장하므로, 이후 관리자가 점수를 바꿔도
+    // 그대로 남아있음 — 표시할 땐 항상 users 컬렉션의 최신 값으로 덮어써서 보여준다.
+    const liveMap = {};
+    usersSnap.forEach(d => { liveMap[d.id] = d.data(); });
+    const withLive = u => ({ ...u, ...(liveMap[u.uid] || {}) });
     const lists = {1:[],2:[],3:[]};
-    snap.forEach(d=>{ const u=d.data(); [1,2,3].forEach(g=>{ if(u[`game${g}`]) lists[g].push(u); }); });
+    snap.forEach(d=>{ const raw=d.data(); const u=withLive(raw); [1,2,3].forEach(g=>{ if(raw[`game${g}`]) lists[g].push(u); }); });
     [1,2,3].forEach(g => { document.getElementById(`nj${g}-cnt`).textContent = lists[g].length+'명'; });
     const renderList = (list, game) => list.map(u=>`
       <div style="padding:5px 0;border-bottom:1px solid var(--border);">
@@ -2722,7 +2730,7 @@ async function njLoadApplyStatus(){
     // ── 내전대기 ──
     const waitSnap = await getDocs(query(collection(db,'naejeonWaitlist'), orderBy('joinedAt','asc')));
     const waitList = [];
-    waitSnap.forEach(d => waitList.push(d.data()));
+    waitSnap.forEach(d => waitList.push(withLive(d.data())));
     const waitCntEl = document.getElementById('nj-wait-cnt');
     const waitListEl = document.getElementById('nj-wait-list');
     const waitBtnEl  = document.getElementById('nj-wait-btn');
