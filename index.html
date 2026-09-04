@@ -3318,10 +3318,12 @@ window.njDebugFindMatch = async (game) => {
   const players = njPlayers[game];
   const allPlaced = players.filter(p => p.loc.startsWith('t1-') || p.loc.startsWith('t2-'));
   if (allPlaced.length < 5) { showToast('팀에 배치된 선수가 없습니다.'); return; }
-  showToast('디버그 검색 중... (최대 몇 분 소요)', 10000);
+  const dateKst = prompt('조회할 경기 날짜 (KST, YYYY-MM-DD):', todayStr());
+  if (!dateKst) return;
+  showToast('디버그 검색 중... (최대 1~2분 소요)', 10000);
   try {
     const fn = httpsCallable(functions, 'debugFindNaejeonMatch', { timeout: 280000 });
-    const result = await fn({ participantUids: allPlaced.map(p => p.uid), lookbackDays: 10 });
+    const result = await fn({ participantUids: allPlaced.map(p => p.uid), dateKst });
     console.log('[njDebugFindMatch] result:', result.data);
     showToast(`디버그 완료 — 후보 ${result.data.candidates.length}건. 콘솔/로그 확인`, 6000);
   } catch(e) {
