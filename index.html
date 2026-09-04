@@ -2841,7 +2841,12 @@ function renderNjTeamBuilder(game){
       <button class="btn btn-sm btn-ghost" style="font-size:11px;" onclick="njDebugFindMatch(${game})">🔍 디버그 검색</button>
       <button class="btn btn-sm btn-ghost" style="font-size:11px;" onclick="njDebugPlayerMatches()">🔎 개인전적 진단</button>` : ''}
       <button class="btn btn-sm" style="background:#1a2a1a;color:#66cc66;border:1px solid #44aa4444;" onclick="njCopyTeamText(${game})">📋 팀 공유</button>
-    </div>`;
+    </div>
+    ${isAdmin ? `<div style="display:flex;gap:6px;margin-top:6px;align-items:center;flex-wrap:wrap;">
+      <span style="font-size:11px;color:var(--text-dim);">자동 검색 실패 시 matchId 직접 입력:</span>
+      <input id="nj${game}-matchid" class="inp" style="width:150px;font-size:11px;padding:3px 6px;" placeholder="예: KR_1234567890">
+      <button class="btn btn-sm btn-ghost" style="font-size:11px;" onclick="njRecordByMatchId(${game})">📌 이 경기로 기록</button>
+    </div>` : ''}`;
   renderNjPlayers(game);
 }
 
@@ -3361,6 +3366,32 @@ window.njDebugPlayerMatches = async () => {
   } catch(e) {
     console.error('njDebugPlayerMatches error:', e);
     showToast('조회 실패: ' + (e.message || e.code), 6000);
+  }
+};
+
+// 자동 검색이 못 찾을 때 관리자가 matchId를 직접 입력해 기록 (naejeonSessions/records/라인점수까지 전부 처리)
+window.njRecordByMatchId = async (game) => {
+  if (!isAdmin) return;
+  const input = document.getElementById(`nj${game}-matchid`);
+  const matchId = input ? input.value.trim() : '';
+  if (!matchId) { showToast('matchId를 입력해주세요 (예: KR_1234567890)'); return; }
+  if (!confirm(`내전${game} — matchId "${matchId}"로 직접 기록하시겠습니까?\n선수 전원 승/패와 점수가 반영됩니다.`)) return;
+
+  showToast('경기 조회 및 기록 중...', 8000);
+  try {
+    const fn = httpsCallable(functions, 'recordMatchById', { timeout: 55000 });
+    const result = await fn({ matchId, game });
+    showToast(`✅ 기록 완료: ${result.data.recordedCount}/${result.data.totalParticipants}명 (${result.data.date})`, 5000);
+    if (input) input.value = '';
+    await deleteDoc(doc(db,'naejeonArrange',`game${game}`)).catch(()=>{});
+    njPlayers[game] = [];
+    renderNjPlayers(game);
+    await njLoadApplyStatus();
+    await loadNjHistory();
+    loadRanking();
+  } catch(e) {
+    console.error('njRecordByMatchId error:', e);
+    showToast('기록 실패: ' + (e.message || e.code), 6000);
   }
 };
 
