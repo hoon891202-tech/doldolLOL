@@ -2810,6 +2810,43 @@ window.njToggleApply = async (game) => {
   await njLoadApplyStatus();
 };
 
+// 관리자가 계정 없는 게스트를 특정 내전에 필요할 때만 추가/제외 (기본은 미신청 상태)
+window.njToggleGuestApply = async (game, guestNum) => {
+  if (!isAdmin) return;
+  const uid = `guest${guestNum}`;
+  const nick = `게스트${guestNum}`;
+  const field = `game${game}`;
+  const cntRef = doc(db,'naejeonCounts',`game${game}`);
+  const applyRef = doc(db,'naejeonApply',uid);
+  let resultVal;
+  try {
+    await runTransaction(db, async (tx) => {
+      const [cntSnap, mySnap] = await Promise.all([tx.get(cntRef), tx.get(applyRef)]);
+      const my = mySnap.exists() ? mySnap.data() : {};
+      const newVal = !my[field];
+      const cnt = cntSnap.exists() ? (cntSnap.data().count || 0) : 0;
+      if (newVal && cnt >= 10) throw Object.assign(new Error('FULL'), {code:'FULL'});
+      tx.set(cntRef, { count: Math.max(0, cnt + (newVal ? 1 : -1)) }, { merge: true });
+      tx.set(applyRef, { uid, nick, [field]: newVal, updatedAt: new Date().toISOString() }, { merge: true });
+      resultVal = newVal;
+    });
+  } catch(e) {
+    if (e.code === 'FULL') { showToast(`내전${game} 정원이 가득 찼습니다 (10/10)`); return; }
+    console.error('njToggleGuestApply error:', e);
+    showToast('게스트 신청 처리 실패: ' + (e.message||e));
+    return;
+  }
+  if (resultVal) {
+    if (!njPlayers[game].some(p=>p.uid===uid)) {
+      njPlayers[game].push({uid, nick, realname:nick, tier:null, loc:'pool', scoreTop:0, scoreJungle:0, scoreMid:0, scoreAdc:0, scoreSupport:0});
+    }
+  } else {
+    njPlayers[game] = njPlayers[game].filter(p=>p.uid!==uid);
+  }
+  renderNjPlayers(game);
+  showToast(resultVal ? `${nick} 내전${game}에 추가됨` : `${nick} 내전${game}에서 제외됨`);
+};
+
 function renderNjTeamBuilder(game){
   const el = document.getElementById(`nj${game}-team-builder`);
   if(!el) return;
@@ -2820,6 +2857,12 @@ function renderNjTeamBuilder(game){
       <button class="btn btn-ghost btn-sm" onclick="njResetArrange(${game})">🔄 배치 초기화</button>
       <button class="btn btn-sm" style="background:#1a2a3a;border:1px solid #4488cc;color:#0070a0;" onclick="njAutoSuggest(${game})">⚡ 자동 팀 구성</button>
     </div>
+    ${isAdmin ? `<div style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap;align-items:center;">
+      <span style="font-size:11px;color:var(--text-dim);">게스트 (계정 없는 참가자, 필요할 때만 추가/제외):</span>
+      <button class="btn btn-ghost btn-sm" style="font-size:11px;" onclick="njToggleGuestApply(${game},1)">게스트1</button>
+      <button class="btn btn-ghost btn-sm" style="font-size:11px;" onclick="njToggleGuestApply(${game},2)">게스트2</button>
+      <button class="btn btn-ghost btn-sm" style="font-size:11px;" onclick="njToggleGuestApply(${game},3)">게스트3</button>
+    </div>` : ''}
     <div id="nj${game}-suggestions" style="display:none;margin-bottom:14px;"></div>
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;align-items:start;">
       <div>
