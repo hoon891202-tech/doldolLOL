@@ -3139,7 +3139,9 @@ window.njSetPosAdj = (pos, val) => {
 
 window.njDragStart = (e, game, uid) => { njDrag = {game, uid}; };
 
-// Firestore에 배치 저장
+// Firestore에 배치 저장 — 화면에 보이는 "현재 편집 중인 배치"는 자유롭게 계속 바뀔 수 있고,
+// 5v5로 완성되는 순간마다 별도의 "기록 대기열"(naejeonPendingMatches)에 독립적으로 등록해서
+// 그 뒤에 배치를 또 바꾸더라도 이전 구성의 자동 기록 검색이 끊기지 않게 한다.
 async function njSaveArrange(game){
   try {
     const t1 = njPlayers[game].filter(p=>p.loc.startsWith('t1-')).length;
@@ -3148,10 +3150,32 @@ async function njSaveArrange(game){
       players: njPlayers[game].map(p=>({uid:p.uid, loc:p.loc})),
       updatedAt: new Date().toISOString(),
     };
-    if (t1 === 5 && t2 === 5) update.lastArrangedAt = new Date().toISOString();
+    if (t1 === 5 && t2 === 5) {
+      update.lastArrangedAt = new Date().toISOString();
+      await njQueuePendingMatch(game);
+    }
     // merge:true로 저장 — 5v5 아닌 상태로 저장해도 기존 lastArrangedAt 보존됨
     await setDoc(doc(db,'naejeonArrange',`game${game}`), update, {merge:true});
   } catch(e){ console.error('njSaveArrange error:', e); }
+}
+
+// 같은 10명 구성이 이미 대기열에 있으면 중복 등록하지 않는다 (라인만 재배치하는 경우 등)
+async function njQueuePendingMatch(game){
+  const uids = njPlayers[game].filter(p=>p.loc!=='pool').map(p=>p.uid).sort();
+  if (uids.length !== 10) return;
+  try {
+    const pendingSnap = await getDocs(query(collection(db,'naejeonPendingMatches'), where('game','==',game)));
+    const dup = pendingSnap.docs.some(d => {
+      const arr = (d.data().uids || []).slice().sort();
+      return arr.length === uids.length && arr.every((v,i) => v === uids[i]);
+    });
+    if (dup) return;
+    await addDoc(collection(db,'naejeonPendingMatches'), {
+      game, uids,
+      players: njPlayers[game].filter(p=>p.loc!=='pool').map(p=>({uid:p.uid, loc:p.loc})),
+      arrangedAt: new Date().toISOString(),
+    });
+  } catch(e){ console.error('njQueuePendingMatch error:', e); }
 }
 
 window.njDrop = async (e, game, zone) => {
