@@ -768,6 +768,10 @@ select.inp option{background:#f0fdf8;color:#1a2e2c;}
         <input id="adm-matchid-input" class="inp" style="flex:1;min-width:160px;" placeholder="예: KR_1234567890">
         <button class="btn btn-red btn-sm" onclick="njRecordByMatchId()">📌 이 경기로 기록</button>
       </div>
+      <label style="display:flex;gap:6px;align-items:center;font-size:12px;color:var(--text-dim);cursor:pointer;">
+        <input type="checkbox" id="adm-matchid-skipscore">
+        이미 점수에 반영된 경기 — 기록/통계만 복구하고 점수는 건드리지 않기
+      </label>
       <span id="adm-matchid-status" style="font-size:12px;color:var(--text-dim);"></span>
     </div>
   </div>
@@ -3381,16 +3385,21 @@ window.njRecordByMatchId = async () => {
   if (!isAdmin) return;
   const input = document.getElementById('adm-matchid-input');
   const status = document.getElementById('adm-matchid-status');
+  const skipScoreEl = document.getElementById('adm-matchid-skipscore');
+  const skipScoreUpdate = !!(skipScoreEl && skipScoreEl.checked);
   const matchId = input ? input.value.trim() : '';
   if (!matchId) { showToast('matchId를 입력해주세요 (예: KR_1234567890)'); return; }
-  if (!confirm(`matchId "${matchId}"로 직접 기록하시겠습니까?\n선수 전원 승/패와 점수가 반영됩니다.`)) return;
+  const confirmMsg = skipScoreUpdate
+    ? `matchId "${matchId}"로 기록하시겠습니까?\n판수/통계만 복구되고 점수는 건드리지 않습니다.`
+    : `matchId "${matchId}"로 직접 기록하시겠습니까?\n선수 전원 승/패와 점수가 반영됩니다.`;
+  if (!confirm(confirmMsg)) return;
 
   if (status) status.textContent = '조회 및 기록 중...';
   showToast('경기 조회 및 기록 중...', 8000);
   try {
     const fn = httpsCallable(functions, 'recordMatchById', { timeout: 55000 });
-    const result = await fn({ matchId });
-    const msg = `✅ 기록 완료: ${result.data.recordedCount}/${result.data.totalParticipants}명 (${result.data.date})`;
+    const result = await fn({ matchId, skipScoreUpdate });
+    const msg = `✅ 기록 완료: ${result.data.recordedCount}/${result.data.totalParticipants}명 (${result.data.date})${skipScoreUpdate ? ' — 점수 미반영' : ''}`;
     if (status) status.textContent = msg;
     showToast(msg, 5000);
     if (input) input.value = '';
