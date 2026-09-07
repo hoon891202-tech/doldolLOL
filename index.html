@@ -2852,6 +2852,8 @@ function renderNjTeamBuilder(game){
     </div>
     <div id="nj${game}-result-btns" style="display:none;gap:8px;margin-top:12px;flex-wrap:wrap;align-items:center;">
       ${isAdmin ? `<span style="font-size:12px;color:var(--text-dim);">결과 입력:</span>
+      <button class="btn btn-sm" style="background:var(--green);color:#fff;font-weight:700;" onclick="njConfirmTeam(${game})">✅ 팀 확정</button>
+      <button class="btn btn-sm btn-ghost" onclick="njChangeTeam(${game})">🔄 팀 변경</button>
       <button class="btn btn-sm" style="background:var(--red);color:#fff;font-weight:700;" onclick="njAutoRecordFromRiot(${game})">🔮 Riot 자동 기록</button>
       <button class="btn btn-sm btn-ghost" style="font-size:11px;" onclick="njDebugFindMatch(${game})">🔍 디버그 검색</button>
       <button class="btn btn-sm btn-ghost" style="font-size:11px;" onclick="njDebugPlayerMatches()">🔎 개인전적 진단</button>` : ''}
@@ -3139,9 +3141,8 @@ window.njSetPosAdj = (pos, val) => {
 
 window.njDragStart = (e, game, uid) => { njDrag = {game, uid}; };
 
-// Firestore에 배치 저장 — 화면에 보이는 "현재 편집 중인 배치"는 자유롭게 계속 바뀔 수 있고,
-// 5v5로 완성되는 순간마다 별도의 "기록 대기열"(naejeonPendingMatches)에 독립적으로 등록해서
-// 그 뒤에 배치를 또 바꾸더라도 이전 구성의 자동 기록 검색이 끊기지 않게 한다.
+// Firestore에 배치 저장 — 화면에 보이는 "현재 편집 중인 배치"일 뿐, 자동 기록 검색은
+// 관리자가 "✅ 팀 확정"을 눌러야 시작된다 (njConfirmTeam 참고).
 async function njSaveArrange(game){
   try {
     const t1 = njPlayers[game].filter(p=>p.loc.startsWith('t1-')).length;
@@ -3150,16 +3151,41 @@ async function njSaveArrange(game){
       players: njPlayers[game].map(p=>({uid:p.uid, loc:p.loc})),
       updatedAt: new Date().toISOString(),
     };
-    if (t1 === 5 && t2 === 5) {
-      update.lastArrangedAt = new Date().toISOString();
-      await njQueuePendingMatch(game);
-    }
     // merge:true로 저장 — 5v5 아닌 상태로 저장해도 기존 lastArrangedAt 보존됨
     await setDoc(doc(db,'naejeonArrange',`game${game}`), update, {merge:true});
   } catch(e){ console.error('njSaveArrange error:', e); }
 }
 
-// 같은 10명 구성이 이미 대기열에 있으면 중복 등록하지 않는다 (라인만 재배치하는 경우 등)
+// "✅ 팀 확정" — 지금 화면의 10명 구성을 독립적인 "기록 대기열"(naejeonPendingMatches)에 등록한다.
+// 이후 화면에서 "🔄 팀 변경"으로 다음 게임 배치를 새로 시작해도, 이 항목은 계속 따로 검색된다.
+window.njConfirmTeam = async (game) => {
+  if (!isAdmin) return;
+  const t1 = njPlayers[game].filter(p=>p.loc.startsWith('t1-')).length;
+  const t2 = njPlayers[game].filter(p=>p.loc.startsWith('t2-')).length;
+  if (t1 !== 5 || t2 !== 5) { showToast('양 팀 5명씩 다 채워야 확정할 수 있습니다'); return; }
+  if (!confirm(`내전${game} — 이 팀 구성을 확정하고 자동 기록 검색을 시작할까요?`)) return;
+  try {
+    await njQueuePendingMatch(game);
+    showToast('✅ 팀 확정 완료 — 경기가 끝나면 자동으로 찾아 기록합니다. 다음 게임은 "🔄 팀 변경"으로 새로 배치하세요.', 6000);
+  } catch(e) {
+    console.error('njConfirmTeam error:', e);
+    showToast('팀 확정 실패: ' + (e.message || e), 5000);
+  }
+};
+
+// "🔄 팀 변경" — 이미 확정되어 대기열에 들어간 항목은 그대로 두고, 화면만 비워서 다음 게임 배치를 새로 시작한다.
+window.njChangeTeam = async (game) => {
+  if (!isAdmin) return;
+  if (!confirm(`내전${game} — 현재 화면의 팀 배치를 지우고 새로 배치할까요?\n(이미 "팀 확정"한 이전 구성은 계속 자동 검색됩니다)`)) return;
+  njPlayers[game].forEach(p => p.loc = 'pool');
+  renderNjPlayers(game);
+  try {
+    await setDoc(doc(db,'naejeonArrange',`game${game}`), { players: [], updatedAt: new Date().toISOString() });
+  } catch(e) { console.error('njChangeTeam error:', e); }
+  showToast('팀 배치를 초기화했습니다. 새로 배치해주세요.');
+};
+
+// 같은 10명 구성이 이미 대기열에 있으면 중복 등록하지 않는다
 async function njQueuePendingMatch(game){
   const uids = njPlayers[game].filter(p=>p.loc!=='pool').map(p=>p.uid).sort();
   if (uids.length !== 10) return;
