@@ -2622,7 +2622,19 @@ window.njFilterSelect = function(game){
 };
 
 window.njAdminRemove = async (uid, game) => {
-  await setDoc(doc(db,'naejeonApply',uid),{[`game${game}`]:false},{merge:true});
+  const field = `game${game}`;
+  const cntRef = doc(db,'naejeonCounts',`game${game}`);
+  const applyRef = doc(db,'naejeonApply',uid);
+  try {
+    await runTransaction(db, async (tx) => {
+      const [cntSnap, mySnap] = await Promise.all([tx.get(cntRef), tx.get(applyRef)]);
+      const my = mySnap.exists() ? mySnap.data() : {};
+      if(!my[field]) return; // 이미 신청 상태가 아님 — 카운터 건드리지 않음
+      const cnt = cntSnap.exists() ? (cntSnap.data().count || 0) : 0;
+      tx.set(cntRef, { count: Math.max(0, cnt - 1) }, { merge: true });
+      tx.set(applyRef, { [field]: false, updatedAt: new Date().toISOString() }, { merge: true });
+    });
+  } catch(e) { console.error('njAdminRemove error:', e); showToast('신청 취소 실패: ' + (e.message||e)); return; }
   showToast(`내전${game} 신청 취소됨`);
   await njLoadApplyStatus();
 };
@@ -2634,13 +2646,30 @@ window.njAdminAdd = async (game) => {
   const userSnap = await getDoc(doc(db,'users',uid));
   if(!userSnap.exists()){ showToast('회원 정보를 찾을 수 없습니다'); return; }
   const u = userSnap.data();
-  await setDoc(doc(db,'naejeonApply',uid),{
-    uid, nick:u.nick, realname:u.realname||'',
-    tier:u.tier,
-    scoreTop:u.scoreTop||0, scoreJungle:u.scoreJungle||0, scoreMid:u.scoreMid||0, scoreAdc:u.scoreAdc||0, scoreSupport:u.scoreSupport||0,
-    laneEnabled:u.laneEnabled||null, mainLane:u.mainLane||'', subLane:u.subLane||'',
-    [`game${game}`]:true, updatedAt:new Date().toISOString()
-  },{merge:true});
+  const field = `game${game}`;
+  const cntRef = doc(db,'naejeonCounts',`game${game}`);
+  const applyRef = doc(db,'naejeonApply',uid);
+  try {
+    await runTransaction(db, async (tx) => {
+      const [cntSnap, mySnap] = await Promise.all([tx.get(cntRef), tx.get(applyRef)]);
+      const my = mySnap.exists() ? mySnap.data() : {};
+      const cnt = cntSnap.exists() ? (cntSnap.data().count || 0) : 0;
+      if(!my[field]){
+        if(cnt >= 10) throw Object.assign(new Error('FULL'), {code:'FULL'});
+        tx.set(cntRef, { count: cnt + 1 }, { merge: true });
+      }
+      tx.set(applyRef, {
+        uid, nick:u.nick, realname:u.realname||'',
+        tier:u.tier,
+        scoreTop:u.scoreTop||0, scoreJungle:u.scoreJungle||0, scoreMid:u.scoreMid||0, scoreAdc:u.scoreAdc||0, scoreSupport:u.scoreSupport||0,
+        laneEnabled:u.laneEnabled||null, mainLane:u.mainLane||'', subLane:u.subLane||'',
+        [field]:true, updatedAt:new Date().toISOString()
+      },{merge:true});
+    });
+  } catch(e) {
+    if(e.code === 'FULL') { showToast(`내전${game} 정원이 가득 찼습니다 (10/10)`); return; }
+    console.error('njAdminAdd error:', e); showToast('추가 실패: ' + (e.message||e)); return;
+  }
   showToast(`${u.realname||u.nick}님 내전${game} 추가됨!`);
   await njLoadApplyStatus();
   document.getElementById(`nj${game}-search`).value='';
@@ -2715,6 +2744,15 @@ async function njLoadApplyStatus(){
     const lists = {1:[],2:[],3:[]};
     snap.forEach(d=>{ const raw=d.data(); const u=withLive(raw); [1,2,3].forEach(g=>{ if(raw[`game${g}`]) lists[g].push(u); }); });
     [1,2,3].forEach(g => { document.getElementById(`nj${g}-cnt`).textContent = lists[g].length+'명'; });
+    if(isAdmin){
+      // naejeonCounts 카운터가 과거 관리자 신청취소/추가 경로에서 어긋난 경우 실제 신청자 수로 자동 보정
+      const cntSnap = await Promise.all([1,2,3].map(g => getDoc(doc(db,'naejeonCounts',`game${g}`))));
+      await Promise.all([1,2,3].map((g,i) => {
+        const stored = cntSnap[i].exists() ? (cntSnap[i].data().count || 0) : 0;
+        if(stored === lists[g].length) return Promise.resolve();
+        return setDoc(doc(db,'naejeonCounts',`game${g}`), { count: lists[g].length }, { merge: true });
+      }));
+    }
     const renderList = (list, game) => list.map(u=>`
       <div style="padding:5px 0;border-bottom:1px solid var(--border);">
         <div style="display:flex;align-items:center;gap:5px;">
