@@ -986,7 +986,7 @@ function balTierDelta(posKor, curScore, isWin){
     return (BAL_TIER_TABLE[idx+1][posKor] - BAL_TIER_TABLE[idx][posKor]) / 2;
   }
   if(idx <= 0) return 0;
-  return (BAL_TIER_TABLE[idx][posKor] - BAL_TIER_TABLE[idx-1][posKor]) / 2;
+  return -(BAL_TIER_TABLE[idx][posKor] - BAL_TIER_TABLE[idx-1][posKor]) / 2;
 }
 
 // 관리자 수동입력용 티어 드롭다운 옵션 (현재 점수가 속한 구간을 선택 상태로 표시)
