@@ -1135,7 +1135,7 @@ function getSubValue(selId, inputId){
   }
   return sel.value;
 }
-function showToast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2500); }
+function showToast(msg, duration=2500){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(t._hideTimer); t._hideTimer=setTimeout(()=>t.classList.remove('show'),duration); }
 
 // ── DATA DRAGON VERSION ──
 let ddVersion = '15.9.1';
@@ -2976,6 +2976,13 @@ window.njAutoSuggest = (game) => {
   if(pool.length < 10){ showToast('신청자 10명이 필요합니다 (현재 ' + pool.length + '명)'); return; }
   const ten = pool.slice(0, 10);
 
+  // 라인을 전부 OFF해놔서 어떤 포지션에도 배치될 수 없는 사람은 안내
+  const noLinePlayers = ten.filter(p => POS_LABELS.every(pos => p.laneEnabled && p.laneEnabled[pos] === false));
+  if(noLinePlayers.length){
+    const names = noLinePlayers.map(p => p.realname || p.nick).join(', ');
+    showToast(`⚠️ ${names}: 매칭불가! 라인을 더 선택해 주세요`, 6000);
+  }
+
   const suggestions = [];
   function teamScore(team){ return team.reduce((s,p) => s+njRawPosScore(p,p.assignedPos), 0); }
   function round2(n){ return Math.round(n*100)/100; }
@@ -2998,7 +3005,9 @@ window.njAutoSuggest = (game) => {
     return best;
   }
 
-  // 팀 내 포지션 배정: 5! = 120가지 전체 탐색 → 0점 배치 최소화 → 주/부라인 매칭 최대화 → 총점 최대화
+  // 팀 내 포지션 배정: 5! = 120가지 전체 탐색 → OFF라인 배치는 절대 안 함(하드 제약) →
+  // 그 안에서 배치 인원 최대화 → 주/부라인 매칭 최대화 → 총점 최대화. OFF라인밖에 못 가는
+  // 사람은 이 팀에서 배치 안 함(assignedPos:null, "미배치"로 남김).
   function assignPositions(team){
     function perms(arr){
       if(!arr.length) return [[]];
@@ -3011,25 +3020,39 @@ window.njAutoSuggest = (game) => {
       return 0;
     }
     const n = Math.min(team.length, NJ_POSITIONS.length);
-    let bestAssign = null, bestZero = Infinity, bestPref = -1, bestScore = -1;
+    let bestAssign = null, bestMatched = -1, bestPref = -1, bestScore = -1;
     for(const perm of perms([...Array(n).keys()])){
-      let zeros = 0, pref = 0, score = 0;
+      let matched = 0, pref = 0, score = 0;
       for(let i=0; i<n; i++){
-        const sOff = njGetPosScore(team[perm[i]], NJ_POSITIONS[i]); // OFF=0, zeros 계산용
-        if(!sOff) zeros++;
-        score += njRawPosScore(team[perm[i]], NJ_POSITIONS[i]); // 실제 점수, tiebreaker용
-        pref += prefScore(team[perm[i]], NJ_POSITIONS[i]);
+        const sOn = njGetPosScore(team[perm[i]], NJ_POSITIONS[i]); // OFF면 0 — 매칭으로 안 침
+        if(sOn > 0){
+          matched++;
+          score += njRawPosScore(team[perm[i]], NJ_POSITIONS[i]); // 실제 점수, tiebreaker용
+          pref += prefScore(team[perm[i]], NJ_POSITIONS[i]);
+        }
       }
-      if(zeros < bestZero ||
-         (zeros === bestZero && pref > bestPref) ||
-         (zeros === bestZero && pref === bestPref && score > bestScore)){
-        bestZero = zeros; bestPref = pref; bestScore = score; bestAssign = perm;
+      if(matched > bestMatched ||
+         (matched === bestMatched && pref > bestPref) ||
+         (matched === bestMatched && pref === bestPref && score > bestScore)){
+        bestMatched = matched; bestPref = pref; bestScore = score; bestAssign = perm;
       }
     }
-    if(!bestAssign) return team.map(p=>({...p, assignedPos:'기타'}));
-    const result = NJ_POSITIONS.slice(0,n).map((pos,i) => ({...team[bestAssign[i]], assignedPos:pos}));
-    team.slice(n).forEach(p => result.push({...p, assignedPos:'기타'}));
+    if(!bestAssign) return team.map(p=>({...p, assignedPos:null}));
+    const result = [];
+    for(let i=0; i<n; i++){
+      const p = team[bestAssign[i]];
+      const pos = NJ_POSITIONS[i];
+      const onLine = njGetPosScore(p, pos) > 0;
+      result.push({...p, assignedPos: onLine ? pos : null});
+    }
+    team.slice(n).forEach(p => result.push({...p, assignedPos:null}));
     return result;
+  }
+
+  // 배치 인원 수를 함께 기록해두는 헬퍼 — 미배치 인원 표시/"최고안" 판단에 사용
+  function pushSuggestion(label, desc, swapped){
+    const matched = swapped.t1.filter(p=>p.assignedPos).length + swapped.t2.filter(p=>p.assignedPos).length;
+    suggestions.push({label, desc, matched, ...swapped});
   }
 
   // === 안 1: 정글/미드 균형 ===
@@ -3038,8 +3061,8 @@ window.njAutoSuggest = (game) => {
   const jmSorted = [...ten].sort((a,b) => jmScore(b) - jmScore(a));
   const t1a = [], t1b = [];
   jmSorted.forEach((p,i) => (i%2===0 ? t1a : t1b).push(p));
-  suggestions.push({label:'안 1 — 정글/미드 균형', desc:'정글·미드 포인트 기준으로 양 팀에 교대 배분',
-    ...optimizeSwap(assignPositions(t1a), assignPositions(t1b))});
+  pushSuggestion('안 1 — 정글/미드 균형', '정글·미드 포인트 기준으로 양 팀에 교대 배분',
+    optimizeSwap(assignPositions(t1a), assignPositions(t1b)));
 
   // === 안 2: 원딜/서폿 시너지 ===
   // 각 팀에 원딜·서폿 주라인 선수 1명씩 확보 → 나머지 포인트 균형
@@ -3056,8 +3079,8 @@ window.njAutoSuggest = (game) => {
   [...ten].filter(p=>!fixed2.has(p.uid))
     .sort((a,b) => maxPosScore(b) - maxPosScore(a))
     .forEach(p => (t2a.length<=t2b.length ? t2a : t2b).push(p));
-  suggestions.push({label:'안 2 — 원딜/서폿 시너지', desc:'원딜·서폿 주라인 선수를 각 팀에 먼저 확보 후 나머지 균형 배분',
-    ...optimizeSwap(assignPositions(t2a.slice(0,5)), assignPositions(t2b.slice(0,5)))});
+  pushSuggestion('안 2 — 원딜/서폿 시너지', '원딜·서폿 주라인 선수를 각 팀에 먼저 확보 후 나머지 균형 배분',
+    optimizeSwap(assignPositions(t2a.slice(0,5)), assignPositions(t2b.slice(0,5))));
 
   // === 안 3: 탑/바텀 균형 ===
   // 상단(탑+정글), 하단(원딜+서폿) 각각 양 팀에 교대 배분
@@ -3070,8 +3093,8 @@ window.njAutoSuggest = (game) => {
   const topUsed = new Set(topTop4.map(p=>p.uid));
   [...ten].filter(p=>!topUsed.has(p.uid)).sort((a,b)=>botScore(b)-botScore(a))
     .forEach(p => (t3a.length<=t3b.length ? t3a : t3b).push(p));
-  suggestions.push({label:'안 3 — 탑/바텀 라인 균형', desc:'탑·정글(상단)과 원딜·서폿(하단) 포인트를 양 팀에 균등 배분',
-    ...optimizeSwap(assignPositions(t3a.slice(0,5)), assignPositions(t3b.slice(0,5)))});
+  pushSuggestion('안 3 — 탑/바텀 라인 균형', '탑·정글(상단)과 원딜·서폿(하단) 포인트를 양 팀에 균등 배분',
+    optimizeSwap(assignPositions(t3a.slice(0,5)), assignPositions(t3b.slice(0,5))));
 
   // === 안 4: 주라인 배치 극대화 ===
   // 포지션별로 주라인 선수를 팀당 1명씩 배정, 남은 자리는 pt 균형
@@ -3086,55 +3109,77 @@ window.njAutoSuggest = (game) => {
   ten.filter(p=>!used4.has(p.uid))
     .sort((a,b)=>maxPosScore(b)-maxPosScore(a))
     .forEach(p=>(t4a.length<=t4b.length?t4a:t4b).push(p));
-  suggestions.push({label:'안 4 — 주라인 배치 극대화', desc:'최대한 많은 선수가 주라인 포지션에 배치되도록 우선 매칭',
-    ...optimizeSwap(assignPositions(t4a.slice(0,5)), assignPositions(t4b.slice(0,5)))});
+  pushSuggestion('안 4 — 주라인 배치 극대화', '최대한 많은 선수가 주라인 포지션에 배치되도록 우선 매칭',
+    optimizeSwap(assignPositions(t4a.slice(0,5)), assignPositions(t4b.slice(0,5))));
 
-  // === 안 5: 완전 최적 균형 (브루트포스) ===
-  // C(10,5)=252가지 조합 전부 탐색 → pt 격차 최소 조합
+  // === 안 5~8: 완전 탐색 균형 상위 4개 (브루트포스) ===
+  // C(10,5)=252가지 조합 전부 탐색(mirror 조합 제외하면 126가지) → 배치 인원 최대화가 1순위,
+  // 그다음 pt 격차가 작은 순으로 상위 4개를 고른다.
   function combinations(arr, k){
     if(k===0) return [[]];
     if(arr.length===k) return [[...arr]];
     const [first,...rest]=arr;
     return [...combinations(rest,k-1).map(c=>[first,...c]),...combinations(rest,k)];
   }
-  let bestDiff=Infinity, bestT5a=null, bestT5b=null;
+  const seenSplits = new Set();
+  const allSplits = [];
   for(const combo of combinations(ten,5)){
-    const uids=new Set(combo.map(p=>p.uid));
-    const other=ten.filter(p=>!uids.has(p.uid));
-    const at1=assignPositions(combo), at2=assignPositions(other);
-    const diff=Math.abs(teamScore(at1)-teamScore(at2));
-    if(diff<bestDiff){ bestDiff=diff; bestT5a=at1; bestT5b=at2; }
+    const uidsA = combo.map(p=>p.uid).sort();
+    const other = ten.filter(p=>!uidsA.includes(p.uid));
+    const uidsB = other.map(p=>p.uid).sort();
+    const keyA = uidsA.join(','), keyB = uidsB.join(',');
+    const splitKey = keyA < keyB ? keyA+'|'+keyB : keyB+'|'+keyA;
+    if(seenSplits.has(splitKey)) continue;
+    seenSplits.add(splitKey);
+    const at1 = assignPositions(combo), at2 = assignPositions(other);
+    const matched = at1.filter(p=>p.assignedPos).length + at2.filter(p=>p.assignedPos).length;
+    const diff = Math.abs(teamScore(at1)-teamScore(at2));
+    allSplits.push({at1, at2, matched, diff});
   }
-  suggestions.push({label:'안 5 — 완전 최적 균형', desc:'252가지 5vs5 조합을 전부 탐색해 포인트 격차가 가장 적은 배분 도출',
-    ...optimizeSwap(bestT5a, bestT5b)});
+  allSplits.sort((a,b) => b.matched - a.matched || a.diff - b.diff);
+  allSplits.slice(0,4).forEach((s,i) => {
+    pushSuggestion(`안 ${5+i} — 완전 탐색 균형 ${i+1}위`, '252가지 5vs5 조합을 전부 탐색해 배치 인원·포인트 격차 기준으로 고른 배분',
+      optimizeSwap(s.at1, s.at2));
+  });
 
-  // 5개 제안안을 카드로 표시
+  // 8개 제안안을 카드로 표시
   window[`_njSuggestions_${game}`] = suggestions;
   const tNamesAuto = game===1 ? ['1팀','2팀'] : game===2 ? ['3팀','4팀'] : ['5팀','6팀'];
-  const bestDiffVal = Math.min(...suggestions.map(s=>s.diff));
+  // "최고안" 기준: 배치 인원이 가장 많은 안들 중에서 pt 격차가 가장 작은 것
+  const maxMatched = Math.max(...suggestions.map(s=>s.matched));
+  const bestDiffVal = Math.min(...suggestions.filter(s=>s.matched===maxMatched).map(s=>s.diff));
   const sugEl = document.getElementById(`nj${game}-suggestions`);
   if(!sugEl) return;
   sugEl.innerHTML = suggestions.map((s,i) => {
-    const t1names = s.t1.map(p=>`<span style="font-size:10px;">${p.assignedPos} ${p.realname||p.nick}</span>`).join(' ');
-    const t2names = s.t2.map(p=>`<span style="font-size:10px;">${p.assignedPos} ${p.realname||p.nick}</span>`).join(' ');
-    const isBest = s.diff === bestDiffVal;
+    const posLine = (team) => NJ_POSITIONS.map(pos => {
+      const p = team.find(x=>x.assignedPos===pos);
+      return p
+        ? `<span style="font-size:10px;">${pos} ${p.realname||p.nick}</span>`
+        : `<span style="font-size:10px;color:#cc6666;">${pos} (미배치)</span>`;
+    }).join(' ');
+    const bench = [...s.t1, ...s.t2].filter(p=>!p.assignedPos);
+    const benchLine = bench.length
+      ? `<div style="font-size:10px;color:#cc8844;margin-top:6px;">⚠️ 배치 못함: ${bench.map(p=>p.realname||p.nick).join(', ')}</div>`
+      : '';
+    const isBest = s.matched === maxMatched && s.diff === bestDiffVal;
     return `<div style="background:var(--bg3);border:1px solid ${isBest?'var(--green)':'var(--border)'};border-radius:8px;padding:10px;margin-bottom:8px;">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px;">
         <span style="font-weight:700;font-size:13px;color:var(--text);">${s.label}${isBest?' ⭐':''}</span>
-        <span style="font-size:11px;color:var(--blue);font-weight:700;">격차 ${round2(s.diff)}pt</span>
+        <span style="font-size:11px;color:var(--blue);font-weight:700;">격차 ${round2(s.diff)}pt · 배치 ${s.matched}/10</span>
       </div>
       <div style="font-size:11px;color:var(--text-dim);margin-bottom:7px;">${s.desc}</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px;">
         <div style="background:var(--bg4);border-radius:5px;padding:5px;">
           <div style="font-size:11px;color:#ff5555;font-weight:700;margin-bottom:3px;">🔴 ${tNamesAuto[0]} ${round2(teamScore(s.t1))}pt</div>
-          <div style="display:flex;flex-direction:column;gap:2px;">${t1names}</div>
+          <div style="display:flex;flex-direction:column;gap:2px;">${posLine(s.t1)}</div>
         </div>
         <div style="background:var(--bg4);border-radius:5px;padding:5px;">
           <div style="font-size:11px;color:#5090d0;font-weight:700;margin-bottom:3px;">🔵 ${tNamesAuto[1]} ${round2(teamScore(s.t2))}pt</div>
-          <div style="display:flex;flex-direction:column;gap:2px;">${t2names}</div>
+          <div style="display:flex;flex-direction:column;gap:2px;">${posLine(s.t2)}</div>
         </div>
       </div>
-      <button class="btn btn-sm" style="background:var(--green);color:#fff;border:none;width:100%;" onclick="njApplySuggestion(${game},${i})">✅ 이 배분 적용</button>
+      ${benchLine}
+      <button class="btn btn-sm" style="background:var(--green);color:#fff;border:none;width:100%;margin-top:6px;" onclick="njApplySuggestion(${game},${i})">✅ 이 배분 적용</button>
     </div>`;
   }).join('');
   sugEl.style.display = 'block';
@@ -3145,16 +3190,21 @@ window.njApplySuggestion = (game, idx) => {
   if(!suggestions || !suggestions[idx]) return;
   const {t1, t2} = suggestions[idx];
   const players = njPlayers[game];
-  // 전원 pool로 초기화
+  // 전원 pool로 초기화 — assignedPos가 null인(OFF라인이라 배치 못한) 사람은 그대로 pool에 남김
   players.forEach(p => p.loc = 'pool');
-  t1.forEach(p => { const player = players.find(x => x.uid === p.uid); if(player) player.loc = `t1-${p.assignedPos}`; });
-  t2.forEach(p => { const player = players.find(x => x.uid === p.uid); if(player) player.loc = `t2-${p.assignedPos}`; });
+  t1.forEach(p => { if(!p.assignedPos) return; const player = players.find(x => x.uid === p.uid); if(player) player.loc = `t1-${p.assignedPos}`; });
+  t2.forEach(p => { if(!p.assignedPos) return; const player = players.find(x => x.uid === p.uid); if(player) player.loc = `t2-${p.assignedPos}`; });
   renderNjPlayers(game);
   // 저장
   const arr = players.map(p => ({uid:p.uid, loc:p.loc}));
   setDoc(doc(db,'naejeonArrange',`game${game}`), {players:arr, updatedAt:new Date()}).catch(()=>{});
   document.getElementById(`nj${game}-suggestions`).style.display = 'none';
-  showToast('팀 배분이 적용됐습니다! 수동으로 조정할 수 있어요.');
+  const unplaced = [...t1, ...t2].filter(p=>!p.assignedPos);
+  if(unplaced.length){
+    showToast(`팀 배분이 적용됐습니다! 미배치 인원(${unplaced.map(p=>p.realname||p.nick).join(', ')})은 라인을 확인해 수동 배치해주세요.`, 6000);
+  } else {
+    showToast('팀 배분이 적용됐습니다! 수동으로 조정할 수 있어요.');
+  }
 };
 function njCard(p, game){
   const isPlaced = p.loc !== 'pool';
