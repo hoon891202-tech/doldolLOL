@@ -989,6 +989,19 @@ function balTierDelta(posKor, curScore, isWin){
   return -(BAL_TIER_TABLE[idx][posKor] - BAL_TIER_TABLE[idx-1][posKor]) / 2;
 }
 
+const STREAK_KEY_OF = {탑:'streakTop', 정글:'streakJungle', 미드:'streakMid', 원딜:'streakAdc', 서폿:'streakSupport'};
+// 2연승/2연패 단위로만 점수 반영 (2026-10-01 변경) — functions/index.js의 동명 함수와 로직 동일하게 유지할 것
+function applyStreakedScore(posKor, curScore, curStreak, isWin){
+  const streak = curStreak || 0;
+  const nextStreak = isWin ? (streak > 0 ? streak + 1 : 1) : (streak < 0 ? streak - 1 : -1);
+  if(Math.abs(nextStreak) < 2){
+    return {newScore: curScore, newStreak: nextStreak, applied: false};
+  }
+  const delta = balTierDelta(posKor, curScore, isWin);
+  const newScore = Math.max(1, Math.min(999, Math.round((curScore + delta) * 100) / 100));
+  return {newScore, newStreak: 0, applied: true};
+}
+
 // 관리자 수동입력용 티어 드롭다운 옵션 (현재 점수가 속한 구간을 선택 상태로 표시)
 function balTierOptionsHtml(posKor, curScore){
   const bt = balTierLookup(posKor, curScore);
@@ -1442,10 +1455,12 @@ window.adminAddRecord = async () => {
         const posUpdate = {};
         for(const pos of POS_LABELS){
           const key = POS_SCORE_MAP[pos];
+          const streakKey = STREAK_KEY_OF[pos];
           const cur = u[key]||0;
           if(cur > 0){
-            const newScore = Math.round((cur + balTierDelta(pos, cur, isWin)) * 100) / 100;
-            posUpdate[key] = Math.max(1, Math.min(999, newScore));
+            const {newScore, newStreak} = applyStreakedScore(pos, cur, u[streakKey], isWin);
+            posUpdate[key] = newScore;
+            posUpdate[streakKey] = newStreak;
           }
         }
         if(Object.keys(posUpdate).length > 0) await updateDoc(doc(db,'users',uid), posUpdate);
@@ -3641,15 +3656,16 @@ window.njAutoRecordFromRiot = async (game) => {
         });
         const scoreKey = RIOT_POS_TO_SCORE_KEY[p.individualPosition];
         const posKor = POS_LABELS.find(pos => POS_SCORE_MAP[pos] === scoreKey);
-        if (scoreKey && posKor) {
+        const streakKey = posKor ? STREAK_KEY_OF[posKor] : null;
+        if (scoreKey && posKor && streakKey) {
           try {
             const uSnap = await getDoc(doc(db,'users',p.uid));
             if (uSnap.exists()) {
               const ud = uSnap.data();
               const cur = ud[scoreKey] || 0;
               if (cur > 0) {
-                const newScore = Math.round((cur + balTierDelta(posKor, cur, p.win)) * 100) / 100;
-                await updateDoc(doc(db,'users',p.uid), {[scoreKey]: Math.max(1, Math.min(999, newScore))});
+                const {newScore, newStreak} = applyStreakedScore(posKor, cur, ud[streakKey], p.win);
+                await updateDoc(doc(db,'users',p.uid), {[scoreKey]: newScore, [streakKey]: newStreak});
               }
             }
           } catch(e) { console.error('포지션 점수 업데이트 실패:', p.uid, e); }
@@ -3703,11 +3719,12 @@ window.njRecordResult = async (game, winner) => {
       const ud = uSnap.data();
       const pos = p.loc.replace(/^t[12]-/,'');
       const scoreKey = POS_SCORE_MAP[pos];
-      if(!scoreKey) continue;
+      const streakKey = STREAK_KEY_OF[pos];
+      if(!scoreKey || !streakKey) continue;
       const cur = ud[scoreKey]||0;
       if(cur <= 0) continue;
-      const newScore = Math.round((cur + balTierDelta(pos, cur, p.win)) * 100) / 100;
-      await updateDoc(doc(db,'users',p.uid), {[scoreKey]: Math.max(1, Math.min(999, newScore))});
+      const {newScore, newStreak} = applyStreakedScore(pos, cur, ud[streakKey], p.win);
+      await updateDoc(doc(db,'users',p.uid), {[scoreKey]: newScore, [streakKey]: newStreak});
     } catch(e){ console.error('점수 업데이트 실패:', p.uid, e); }
   }
   showToast(`내전${game} 결과 기록 완료! 🎉`);
