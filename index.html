@@ -342,7 +342,6 @@ select.inp option{background:#f0fdf8;color:#1a2e2c;}
         <span id="nj1-time" style="font-size:11px;color:#0070a0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:120px;"></span>
         <button id="nj1-time-edit" onclick="njSetTime(1)" style="display:none;font-size:10px;padding:1px 5px;background:var(--bg3);border:1px solid var(--border);color:var(--text-dim);border-radius:4px;cursor:pointer;flex-shrink:0;">✏️</button>
         <span id="nj1-cnt" style="margin-left:auto;font-size:11px;color:var(--text-dim);white-space:nowrap;">0명</span>
-        <button id="nj1-log-btn" onclick="njToggleApplyLog(1)" style="display:none;font-size:11px;padding:2px 7px;background:var(--bg3);border:1px solid var(--border);color:var(--text-dim);border-radius:4px;cursor:pointer;flex-shrink:0;">📋 로그</button>
         <button id="nj1-reset-btn" onclick="njClearApply(1)" style="display:none;font-size:11px;padding:2px 7px;background:#fff0f0;border:1px solid #ffb0a0;color:#cc2020;border-radius:4px;cursor:pointer;flex-shrink:0;">🗑 초기화</button>
       </div>
       <div style="padding:12px;display:flex;flex-direction:column;gap:8px;">
@@ -356,7 +355,6 @@ select.inp option{background:#f0fdf8;color:#1a2e2c;}
           </div>
         </div>
         <div id="nj1-list"></div>
-        <div id="nj1-applylog" style="display:none;font-size:11px;color:var(--text-dim);background:var(--bg4);border-radius:6px;padding:8px;max-height:200px;overflow-y:auto;"></div>
       </div>
     </div>
     <div class="card">
@@ -365,7 +363,6 @@ select.inp option{background:#f0fdf8;color:#1a2e2c;}
         <span id="nj2-time" style="font-size:11px;color:#0070a0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:120px;"></span>
         <button id="nj2-time-edit" onclick="njSetTime(2)" style="display:none;font-size:10px;padding:1px 5px;background:var(--bg3);border:1px solid var(--border);color:var(--text-dim);border-radius:4px;cursor:pointer;flex-shrink:0;">✏️</button>
         <span id="nj2-cnt" style="margin-left:auto;font-size:11px;color:var(--text-dim);white-space:nowrap;">0명</span>
-        <button id="nj2-log-btn" onclick="njToggleApplyLog(2)" style="display:none;font-size:11px;padding:2px 7px;background:var(--bg3);border:1px solid var(--border);color:var(--text-dim);border-radius:4px;cursor:pointer;flex-shrink:0;">📋 로그</button>
         <button id="nj2-reset-btn" onclick="njClearApply(2)" style="display:none;font-size:11px;padding:2px 7px;background:#fff0f0;border:1px solid #ffb0a0;color:#cc2020;border-radius:4px;cursor:pointer;flex-shrink:0;">🗑 초기화</button>
       </div>
       <div style="padding:12px;display:flex;flex-direction:column;gap:8px;">
@@ -379,7 +376,6 @@ select.inp option{background:#f0fdf8;color:#1a2e2c;}
           </div>
         </div>
         <div id="nj2-list"></div>
-        <div id="nj2-applylog" style="display:none;font-size:11px;color:var(--text-dim);background:var(--bg4);border-radius:6px;padding:8px;max-height:200px;overflow-y:auto;"></div>
       </div>
     </div>
     <div class="card">
@@ -388,7 +384,6 @@ select.inp option{background:#f0fdf8;color:#1a2e2c;}
         <span id="nj3-time" style="font-size:11px;color:#0070a0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:120px;"></span>
         <button id="nj3-time-edit" onclick="njSetTime(3)" style="display:none;font-size:10px;padding:1px 5px;background:var(--bg3);border:1px solid var(--border);color:var(--text-dim);border-radius:4px;cursor:pointer;flex-shrink:0;">✏️</button>
         <span id="nj3-cnt" style="margin-left:auto;font-size:11px;color:var(--text-dim);white-space:nowrap;">0명</span>
-        <button id="nj3-log-btn" onclick="njToggleApplyLog(3)" style="display:none;font-size:11px;padding:2px 7px;background:var(--bg3);border:1px solid var(--border);color:var(--text-dim);border-radius:4px;cursor:pointer;flex-shrink:0;">📋 로그</button>
         <button id="nj3-reset-btn" onclick="njClearApply(3)" style="display:none;font-size:11px;padding:2px 7px;background:#fff0f0;border:1px solid #ffb0a0;color:#cc2020;border-radius:4px;cursor:pointer;flex-shrink:0;">🗑 초기화</button>
       </div>
       <div style="padding:12px;display:flex;flex-direction:column;gap:8px;">
@@ -402,7 +397,6 @@ select.inp option{background:#f0fdf8;color:#1a2e2c;}
           </div>
         </div>
         <div id="nj3-list"></div>
-        <div id="nj3-applylog" style="display:none;font-size:11px;color:var(--text-dim);background:var(--bg4);border-radius:6px;padding:8px;max-height:200px;overflow-y:auto;"></div>
       </div>
     </div>
   </div>
@@ -779,6 +773,18 @@ select.inp option{background:#f0fdf8;color:#1a2e2c;}
         이미 점수에 반영된 경기 — 기록/통계만 복구하고 점수는 건드리지 않기
       </label>
       <span id="adm-matchid-status" style="font-size:12px;color:var(--text-dim);"></span>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-header"><span class="card-icon">📋</span><span class="card-title">내전 신청/취소 로그</span><span class="card-note">오늘 기록, 매일 아침 7시 초기화</span></div>
+    <div style="padding:14px;display:flex;flex-direction:column;gap:10px;">
+      <div style="font-size:12px;color:var(--text-dim);">웹/카카오봇 신청·취소, 관리자 추가·제거, 게스트 추가·제거까지 전부 기록됩니다.</div>
+      <div style="display:flex;gap:6px;">
+        <button class="btn btn-sm" onclick="adminLoadApplyLog(1)">내전1</button>
+        <button class="btn btn-sm" onclick="adminLoadApplyLog(2)">내전2</button>
+        <button class="btn btn-sm" onclick="adminLoadApplyLog(3)">내전3</button>
+      </div>
+      <div id="admin-applylog" style="font-size:12px;color:var(--text-dim);max-height:300px;overflow-y:auto;background:var(--bg3);border-radius:6px;padding:8px;">내전 번호를 선택하세요</div>
     </div>
   </div>
   <div class="card" style="display:none;">
@@ -2721,7 +2727,6 @@ async function loadNaejeonPage(){
     await njFillAdminSelect();
     [1,2,3].forEach(g => {
       document.getElementById(`nj${g}-reset-btn`).style.display = 'inline-block';
-      document.getElementById(`nj${g}-log-btn`).style.display = 'inline-block';
     });
   }
   if(currentUser){
@@ -3512,17 +3517,16 @@ window.njClearApply = async (game) => {
   showToast(`내전${game} 신청 초기화됐습니다`);
 };
 
-// 오늘 신청/취소 로그 토글 — 매일 아침 서버에서 naejeonApplyLog를 통째로 비우므로 날짜 필터 없이 그대로 보여줌
-window.njToggleApplyLog = async (game) => {
-  const el = document.getElementById(`nj${game}-applylog`);
+// 관리자 페이지 "내전 신청/취소 로그" 카드에서 사용 — 매일 아침 서버에서 naejeonApplyLog를
+// 통째로 비우므로 날짜 필터 없이 그대로 보여줌
+window.adminLoadApplyLog = async (game) => {
+  const el = document.getElementById('admin-applylog');
   if(!el) return;
-  if(el.style.display !== 'none'){ el.style.display = 'none'; return; }
-  el.style.display = 'block';
   el.textContent = '불러오는 중...';
   try {
     const snap = await getDocs(query(collection(db,'naejeonApplyLog'), where('game','==',game)));
     const rows = snap.docs.map(d=>d.data()).sort((a,b)=>(b.ts||'').localeCompare(a.ts||''));
-    if(!rows.length){ el.textContent = '오늘 신청/취소 기록 없음'; return; }
+    if(!rows.length){ el.textContent = `내전${game} — 오늘 신청/취소 기록 없음`; return; }
     el.innerHTML = rows.map(r=>{
       const time = r.ts ? new Date(r.ts).toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'}) : '--:--';
       const actionLabel = r.action === 'apply' ? '신청' : '취소';
@@ -3536,7 +3540,7 @@ window.njToggleApplyLog = async (game) => {
         <span style="color:${actionColor};font-weight:700;">${actionLabel}</span>${channelTag}
       </div>`;
     }).join('');
-  } catch(e){ console.error('njToggleApplyLog error:', e); el.textContent = '로그 조회 실패: ' + (e.message||e); }
+  } catch(e){ console.error('adminLoadApplyLog error:', e); el.textContent = '로그 조회 실패: ' + (e.message||e); }
 };
 
 window.njSetTime = async (game) => {
