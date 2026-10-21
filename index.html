@@ -704,11 +704,6 @@ select.inp option{background:#f0fdf8;color:#1a2e2c;}
     <div style="width:100%;text-align:center;padding:18px 0;font-size:12px;color:var(--text-dim);grid-column:1/-1;">경매가 시작되면 팀 현황이 표시됩니다.</div>
   </div>
 
-  <div id="auction-unsold-wrap" style="display:none;">
-    <div class="sec-label" style="font-family:'Black Han Sans',sans-serif;font-size:13px;color:#ff5555;letter-spacing:1px;margin-bottom:10px;">🚫 유찰자</div>
-    <div id="auction-unsold" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:20px;"></div>
-  </div>
-
   <div id="auction-order-wrap" style="display:none;">
     <div class="sec-label" style="font-family:'Black Han Sans',sans-serif;font-size:13px;color:#ff5555;letter-spacing:1px;margin-bottom:10px;">🎲 경매 순서 (랜덤 확정)</div>
     <div id="auction-order" style="display:flex;flex-direction:column;gap:6px;margin-bottom:20px;"></div>
@@ -5024,10 +5019,12 @@ async function auctionResolveTimeout(){
           const roster = [...(team.roster||[]), {...state.nominee, price}];
           tx.update(teamRef, { remaining: team.remaining - price, roster });
         } else {
-          stateUpdate.unsold = [...(state.unsold||[]), state.nominee];
+          // 입찰자가 있었지만 예산 검증에 실패한 비정상 상황 — 유찰로 간주해 순서 맨 뒤로 재편입
+          stateUpdate.order = [...(state.order||[]), state.nominee];
         }
       } else {
-        stateUpdate.unsold = [...(state.unsold||[]), state.nominee];
+        // 입찰자 없이 시간 종료 — 유찰, 순서 맨 뒤로 재편입해 나중에 다시 경매
+        stateUpdate.order = [...(state.order||[]), state.nominee];
       }
       tx.update(stateRef, stateUpdate);
     });
@@ -5042,12 +5039,18 @@ async function renderAuctionCaptainSetup(){
     const captains = [];
     snap.forEach(d=> captains.push({...d.data(), uid:d.id}));
     if(!captains.length){ el.innerHTML = '<div style="font-size:12px;color:var(--text-dim);">신청자 목록에서 팀장을 먼저 지정해주세요.</div>'; return; }
-    el.innerHTML = captains.map(c=>`
-      <div style="display:flex;align-items:center;gap:8px;">
-        <span style="flex:1;font-size:13px;">${c.realname||c.nick}</span>
+    const colors = ['#cc3030','#d07030','#40a060','#8050c0'];
+    el.innerHTML = `<div style="display:flex;flex-direction:column;gap:8px;">${captains.map((c,i)=>{
+      const color = colors[i%4];
+      const initial = (c.realname||c.nick||'?').trim().charAt(0) || '?';
+      return `
+      <div style="display:flex;align-items:center;gap:10px;background:var(--bg2);border:1px solid ${color}55;border-radius:9px;padding:8px 12px;">
+        <div style="width:30px;height:30px;border-radius:50%;background:radial-gradient(circle at 35% 30%, ${color}55, ${color}22);border:2px solid ${color};display:flex;align-items:center;justify-content:center;font-family:'Black Han Sans',sans-serif;font-size:13px;color:${color};flex-shrink:0;">${initial}</div>
+        <span style="flex:1;font-size:13px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${c.realname||c.nick}</span>
         <input type="number" id="auction-budget-${c.uid}" class="inp" style="width:100px;" value="${c.budget||''}" placeholder="예산">
         <button class="btn btn-ghost btn-sm" style="padding:3px 10px;font-size:11px;" onclick="saveCaptainBudget('${c.uid}','auction-budget-${c.uid}')">저장</button>
-      </div>`).join('');
+      </div>`;
+    }).join('')}</div>`;
   } catch(e){ console.error('renderAuctionCaptainSetup error:', e); }
 }
 
@@ -5080,7 +5083,7 @@ window.auctionStart = async () => {
     }
     batch.set(doc(db,'auctionState','current'), {
       status:'running', order:pool, nextIndex:0, nominee:null,
-      currentBid:0, currentBidderUid:null, currentBidderNick:null, unsold:[],
+      currentBid:0, currentBidderUid:null, currentBidderNick:null,
       updatedAt:new Date().toISOString()
     });
     await batch.commit();
@@ -5187,10 +5190,10 @@ window.auctionPass = async () => {
       if(!snap.exists()) throw new Error('NOT_STARTED');
       const state = snap.data();
       if(!state.nominee) throw new Error('NO_NOMINEE');
-      const unsold = [...(state.unsold||[]), state.nominee];
-      tx.update(stateRef, { nominee:null, currentBid:0, currentBidderUid:null, currentBidderNick:null, deadline:null, unsold, updatedAt:new Date().toISOString() });
+      const order = [...(state.order||[]), state.nominee];
+      tx.update(stateRef, { nominee:null, currentBid:0, currentBidderUid:null, currentBidderNick:null, deadline:null, order, updatedAt:new Date().toISOString() });
     });
-    showToast('유찰 처리되었습니다');
+    showToast('유찰 — 순서 맨 뒤로 재배치되었습니다');
   } catch(e){
     if(e.message==='NO_NOMINEE') showToast('경매 중인 선수가 없습니다');
     else { console.error('auctionPass error:', e); showToast('처리 중 오류가 발생했습니다'); }
@@ -5213,8 +5216,6 @@ function renderAuctionView(){
   const statusBadge = document.getElementById('auction-status-badge');
   const nomineeEl = document.getElementById('auction-nominee');
   const teamsEl = document.getElementById('auction-teams');
-  const unsoldWrap = document.getElementById('auction-unsold-wrap');
-  const unsoldEl = document.getElementById('auction-unsold');
   const orderWrap = document.getElementById('auction-order-wrap');
   const orderEl = document.getElementById('auction-order');
   if(!statusBadge || !nomineeEl || !teamsEl) return;
@@ -5223,44 +5224,51 @@ function renderAuctionView(){
     statusBadge.textContent = '대기중';
     nomineeEl.innerHTML = '<div style="text-align:center;color:var(--text-dim);font-size:13px;padding:20px 0;">경매가 아직 시작되지 않았습니다.</div>';
     teamsEl.innerHTML = '<div style="width:100%;text-align:center;padding:18px 0;font-size:12px;color:var(--text-dim);grid-column:1/-1;">경매가 시작되면 팀 현황이 표시됩니다.</div>';
-    unsoldWrap.style.display = 'none';
     orderWrap.style.display = 'none';
     return;
   }
 
   const remainingCount = Math.max(0, (state.order?.length||0) - (state.nextIndex||0));
-  statusBadge.textContent = state.status==='running' ? `🔴 진행중 (남은 선수 ${remainingCount}명)` : '종료됨';
+  statusBadge.textContent = state.status==='running' ? `🔴 진행중 · 남은 선수 ${remainingCount}명` : '종료됨';
 
   const myTeam = currentUser ? auctionTeamsCache.find(t=>t.captainUid===currentUser.uid) : null;
+  const colors = ['#cc3030','#d07030','#40a060','#8050c0'];
+  const teamColor = {};
+  auctionTeamsCache.forEach((t,i)=>{ teamColor[t.captainUid] = colors[i%4]; });
+  const initial = (name) => (name||'?').trim().charAt(0) || '?';
+  const avatar = (name, color, size) => `<div style="width:${size}px;height:${size}px;border-radius:50%;background:radial-gradient(circle at 35% 30%, ${color}55, ${color}22);border:2px solid ${color};display:flex;align-items:center;justify-content:center;font-family:'Black Han Sans',sans-serif;font-size:${Math.round(size*0.42)}px;color:${color};flex-shrink:0;">${initial(name)}</div>`;
 
   if(state.nominee){
     const n = state.nominee;
     nomineeEl.innerHTML = `
-      <div id="auction-timer" style="text-align:center;font-family:'Black Han Sans',sans-serif;font-size:26px;letter-spacing:2px;color:#fff;background:linear-gradient(90deg,#cc3030,#8a1a1a);border-radius:8px;padding:8px 0;margin-bottom:14px;"></div>
-      <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
-        <div style="flex:1;min-width:160px;">
-          <div style="font-size:16px;font-weight:700;">${n.realname||n.nick} <span style="font-size:12px;color:var(--text-mid);">(${n.nick})</span></div>
-          <div style="display:flex;gap:6px;align-items:center;margin-top:4px;">
-            ${n.line?`<span style="font-size:11px;background:#1a2a4a;color:#88bbff;border:1px solid #3a5a8a;padding:2px 7px;border-radius:6px;">${n.line}</span>`:''}
-            <span class="tb t${n.tier}">${TIER_NAMES[n.tier]||n.tier}</span>
-          </div>
-          <div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:8px;">${posScoreBadge(n)||''}</div>
+      <div id="auction-timer" style="text-align:center;font-family:'Black Han Sans',sans-serif;font-size:28px;letter-spacing:2px;color:#fff;background:linear-gradient(90deg,#8a1a1a,#cc3030,#8a1a1a);background-size:200% 100%;border-radius:10px;padding:10px 0;margin-bottom:16px;box-shadow:0 0 20px rgba(204,48,48,0.35);"></div>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:8px;">
+        ${avatar(n.realname||n.nick, '#ff8080', 74)}
+        <div style="font-size:19px;font-weight:700;">${n.realname||n.nick} <span style="font-size:12px;color:var(--text-mid);font-weight:400;">(${n.nick})</span></div>
+        <div style="display:flex;gap:6px;align-items:center;">
+          ${n.line?`<span style="font-size:11px;background:#1a2a4a;color:#88bbff;border:1px solid #3a5a8a;padding:2px 8px;border-radius:10px;">${n.line}</span>`:''}
+          <span class="tb t${n.tier}">${TIER_NAMES[n.tier]||n.tier}</span>
         </div>
-        <div style="text-align:right;min-width:160px;">
-          <div style="font-size:11px;color:var(--text-dim);">현재 입찰가</div>
-          <div style="font-size:22px;font-weight:900;color:var(--gold-light);">${(state.currentBid||0).toLocaleString()}pt</div>
-          <div style="font-size:12px;color:var(--text-mid);">${state.currentBidderNick?`${state.currentBidderNick} 팀`:'입찰 없음'}</div>
-        </div>
+        <div style="display:flex;gap:5px;flex-wrap:wrap;justify-content:center;">${posScoreBadge(n)||''}</div>
+      </div>
+      <div style="text-align:center;margin:16px auto 0;padding:14px 20px;background:var(--bg2);border:1px solid var(--border);border-radius:12px;max-width:320px;">
+        <div style="font-size:11px;color:var(--text-dim);letter-spacing:1px;">현재 입찰가</div>
+        <div style="font-size:30px;font-weight:900;color:var(--gold-light);text-shadow:0 0 14px rgba(245,200,66,0.4);">${(state.currentBid||0).toLocaleString()}<span style="font-size:16px;">pt</span></div>
+        <div style="font-size:13px;color:${state.currentBidderNick?'var(--text-mid)':'var(--text-dim)'};margin-top:2px;">${state.currentBidderNick?`${state.currentBidderNick} 팀`:'아직 입찰 없음'}</div>
       </div>
       ${myTeam && state.status==='running' ? `
-      <div style="display:flex;gap:8px;margin-top:14px;align-items:center;flex-wrap:wrap;">
-        <span style="font-size:12px;color:var(--text-dim);">내 남은 예산: ${(myTeam.remaining||0).toLocaleString()}pt</span>
-        <input type="number" id="auction-bid-input" class="inp" style="width:110px;" placeholder="입찰액">
-        <button class="btn btn-red btn-sm" onclick="auctionBid()">🔨 입찰하기</button>
-        <button class="btn btn-ghost btn-sm" onclick="auctionQuickBid(5)">+5</button>
-        <button class="btn btn-ghost btn-sm" onclick="auctionQuickBid(10)">+10</button>
-        <button class="btn btn-ghost btn-sm" onclick="auctionQuickBid(50)">+50</button>
-        <button class="btn btn-ghost btn-sm" onclick="auctionQuickBid(100)">+100</button>
+      <div style="display:flex;flex-direction:column;gap:10px;margin-top:16px;align-items:center;">
+        <span style="font-size:12px;color:var(--text-dim);">내 남은 예산 <b style="color:var(--gold-light);">${(myTeam.remaining||0).toLocaleString()}pt</b></span>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:center;">
+          <input type="number" id="auction-bid-input" class="inp" style="width:110px;" placeholder="직접입력">
+          <button class="btn btn-red btn-sm" onclick="auctionBid()">🔨 입찰하기</button>
+        </div>
+        <div style="display:flex;gap:6px;">
+          <button class="btn btn-ghost btn-sm" onclick="auctionQuickBid(5)">+5</button>
+          <button class="btn btn-ghost btn-sm" onclick="auctionQuickBid(10)">+10</button>
+          <button class="btn btn-ghost btn-sm" onclick="auctionQuickBid(50)">+50</button>
+          <button class="btn btn-ghost btn-sm" onclick="auctionQuickBid(100)">+100</button>
+        </div>
       </div>` : ''}
     `;
   } else if(state.status==='running'){
@@ -5269,34 +5277,37 @@ function renderAuctionView(){
     nomineeEl.innerHTML = '<div style="text-align:center;color:var(--text-dim);font-size:13px;padding:20px 0;">경매가 종료되었습니다.</div>';
   }
 
-  const colors = ['#cc3030','#d07030','#40a060','#8050c0'];
   if(!auctionTeamsCache.length){
     teamsEl.innerHTML = '<div style="width:100%;text-align:center;padding:18px 0;font-size:12px;color:var(--text-dim);grid-column:1/-1;">경매가 시작되면 팀 현황이 표시됩니다.</div>';
   } else {
-    teamsEl.innerHTML = auctionTeamsCache.map((t,i)=>`
-      <div style="background:var(--bg2);border:2px solid var(--border);border-radius:10px;overflow:hidden;">
-        <div style="display:flex;align-items:center;gap:9px;padding:10px 14px;border-bottom:1px solid var(--border);">
-          <div style="width:10px;height:10px;border-radius:50%;background:${colors[i%4]};flex-shrink:0;"></div>
-          <span style="font-family:'Black Han Sans',sans-serif;font-size:15px;letter-spacing:1px;color:${colors[i%4]};">${t.realname||t.nick}</span>
-          <span style="margin-left:auto;font-size:12px;color:var(--gold-light);font-weight:700;">${(t.remaining||0).toLocaleString()} / ${(t.budget||0).toLocaleString()}pt</span>
+    teamsEl.innerHTML = auctionTeamsCache.map((t,i)=>{
+      const color = colors[i%4];
+      const pct = t.budget ? Math.max(0, Math.min(100, Math.round((t.remaining||0)/t.budget*100))) : 0;
+      return `
+      <div style="background:var(--bg2);border:1px solid ${color}55;border-radius:12px;overflow:hidden;box-shadow:0 2px 10px rgba(0,0,0,0.25);">
+        <div style="display:flex;align-items:center;gap:10px;padding:12px 14px;background:linear-gradient(135deg, ${color}22, transparent);">
+          ${avatar(t.realname||t.nick, color, 38)}
+          <div style="flex:1;min-width:0;">
+            <div style="font-family:'Black Han Sans',sans-serif;font-size:14px;letter-spacing:0.5px;color:${color};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${t.realname||t.nick}</div>
+            <div style="font-size:11px;color:var(--text-dim);">${(t.roster||[]).length}명 영입</div>
+          </div>
+          <div style="text-align:right;flex-shrink:0;">
+            <div style="font-size:13px;color:var(--gold-light);font-weight:700;">${(t.remaining||0).toLocaleString()}pt</div>
+            <div style="font-size:10px;color:var(--text-dim);">/ ${(t.budget||0).toLocaleString()}</div>
+          </div>
         </div>
-        <div style="padding:10px;display:flex;flex-direction:column;gap:5px;min-height:60px;">
+        <div style="height:5px;background:var(--bg4);"><div style="height:100%;width:${pct}%;background:${color};transition:width 0.3s;"></div></div>
+        <div style="padding:10px;display:flex;flex-direction:column;gap:5px;min-height:56px;">
           ${(t.roster||[]).length ? t.roster.map(p=>`
-            <div style="display:flex;align-items:center;gap:6px;font-size:12px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:5px 8px;">
-              <span style="flex:1;">${p.realname||p.nick}</span>
-              ${p.line?`<span style="font-size:10px;color:var(--text-dim);">${p.line}</span>`:''}
-              <span style="color:var(--gold-light);font-weight:700;">${(p.price||0).toLocaleString()}pt</span>
-            </div>`).join('') : '<div style="font-size:11px;color:var(--text-dim);text-align:center;padding:8px 0;">낙찰된 선수 없음</div>'}
+            <div style="display:flex;align-items:center;gap:8px;font-size:12px;background:var(--bg3);border:1px solid var(--border);border-radius:7px;padding:6px 10px;">
+              ${avatar(p.realname||p.nick, color, 22)}
+              <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${p.realname||p.nick}</span>
+              ${p.line?`<span style="font-size:10px;color:var(--text-dim);flex-shrink:0;">${p.line}</span>`:''}
+              <span style="color:var(--gold-light);font-weight:700;flex-shrink:0;">${(p.price||0).toLocaleString()}pt</span>
+            </div>`).join('') : '<div style="font-size:11px;color:var(--text-dim);text-align:center;padding:10px 0;">낙찰된 선수 없음</div>'}
         </div>
-      </div>`).join('');
-  }
-
-  const unsold = state.unsold || [];
-  if(unsold.length){
-    unsoldWrap.style.display = 'block';
-    unsoldEl.innerHTML = unsold.map(p=>`<span style="font-size:12px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:5px 10px;">${p.realname||p.nick}${p.line?` (${p.line})`:''}</span>`).join('');
-  } else {
-    unsoldWrap.style.display = 'none';
+      </div>`;
+    }).join('');
   }
 
   const order = state.order || [];
@@ -5306,20 +5317,23 @@ function renderAuctionView(){
     orderWrap.style.display = 'block';
     const soldMap = {};
     auctionTeamsCache.forEach(t=>{ (t.roster||[]).forEach(p=>{ soldMap[p.uid] = t; }); });
-    const unsoldSet = new Set((state.unsold||[]).map(p=>p.uid));
     orderEl.innerHTML = order.map((p,i)=>{
       const isNominee = state.nominee && state.nominee.uid===p.uid;
       const soldTo = soldMap[p.uid];
-      let statusHtml;
-      if(isNominee) statusHtml = `<span style="font-size:11px;color:#ff7070;font-weight:700;">🔨 경매 진행중</span>`;
-      else if(soldTo) statusHtml = `<span style="font-size:11px;color:var(--gold-light);font-weight:700;">${soldTo.realname||soldTo.nick} 낙찰 · ${((soldTo.roster||[]).find(x=>x.uid===p.uid)?.price||0).toLocaleString()}pt</span>`;
-      else if(unsoldSet.has(p.uid)) statusHtml = `<span style="font-size:11px;color:var(--text-dim);">🚫 유찰</span>`;
-      else if(i < (state.nextIndex||0)) statusHtml = `<span style="font-size:11px;color:var(--text-dim);">처리중</span>`;
-      else statusHtml = `<span style="font-size:11px;color:var(--text-dim);">대기</span>`;
-      return `<div style="display:flex;align-items:center;gap:8px;padding:6px 10px;background:${isNominee?'#3a1a1a':'var(--bg3)'};border:1px solid ${isNominee?'#8a3030':'var(--border)'};border-radius:6px;">
-        <span style="font-size:11px;color:var(--text-dim);width:24px;flex-shrink:0;">${i+1}</span>
-        <span style="flex:1;font-size:12px;">${p.realname||p.nick}${p.line?` <span style="color:var(--text-dim);font-size:10px;">(${p.line})</span>`:''}</span>
-        ${statusHtml}
+      let pill;
+      if(isNominee) pill = `<span style="font-size:10px;font-weight:700;padding:3px 9px;border-radius:10px;background:#8a1a1a;color:#ffaaaa;white-space:nowrap;">🔨 진행중</span>`;
+      else if(soldTo){
+        const c = teamColor[soldTo.captainUid] || 'var(--gold-light)';
+        const price = (soldTo.roster||[]).find(x=>x.uid===p.uid)?.price || 0;
+        pill = `<span style="font-size:10px;font-weight:700;padding:3px 9px;border-radius:10px;background:${c}26;color:${c};white-space:nowrap;">${soldTo.realname||soldTo.nick} · ${price.toLocaleString()}pt</span>`;
+      }
+      else if(i < (state.nextIndex||0)) pill = `<span style="font-size:10px;padding:3px 9px;border-radius:10px;background:var(--bg4);color:var(--text-dim);white-space:nowrap;">🚫 재경매 대기</span>`;
+      else pill = `<span style="font-size:10px;padding:3px 9px;border-radius:10px;background:var(--bg3);color:var(--text-dim);white-space:nowrap;">대기</span>`;
+      return `<div style="display:flex;align-items:center;gap:10px;padding:7px 12px;background:${isNominee?'#2a1010':'var(--bg3)'};border:1px solid ${isNominee?'#8a3030':'var(--border)'};border-radius:8px;">
+        <span style="font-size:11px;color:var(--text-dim);width:20px;text-align:center;flex-shrink:0;">${i+1}</span>
+        ${avatar(p.realname||p.nick, soldTo ? (teamColor[soldTo.captainUid]||'#888888') : (isNominee?'#ff8080':'#888888'), 24)}
+        <span style="flex:1;min-width:0;font-size:12.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${p.realname||p.nick}${p.line?` <span style="color:var(--text-dim);font-size:10px;">(${p.line})</span>`:''}</span>
+        ${pill}
       </div>`;
     }).join('');
   }
