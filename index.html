@@ -269,6 +269,7 @@ select.inp option{background:#f0fdf8;color:#1a2e2c;}
   <div class="nav-tab" onclick="showPage('rule',this)">📋 드래프트 룰북</div>
   <div class="nav-tab" onclick="showPage('apply',this)">✋ 드래프트 신청</div>
   <div class="nav-tab" onclick="showPage('draft',this)">👥 드래프트</div>
+  <div class="nav-tab" onclick="showPage('auction',this)">🔨 경매</div>
   <div class="nav-tab" onclick="showPage('mypage',this)">👤 마이페이지</div>
   <div id="admin-tab" class="nav-tab" onclick="showPage('admin',this)" style="display:none">⚙️ 관리자</div>
   <div class="nav-user">
@@ -569,7 +570,16 @@ select.inp option{background:#f0fdf8;color:#1a2e2c;}
       <div id="apply-open-area">
         <div style="font-size:13px;color:var(--text-mid);margin-bottom:14px;" id="apply-desc">다음 드래프트에 참여하려면 신청해주세요.</div>
         <div id="apply-my-status" style="margin-bottom:14px;"></div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <div id="apply-line-counts" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;"></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+          <select id="apply-line-select" class="inp" style="width:140px;">
+            <option value="">라인 선택</option>
+            <option value="탑">탑</option>
+            <option value="정글">정글</option>
+            <option value="미드">미드</option>
+            <option value="원딜">원딜</option>
+            <option value="서폿">서폿</option>
+          </select>
           <button class="btn btn-red" id="apply-btn" onclick="toggleApply()">✋ 신청하기</button>
         </div>
       </div>
@@ -642,6 +652,43 @@ select.inp option{background:#f0fdf8;color:#1a2e2c;}
       </div>
       <div style="min-height:100px;padding:10px;display:flex;flex-wrap:wrap;gap:7px;align-content:flex-start;" id="dt3"><div style="width:100%;text-align:center;padding:18px 0;font-size:12px;color:var(--text-dim);">여기에 드래그</div></div>
     </div>
+  </div>
+</div>
+</div>
+
+<!-- ══ 경매 ══ -->
+<div id="page-auction" class="page">
+<div class="wrap">
+  <div id="auction-admin-card" class="card" style="display:none;">
+    <div class="card-header"><span class="card-icon">⚙️</span><span class="card-title">경매 준비</span><span class="card-note">관리자 전용</span></div>
+    <div style="padding:14px;display:flex;flex-direction:column;gap:12px;">
+      <div style="font-size:12px;color:var(--text-dim);">신청자 목록에서 👑 팀장으로 지정된 인원(최대 4명)에게 예산을 배정한 뒤 경매를 시작하세요.</div>
+      <div id="auction-captain-setup"></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="btn btn-red btn-sm" onclick="auctionStart()">🎲 경매 시작</button>
+        <button class="btn btn-ghost btn-sm" onclick="auctionNext()">🎲 다음 선수 뽑기</button>
+        <button class="btn btn-ghost btn-sm" onclick="auctionSold()">✅ 낙찰 처리</button>
+        <button class="btn btn-ghost btn-sm" onclick="auctionPass()">🚫 유찰(패스)</button>
+        <button class="btn btn-danger btn-sm" onclick="auctionReset()">🔄 경매 초기화</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><span class="card-icon">🔨</span><span class="card-title">현재 경매</span><span id="auction-status-badge" class="card-note">대기중</span></div>
+    <div id="auction-nominee" style="padding:16px;">
+      <div style="text-align:center;color:var(--text-dim);font-size:13px;padding:20px 0;">경매가 아직 시작되지 않았습니다.</div>
+    </div>
+  </div>
+
+  <div class="sec-label" style="font-family:'Black Han Sans',sans-serif;font-size:13px;color:#ff5555;letter-spacing:1px;margin-bottom:10px;">🏟️ 팀 현황</div>
+  <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:20px;" id="auction-teams">
+    <div style="width:100%;text-align:center;padding:18px 0;font-size:12px;color:var(--text-dim);grid-column:1/-1;">경매가 시작되면 팀 현황이 표시됩니다.</div>
+  </div>
+
+  <div id="auction-unsold-wrap" style="display:none;">
+    <div class="sec-label" style="font-family:'Black Han Sans',sans-serif;font-size:13px;color:#ff5555;letter-spacing:1px;margin-bottom:10px;">🚫 유찰자</div>
+    <div id="auction-unsold" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:20px;"></div>
   </div>
 </div>
 </div>
@@ -900,7 +947,7 @@ select.inp option{background:#f0fdf8;color:#1a2e2c;}
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, browserLocalPersistence, setPersistence }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-import { getFirestore, doc, setDoc, getDoc, getDocs, collection, addDoc, deleteDoc, updateDoc, query, where, orderBy, writeBatch, serverTimestamp, runTransaction }
+import { getFirestore, doc, setDoc, getDoc, getDocs, collection, addDoc, deleteDoc, updateDoc, query, where, orderBy, writeBatch, serverTimestamp, runTransaction, onSnapshot }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 import { getFunctions, httpsCallable }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-functions.js";
@@ -1138,6 +1185,7 @@ window.showPage = (id, el) => {
   if(id==='jarparty') loadJarPartyPage();
   if(id==='combo') loadComboPage();
   if(id==='regs') loadRegsPage();
+  if(id==='auction') loadAuctionPage();
 };
 
 // ── UTILS ──
@@ -4451,46 +4499,181 @@ async function loadApplyPage(){
         : '<div style="font-size:13px;color:var(--text-dim);">아직 신청하지 않았습니다.</div>';
       document.getElementById('apply-btn').textContent = applied ? '❌ 신청 취소' : '✋ 신청하기';
       document.getElementById('apply-btn').className = applied ? 'btn btn-ghost' : 'btn btn-red';
+      const lineSel = document.getElementById('apply-line-select');
+      if(lineSel){
+        lineSel.value = (mySnap.exists() && mySnap.data().line) || '';
+        lineSel.disabled = applied;
+      }
     }
   } catch(e){}
   // 신청자 목록
   loadApplicantList();
 }
 
+let applicantListCache = [];
+
 async function loadApplicantList(){
   try {
     const snap = await getDocs(query(collection(db,'applicants'), where('applied','==',true)));
-    const uids = [];
-    snap.forEach(d=> uids.push(d.data()));
-    document.getElementById('apply-count').textContent = uids.length+'명';
+    const applicants = [];
+    snap.forEach(d=> applicants.push({...d.data(), uid: d.id}));
+    document.getElementById('apply-count').textContent = applicants.length+'명';
     const el = document.getElementById('apply-list');
-    if(!uids.length){ el.innerHTML='<div class="empty-hint">신청자가 없습니다</div>'; return; }
-    el.innerHTML = uids.map((u,i)=>`
-      <div style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;margin-bottom:6px;">
-        <span style="font-size:12px;color:var(--text-dim);width:20px;">${i+1}</span>
-        <span style="flex:1;font-size:13px;font-weight:500;">${u.realname||u.nick} ${u.birthyear?u.birthyear+'년생 ':''}<span style="color:var(--text-mid);font-size:11px;">(${u.nick})</span></span>
-        <span class="tb t${u.tier}">${TIER_NAMES[u.tier]||u.tier}</span>
-        <span style="font-size:11px;">${posScoreBadge(u)||'<span style="color:var(--text-dim);">-</span>'}</span>
-      </div>`).join('');
+    if(!applicants.length){ applicantListCache = []; el.innerHTML='<div class="empty-hint">신청자가 없습니다</div>'; renderApplyLineCounts(); return; }
+    const usersSnap = await getDocs(collection(db,'users'));
+    const userMap = {};
+    usersSnap.forEach(d=> userMap[d.id] = d.data());
+    applicantListCache = applicants.map(a => ({...a, _live: userMap[a.uid]||{}}));
+    renderApplicantList();
   } catch(e){ console.error('loadApplicantList error:', e); }
 }
 
+function renderApplyLineCounts(){
+  const el = document.getElementById('apply-line-counts');
+  if(!el) return;
+  const counts = {};
+  POS_LABELS.forEach(p=>counts[p]=0);
+  applicantListCache.forEach(u=>{ if(u.line && counts[u.line]!==undefined) counts[u.line]++; });
+  el.innerHTML = POS_LABELS.map(p=>{
+    const c = counts[p];
+    const full = c>=5;
+    return `<span style="font-size:11px;padding:3px 8px;border-radius:6px;border:1px solid ${full?'#8a3030':'var(--border)'};background:${full?'#3a1515':'var(--bg3)'};color:${full?'#ff7777':'var(--text-dim)'};">${p} ${c}/5${full?' 마감':''}</span>`;
+  }).join('');
+}
+
+function renderApplicantList(){
+  renderApplyLineCounts();
+  const el = document.getElementById('apply-list');
+  if(!applicantListCache.length){ el.innerHTML='<div class="empty-hint">신청자가 없습니다</div>'; return; }
+  const sorted = [...applicantListCache].sort((a,b)=>(b.captain?1:0)-(a.captain?1:0));
+  el.innerHTML = sorted.map((u,i)=>{
+    const live = u._live || {};
+    const champs = (live.topChampions||[]).slice(0,5);
+    const games = live.recentSoloMatches?.length||0;
+    const wins = live.recentSoloMatches?.filter(x=>x.win).length||0;
+    const wr = games>0 ? Math.round(wins/games*100) : null;
+    const wrColor = wr===null?'var(--text-dim)':wr>=60?'var(--green)':wr>=50?'var(--gold-light)':'#ff7070';
+    const laneEnabled = live.laneEnabled || {};
+    const mainLane = live.mainLane||'', subLane = live.subLane||'';
+    const laneBadges = POS_LABELS.map(pos=>{
+      const off = laneEnabled[pos]===false;
+      const role = pos===mainLane?'주':pos===subLane?'부':'';
+      return `<span style="font-size:10px;padding:2px 6px;border-radius:5px;border:1px solid ${off?'#334455':role?'#3a5a8a':'var(--border)'};background:${off?'transparent':role?'#1a2a4a':'var(--bg3)'};color:${off?'#556677':role?'#88bbff':'var(--text-dim)'};${off?'text-decoration:line-through;opacity:0.6;':''}">${pos}${role?` (${role})`:''}</span>`;
+    }).join('');
+    const champHtml = champs.length
+      ? `<div style="display:flex;gap:10px;margin-top:8px;flex-wrap:wrap;">${champs.map(c=>{
+          const imgSrc = c.id ? `https://ddragon.leagueoflegends.com/cdn/${ddVersion}/img/champion/${c.id}.png` : '';
+          return `<div style="text-align:center;">
+            ${imgSrc?`<img src="${imgSrc}" onerror="this.style.display='none'" style="width:42px;height:42px;border-radius:7px;border:1px solid var(--border);object-fit:cover;display:block;margin:0 auto 3px;">`:
+            `<div style="width:42px;height:42px;border-radius:7px;border:1px solid var(--border);background:var(--bg2);margin:0 auto 3px;"></div>`}
+            <div style="font-size:9px;color:var(--text-mid);max-width:50px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${c.name||''}</div>
+            <div style="font-size:9px;color:var(--gold-light);">${c.games}판</div>
+          </div>`;
+        }).join('')}</div>`
+      : `<div style="font-size:11px;color:var(--text-dim);margin-top:8px;">최근 챔피언 데이터 없음</div>`;
+    return `<div style="background:var(--bg3);border:1px solid ${u.captain?'#8a6a20':'var(--border)'};border-radius:8px;margin-bottom:8px;overflow:hidden;">
+      <div style="display:flex;align-items:center;gap:10px;padding:8px 12px;cursor:pointer;flex-wrap:wrap;" onclick="toggleApplyAccordion('${u.uid}')">
+        <span style="font-size:12px;color:var(--text-dim);width:20px;">${i+1}</span>
+        <span style="flex:1;font-size:13px;font-weight:500;min-width:120px;">${u.realname||u.nick} ${u.birthyear?u.birthyear+'년생 ':''}<span style="color:var(--text-mid);font-size:11px;">(${u.nick})</span></span>
+        ${u.line?`<span style="font-size:11px;background:#1a2a4a;color:#88bbff;border:1px solid #3a5a8a;padding:2px 7px;border-radius:6px;white-space:nowrap;">${u.line}</span>`:''}
+        ${u.captain?`<span style="font-size:11px;background:#3a2a0a;color:#f5c842;border:1px solid #8a6a20;padding:2px 7px;border-radius:6px;font-weight:700;white-space:nowrap;">👑 팀장 ${u.budget?u.budget+'pt':''}</span>`:''}
+        <span class="tb t${u.tier}">${TIER_NAMES[u.tier]||u.tier}</span>
+        ${isAdmin?`<button class="btn btn-ghost btn-sm" style="padding:3px 8px;font-size:11px;white-space:nowrap;" onclick="event.stopPropagation();toggleCaptain('${u.uid}')">${u.captain?'팀장 해제':'👑 팀장'}</button>`:''}
+        <span id="apply-acc-arrow-${u.uid}" style="font-size:11px;color:var(--text-dim);transition:transform 0.15s;display:inline-block;">▼</span>
+      </div>
+      <div id="apply-acc-${u.uid}" style="display:none;padding:0 12px 12px;border-top:1px solid var(--border);">
+        ${isAdmin && u.captain?`<div style="display:flex;align-items:center;gap:8px;margin-top:10px;" onclick="event.stopPropagation()">
+          <span style="font-size:12px;color:var(--text-dim);">경매 예산</span>
+          <input type="number" id="apply-budget-${u.uid}" class="inp" style="width:100px;" value="${u.budget||''}" placeholder="예: 1000">
+          <button class="btn btn-ghost btn-sm" style="padding:3px 10px;font-size:11px;" onclick="saveCaptainBudget('${u.uid}','apply-budget-${u.uid}')">저장</button>
+        </div>`:''}
+        <div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:8px;">${posScoreBadge(u)||'<span style="font-size:11px;color:var(--text-dim);">포지션 점수 없음</span>'}</div>
+        <div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:8px;">${laneBadges}</div>
+        ${champHtml}
+        ${wr!==null?`<div style="font-size:11px;color:var(--text-dim);margin-top:8px;">최근 솔랭 ${games}판 승률 <span style="color:${wrColor};font-weight:700;">${wr}%</span> (${wins}승${games-wins}패)</div>`:''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+window.toggleApplyAccordion = (uid) => {
+  const body = document.getElementById(`apply-acc-${uid}`);
+  const arrow = document.getElementById(`apply-acc-arrow-${uid}`);
+  if(!body) return;
+  const open = body.style.display !== 'none';
+  body.style.display = open ? 'none' : 'block';
+  if(arrow) arrow.style.transform = open ? '' : 'rotate(180deg)';
+};
+
+window.toggleCaptain = async (uid) => {
+  if(!isAdmin) return;
+  const item = applicantListCache.find(u=>u.uid===uid);
+  if(!item) return;
+  const newVal = !item.captain;
+  if(newVal){
+    const captainCount = applicantListCache.filter(u=>u.captain).length;
+    if(captainCount >= 4){ showToast('팀장은 최대 4명까지 지정할 수 있습니다'); return; }
+  }
+  await setDoc(doc(db,'applicants',uid), {captain:newVal}, {merge:true});
+  item.captain = newVal;
+  renderApplicantList();
+  showToast(newVal ? `${item.realname||item.nick} 팀장 지정됨` : '팀장 해제됨');
+};
+
+window.saveCaptainBudget = async (uid, inputId) => {
+  if(!isAdmin) return;
+  const inp = document.getElementById(inputId || `apply-budget-${uid}`);
+  const budget = parseInt(inp?.value || '0', 10);
+  if(isNaN(budget) || budget < 0){ showToast('올바른 예산을 입력해주세요'); return; }
+  const item = applicantListCache.find(u=>u.uid===uid);
+  await setDoc(doc(db,'applicants',uid), {budget}, {merge:true});
+  if(item) item.budget = budget;
+  showToast('예산이 저장됐습니다');
+};
+
 window.toggleApply = async () => {
   if(!currentUser) return;
-  const mySnap = await getDoc(doc(db,'applicants',currentUser.uid));
+  const myRef = doc(db,'applicants',currentUser.uid);
+  const mySnap = await getDoc(myRef);
   const applied = mySnap.exists() && mySnap.data().applied;
   if(applied){
-    await setDoc(doc(db,'applicants',currentUser.uid),{applied:false, uid:currentUser.uid});
-    showToast('신청이 취소됐습니다');
+    const myLine = mySnap.data().line;
+    try {
+      await runTransaction(db, async (tx) => {
+        tx.set(myRef, {applied:false, uid:currentUser.uid}, {merge:true});
+        if(myLine){
+          const cntRef = doc(db,'applyLineCounts',myLine);
+          const cntSnap = await tx.get(cntRef);
+          const cur = cntSnap.exists() ? (cntSnap.data().count||0) : 0;
+          tx.set(cntRef, {count: Math.max(0, cur-1)}, {merge:true});
+        }
+      });
+      showToast('신청이 취소됐습니다');
+    } catch(e){ console.error('toggleApply cancel error:', e); showToast('취소 중 오류가 발생했습니다'); return; }
   } else {
-    await setDoc(doc(db,'applicants',currentUser.uid),{
-      applied:true, uid:currentUser.uid,
-      nick:currentProfile.nick, realname:currentProfile.realname||'',
-      birthyear:currentProfile.birthyear||'', tier:currentProfile.tier,
-      scoreTop:currentProfile.scoreTop||0, scoreJungle:currentProfile.scoreJungle||0, scoreMid:currentProfile.scoreMid||0, scoreAdc:currentProfile.scoreAdc||0, scoreSupport:currentProfile.scoreSupport||0,
-      appliedAt: new Date().toISOString()
-    });
-    showToast('신청 완료! ✋');
+    const line = document.getElementById('apply-line-select')?.value || '';
+    if(!line){ showToast('라인을 선택해주세요'); return; }
+    try {
+      await runTransaction(db, async (tx) => {
+        const cntRef = doc(db,'applyLineCounts',line);
+        const cntSnap = await tx.get(cntRef);
+        const cur = cntSnap.exists() ? (cntSnap.data().count||0) : 0;
+        if(cur >= 5) throw new Error('LINE_FULL');
+        tx.set(cntRef, {count: cur+1}, {merge:true});
+        tx.set(myRef, {
+          applied:true, uid:currentUser.uid, line,
+          nick:currentProfile.nick, realname:currentProfile.realname||'',
+          birthyear:currentProfile.birthyear||'', tier:currentProfile.tier,
+          scoreTop:currentProfile.scoreTop||0, scoreJungle:currentProfile.scoreJungle||0, scoreMid:currentProfile.scoreMid||0, scoreAdc:currentProfile.scoreAdc||0, scoreSupport:currentProfile.scoreSupport||0,
+          appliedAt: new Date().toISOString()
+        }, {merge:true});
+      });
+      showToast('신청 완료! ✋');
+    } catch(e){
+      if(e.message==='LINE_FULL') showToast(`${line} 라인은 이미 5명이 신청해 마감되었습니다`);
+      else { console.error('toggleApply apply error:', e); showToast('신청 중 오류가 발생했습니다'); }
+      return;
+    }
   }
   loadApplyPage();
 };
@@ -4507,13 +4690,38 @@ window.clearApplicants = async () => {
   if(!confirm('신청자 목록을 모두 초기화할까요?')) return;
   const snap = await getDocs(collection(db,'applicants'));
   for(const d of snap.docs) await deleteDoc(doc(db,'applicants',d.id));
+  for(const line of POS_LABELS) await setDoc(doc(db,'applyLineCounts',line), {count:0});
   draftPlayers = [];
+  draftLocs = {};
+  await setDoc(doc(db,'draftArrange','current'), { locs:{}, updatedAt:new Date().toISOString() });
   renderDraft();
   showToast('초기화됐습니다'); loadApplyPage();
 };
 
 // ── DRAFT ──
-let draftPlayers = [], draftDragName = null;
+let draftPlayers = [], draftDragName = null, draftLocs = {}, draftUnsub = null, draftApplyingRemote = false;
+
+function applyDraftLocs(){
+  draftPlayers.forEach(p => { p.loc = draftLocs[p.id] || 'pool'; });
+}
+
+function draftListen(){
+  if(draftUnsub) return;
+  draftUnsub = onSnapshot(doc(db,'draftArrange','current'), snap => {
+    draftLocs = (snap.exists() && snap.data().locs) || {};
+    if(!draftPlayers.length) return;
+    draftApplyingRemote = true;
+    applyDraftLocs();
+    renderDraft();
+    draftApplyingRemote = false;
+  }, ()=>{});
+}
+
+async function draftSaveLoc(uid, zone){
+  if(draftApplyingRemote) return;
+  try { await setDoc(doc(db,'draftArrange','current'), { locs:{ [uid]: zone }, updatedAt:new Date().toISOString() }, {merge:true}); }
+  catch(e){ console.error('draftSaveLoc error:', e); }
+}
 
 window.loadDraftMembers = async () => {
   const applySnap = await getDocs(query(collection(db,'applicants'), where('applied','==',true)));
@@ -4532,6 +4740,12 @@ window.loadDraftMembers = async () => {
     .map(u => ({...u, loc:'pool'}));
   newPlayers.sort((a,b)=>(TIER_PTS_MAP[b.tier]||0)-(TIER_PTS_MAP[a.tier]||0));
   draftPlayers = [...draftPlayers, ...newPlayers];
+  try {
+    const arrangeSnap = await getDoc(doc(db,'draftArrange','current'));
+    draftLocs = (arrangeSnap.exists() && arrangeSnap.data().locs) || {};
+  } catch(e){ draftLocs = {}; }
+  applyDraftLocs();
+  draftListen();
   renderDraft();
   showToast(newPlayers.length ? `신규 ${newPlayers.length}명 추가됐습니다` : '최신 상태로 동기화됐습니다');
 };
@@ -4552,15 +4766,15 @@ function renderDraft(){
 function draftCard(p){
   const pts = TIER_PTS_MAP[p.tier]||3;
   return `<div draggable="true" ondragstart="draftDragStart('${p.id}')" ondragend="draftDragEnd(this)" ontouchstart="draftTouchStart(event,'${p.id}')"
-    style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px 12px;cursor:grab;user-select:none;display:flex;flex-direction:column;gap:4px;width:110px;flex-shrink:0;transition:all 0.15s;overflow:hidden;"
+    style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px 12px;cursor:grab;user-select:none;display:flex;flex-direction:column;gap:5px;width:168px;flex-shrink:0;transition:all 0.15s;"
     onmouseover="this.style.borderColor='#8a3030'" onmouseout="this.style.borderColor='var(--border)'">
-    <div style="font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${p.realname||p.nick}</div>
-    <div style="font-size:10px;color:var(--text-dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${p.birthyear?p.birthyear+'년생 ':''}<span style="color:var(--text-mid);">(${p.nick})</span></div>
-    <div style="display:flex;align-items:center;justify-content:space-between;">
+    <div style="font-size:13px;font-weight:500;line-height:1.3;word-break:break-word;">${p.realname||p.nick}</div>
+    <div style="font-size:10px;color:var(--text-dim);line-height:1.3;word-break:break-word;">${p.birthyear?p.birthyear+'년생 ':''}<span style="color:var(--text-mid);">(${p.nick})</span></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;">
       ${tierBadges(p.tier, p.currentTier, '10px', p.currentRank, p.currentLP)}
-      <span style="font-size:11px;color:var(--gold-light);font-weight:700;">${pts}pt</span>
+      <span style="font-size:11px;color:var(--gold-light);font-weight:700;white-space:nowrap;">${pts}pt</span>
     </div>
-    ${(()=>{const b=posScoreBadge(p);return b?`<div style="font-size:10px;">${b}</div>`:''})()}
+    ${(()=>{const b=posScoreBadge(p);return b?`<div style="font-size:10px;display:flex;flex-wrap:wrap;gap:3px;">${b}</div>`:''})()}
   </div>`;
 }
 
@@ -4577,7 +4791,7 @@ window.onDrop = (e, zone) => {
     if(cnt>=5){ showToast('팀이 가득 찼습니다 (5명)'); return; }
   }
   const p = draftPlayers.find(pl=>pl.id===draftDragName);
-  if(p) p.loc = zone;
+  if(p){ p.loc = zone; draftLocs[p.id] = zone; draftSaveLoc(p.id, zone); }
   draftDragName = null;
   renderDraft();
 };
@@ -4619,13 +4833,278 @@ window.draftTouchStart = (e, id) => {
         if(cnt>=5){ showToast('팀이 가득 찼습니다 (5명)'); draftTouch=null; return; }
       }
       const p=draftPlayers.find(pl=>pl.id===draftTouch);
-      if(p){ p.loc=zone; renderDraft(); }
+      if(p){ p.loc=zone; draftLocs[p.id]=zone; draftSaveLoc(p.id, zone); renderDraft(); }
     }
     draftTouch=null;
   };
   src.addEventListener('touchmove', onMove, { passive:false });
   src.addEventListener('touchend', onEnd);
 };
+
+// ── AUCTION ──
+let auctionStateUnsub = null, auctionTeamsUnsub = null;
+let auctionStateCache = null, auctionTeamsCache = [];
+
+async function loadAuctionPage(){
+  document.getElementById('auction-admin-card').style.display = isAdmin ? 'block' : 'none';
+  if(isAdmin) await renderAuctionCaptainSetup();
+  if(!auctionStateUnsub){
+    auctionStateUnsub = onSnapshot(doc(db,'auctionState','current'), snap => {
+      auctionStateCache = snap.exists() ? snap.data() : null;
+      renderAuctionView();
+    }, ()=>{});
+  }
+  if(!auctionTeamsUnsub){
+    auctionTeamsUnsub = onSnapshot(collection(db,'auctionTeams'), snap => {
+      auctionTeamsCache = [];
+      snap.forEach(d=> auctionTeamsCache.push({...d.data(), id:d.id}));
+      renderAuctionView();
+    }, ()=>{});
+  }
+}
+
+async function renderAuctionCaptainSetup(){
+  const el = document.getElementById('auction-captain-setup');
+  if(!el) return;
+  try {
+    const snap = await getDocs(query(collection(db,'applicants'), where('applied','==',true), where('captain','==',true)));
+    const captains = [];
+    snap.forEach(d=> captains.push({...d.data(), uid:d.id}));
+    if(!captains.length){ el.innerHTML = '<div style="font-size:12px;color:var(--text-dim);">신청자 목록에서 팀장을 먼저 지정해주세요.</div>'; return; }
+    el.innerHTML = captains.map(c=>`
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span style="flex:1;font-size:13px;">${c.realname||c.nick}</span>
+        <input type="number" id="auction-budget-${c.uid}" class="inp" style="width:100px;" value="${c.budget||''}" placeholder="예산">
+        <button class="btn btn-ghost btn-sm" style="padding:3px 10px;font-size:11px;" onclick="saveCaptainBudget('${c.uid}','auction-budget-${c.uid}')">저장</button>
+      </div>`).join('');
+  } catch(e){ console.error('renderAuctionCaptainSetup error:', e); }
+}
+
+window.auctionStart = async () => {
+  if(!isAdmin) return;
+  try {
+    const appSnap = await getDocs(query(collection(db,'applicants'), where('applied','==',true)));
+    const all = [];
+    appSnap.forEach(d=> all.push({...d.data(), uid: d.id}));
+    const captains = all.filter(u=>u.captain);
+    if(!captains.length){ showToast('팀장을 먼저 지정해주세요'); return; }
+    if(captains.length > 4){ showToast('팀장은 최대 4명입니다'); return; }
+    const missingBudget = captains.find(c=>!c.budget || c.budget<=0);
+    if(missingBudget){ showToast(`${missingBudget.realname||missingBudget.nick} 팀장의 예산을 설정해주세요`); return; }
+    const pool = all.filter(u=>!u.captain).map(u=>({
+      uid:u.uid, nick:u.nick, realname:u.realname||'', birthyear:u.birthyear||'', tier:u.tier, line:u.line||'',
+      scoreTop:u.scoreTop||0, scoreJungle:u.scoreJungle||0, scoreMid:u.scoreMid||0, scoreAdc:u.scoreAdc||0, scoreSupport:u.scoreSupport||0
+    }));
+    if(!pool.length){ showToast('경매에 올릴 선수가 없습니다'); return; }
+    const batch = writeBatch(db);
+    for(const c of captains){
+      batch.set(doc(db,'auctionTeams',c.uid), {
+        captainUid:c.uid, nick:c.nick, realname:c.realname||'', budget:c.budget, remaining:c.budget, roster:[]
+      });
+    }
+    batch.set(doc(db,'auctionState','current'), {
+      status:'running', pool, nominee:null,
+      currentBid:0, currentBidderUid:null, currentBidderNick:null, unsold:[],
+      updatedAt:new Date().toISOString()
+    });
+    await batch.commit();
+    showToast('경매가 시작되었습니다! 다음 선수를 뽑아주세요');
+  } catch(e){ console.error('auctionStart error:', e); showToast('경매 시작 중 오류가 발생했습니다'); }
+};
+
+window.auctionNext = async () => {
+  if(!isAdmin) return;
+  const stateRef = doc(db,'auctionState','current');
+  try {
+    await runTransaction(db, async (tx) => {
+      const snap = await tx.get(stateRef);
+      if(!snap.exists()) throw new Error('NOT_STARTED');
+      const data = snap.data();
+      if(data.nominee) throw new Error('NOMINEE_EXISTS');
+      const pool = data.pool || [];
+      if(!pool.length) throw new Error('POOL_EMPTY');
+      const idx = Math.floor(Math.random()*pool.length);
+      const nominee = pool[idx];
+      const newPool = pool.slice(0,idx).concat(pool.slice(idx+1));
+      tx.update(stateRef, { pool:newPool, nominee, currentBid:0, currentBidderUid:null, currentBidderNick:null, updatedAt:new Date().toISOString() });
+    });
+  } catch(e){
+    if(e.message==='NOT_STARTED') showToast('먼저 경매를 시작해주세요');
+    else if(e.message==='NOMINEE_EXISTS') showToast('현재 선수를 먼저 낙찰/유찰 처리하세요');
+    else if(e.message==='POOL_EMPTY') showToast('남은 선수가 없습니다. 경매를 종료하세요');
+    else { console.error('auctionNext error:', e); showToast('오류가 발생했습니다'); }
+  }
+};
+
+window.auctionBid = async () => {
+  if(!currentUser) return;
+  const myTeam = auctionTeamsCache.find(t=>t.captainUid===currentUser.uid);
+  if(!myTeam){ showToast('팀장만 입찰할 수 있습니다'); return; }
+  const inp = document.getElementById('auction-bid-input');
+  const amount = parseInt(inp?.value || '0', 10);
+  if(isNaN(amount) || amount<=0){ showToast('올바른 금액을 입력해주세요'); return; }
+  const stateRef = doc(db,'auctionState','current');
+  const teamRef = doc(db,'auctionTeams',currentUser.uid);
+  try {
+    await runTransaction(db, async (tx) => {
+      const stateSnap = await tx.get(stateRef);
+      if(!stateSnap.exists() || !stateSnap.data().nominee) throw new Error('NO_NOMINEE');
+      const state = stateSnap.data();
+      if(amount <= (state.currentBid||0)) throw new Error('TOO_LOW');
+      const teamSnap = await tx.get(teamRef);
+      const remaining = teamSnap.exists() ? teamSnap.data().remaining : 0;
+      if(amount > remaining) throw new Error('OVER_BUDGET');
+      tx.update(stateRef, { currentBid:amount, currentBidderUid:currentUser.uid, currentBidderNick: myTeam.nick, updatedAt:new Date().toISOString() });
+    });
+    if(inp) inp.value='';
+  } catch(e){
+    if(e.message==='NO_NOMINEE') showToast('현재 경매 중인 선수가 없습니다');
+    else if(e.message==='TOO_LOW') showToast('현재가보다 높은 금액을 입력해주세요');
+    else if(e.message==='OVER_BUDGET') showToast('남은 예산을 초과했습니다');
+    else { console.error('auctionBid error:', e); showToast('입찰 중 오류가 발생했습니다'); }
+  }
+};
+
+window.auctionSold = async () => {
+  if(!isAdmin) return;
+  const stateRef = doc(db,'auctionState','current');
+  try {
+    await runTransaction(db, async (tx) => {
+      const stateSnap = await tx.get(stateRef);
+      if(!stateSnap.exists()) throw new Error('NOT_STARTED');
+      const state = stateSnap.data();
+      if(!state.nominee) throw new Error('NO_NOMINEE');
+      if(!state.currentBidderUid) throw new Error('NO_BIDDER');
+      const teamRef = doc(db,'auctionTeams',state.currentBidderUid);
+      const teamSnap = await tx.get(teamRef);
+      if(!teamSnap.exists()) throw new Error('NO_TEAM');
+      const team = teamSnap.data();
+      const price = state.currentBid;
+      if(price > team.remaining) throw new Error('OVER_BUDGET');
+      const roster = [...(team.roster||[]), {...state.nominee, price}];
+      tx.update(teamRef, { remaining: team.remaining - price, roster });
+      tx.update(stateRef, { nominee:null, currentBid:0, currentBidderUid:null, currentBidderNick:null, updatedAt:new Date().toISOString() });
+    });
+    showToast('낙찰 처리되었습니다');
+  } catch(e){
+    if(e.message==='NO_NOMINEE') showToast('경매 중인 선수가 없습니다');
+    else if(e.message==='NO_BIDDER') showToast('입찰자가 없습니다. 유찰 처리해주세요');
+    else { console.error('auctionSold error:', e); showToast('처리 중 오류가 발생했습니다'); }
+  }
+};
+
+window.auctionPass = async () => {
+  if(!isAdmin) return;
+  const stateRef = doc(db,'auctionState','current');
+  try {
+    await runTransaction(db, async (tx) => {
+      const snap = await tx.get(stateRef);
+      if(!snap.exists()) throw new Error('NOT_STARTED');
+      const state = snap.data();
+      if(!state.nominee) throw new Error('NO_NOMINEE');
+      const unsold = [...(state.unsold||[]), state.nominee];
+      tx.update(stateRef, { nominee:null, currentBid:0, currentBidderUid:null, currentBidderNick:null, unsold, updatedAt:new Date().toISOString() });
+    });
+    showToast('유찰 처리되었습니다');
+  } catch(e){
+    if(e.message==='NO_NOMINEE') showToast('경매 중인 선수가 없습니다');
+    else { console.error('auctionPass error:', e); showToast('처리 중 오류가 발생했습니다'); }
+  }
+};
+
+window.auctionReset = async () => {
+  if(!isAdmin) return;
+  if(!confirm('경매를 초기화할까요? 모든 팀 배정 결과가 삭제됩니다.')) return;
+  try {
+    const teamsSnap = await getDocs(collection(db,'auctionTeams'));
+    for(const d of teamsSnap.docs) await deleteDoc(doc(db,'auctionTeams',d.id));
+    await deleteDoc(doc(db,'auctionState','current'));
+    showToast('경매가 초기화되었습니다');
+  } catch(e){ console.error('auctionReset error:', e); showToast('초기화 중 오류가 발생했습니다'); }
+};
+
+function renderAuctionView(){
+  const state = auctionStateCache;
+  const statusBadge = document.getElementById('auction-status-badge');
+  const nomineeEl = document.getElementById('auction-nominee');
+  const teamsEl = document.getElementById('auction-teams');
+  const unsoldWrap = document.getElementById('auction-unsold-wrap');
+  const unsoldEl = document.getElementById('auction-unsold');
+  if(!statusBadge || !nomineeEl || !teamsEl) return;
+
+  if(!state){
+    statusBadge.textContent = '대기중';
+    nomineeEl.innerHTML = '<div style="text-align:center;color:var(--text-dim);font-size:13px;padding:20px 0;">경매가 아직 시작되지 않았습니다.</div>';
+    teamsEl.innerHTML = '<div style="width:100%;text-align:center;padding:18px 0;font-size:12px;color:var(--text-dim);grid-column:1/-1;">경매가 시작되면 팀 현황이 표시됩니다.</div>';
+    unsoldWrap.style.display = 'none';
+    return;
+  }
+
+  statusBadge.textContent = state.status==='running' ? `🔴 진행중 (남은 선수 ${state.pool?.length||0}명)` : '종료됨';
+
+  const myTeam = currentUser ? auctionTeamsCache.find(t=>t.captainUid===currentUser.uid) : null;
+
+  if(state.nominee){
+    const n = state.nominee;
+    nomineeEl.innerHTML = `
+      <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
+        <div style="flex:1;min-width:160px;">
+          <div style="font-size:16px;font-weight:700;">${n.realname||n.nick} <span style="font-size:12px;color:var(--text-mid);">(${n.nick})</span></div>
+          <div style="display:flex;gap:6px;align-items:center;margin-top:4px;">
+            ${n.line?`<span style="font-size:11px;background:#1a2a4a;color:#88bbff;border:1px solid #3a5a8a;padding:2px 7px;border-radius:6px;">${n.line}</span>`:''}
+            <span class="tb t${n.tier}">${TIER_NAMES[n.tier]||n.tier}</span>
+          </div>
+          <div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:8px;">${posScoreBadge(n)||''}</div>
+        </div>
+        <div style="text-align:right;min-width:160px;">
+          <div style="font-size:11px;color:var(--text-dim);">현재 입찰가</div>
+          <div style="font-size:22px;font-weight:900;color:var(--gold-light);">${(state.currentBid||0).toLocaleString()}pt</div>
+          <div style="font-size:12px;color:var(--text-mid);">${state.currentBidderNick?`${state.currentBidderNick} 팀`:'입찰 없음'}</div>
+        </div>
+      </div>
+      ${myTeam && state.status==='running' ? `
+      <div style="display:flex;gap:8px;margin-top:14px;align-items:center;flex-wrap:wrap;">
+        <span style="font-size:12px;color:var(--text-dim);">내 남은 예산: ${(myTeam.remaining||0).toLocaleString()}pt</span>
+        <input type="number" id="auction-bid-input" class="inp" style="width:120px;" placeholder="입찰액">
+        <button class="btn btn-red btn-sm" onclick="auctionBid()">🔨 입찰하기</button>
+      </div>` : ''}
+    `;
+  } else if(state.status==='running'){
+    nomineeEl.innerHTML = '<div style="text-align:center;color:var(--text-dim);font-size:13px;padding:20px 0;">관리자가 다음 선수를 뽑으면 경매가 시작됩니다.</div>';
+  } else {
+    nomineeEl.innerHTML = '<div style="text-align:center;color:var(--text-dim);font-size:13px;padding:20px 0;">경매가 종료되었습니다.</div>';
+  }
+
+  const colors = ['#cc3030','#d07030','#40a060','#8050c0'];
+  if(!auctionTeamsCache.length){
+    teamsEl.innerHTML = '<div style="width:100%;text-align:center;padding:18px 0;font-size:12px;color:var(--text-dim);grid-column:1/-1;">경매가 시작되면 팀 현황이 표시됩니다.</div>';
+  } else {
+    teamsEl.innerHTML = auctionTeamsCache.map((t,i)=>`
+      <div style="background:var(--bg2);border:2px solid var(--border);border-radius:10px;overflow:hidden;">
+        <div style="display:flex;align-items:center;gap:9px;padding:10px 14px;border-bottom:1px solid var(--border);">
+          <div style="width:10px;height:10px;border-radius:50%;background:${colors[i%4]};flex-shrink:0;"></div>
+          <span style="font-family:'Black Han Sans',sans-serif;font-size:15px;letter-spacing:1px;color:${colors[i%4]};">${t.realname||t.nick}</span>
+          <span style="margin-left:auto;font-size:12px;color:var(--gold-light);font-weight:700;">${(t.remaining||0).toLocaleString()} / ${(t.budget||0).toLocaleString()}pt</span>
+        </div>
+        <div style="padding:10px;display:flex;flex-direction:column;gap:5px;min-height:60px;">
+          ${(t.roster||[]).length ? t.roster.map(p=>`
+            <div style="display:flex;align-items:center;gap:6px;font-size:12px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:5px 8px;">
+              <span style="flex:1;">${p.realname||p.nick}</span>
+              ${p.line?`<span style="font-size:10px;color:var(--text-dim);">${p.line}</span>`:''}
+              <span style="color:var(--gold-light);font-weight:700;">${(p.price||0).toLocaleString()}pt</span>
+            </div>`).join('') : '<div style="font-size:11px;color:var(--text-dim);text-align:center;padding:8px 0;">낙찰된 선수 없음</div>'}
+        </div>
+      </div>`).join('');
+  }
+
+  const unsold = state.unsold || [];
+  if(unsold.length){
+    unsoldWrap.style.display = 'block';
+    unsoldEl.innerHTML = unsold.map(p=>`<span style="font-size:12px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:5px 10px;">${p.realname||p.nick}${p.line?` (${p.line})`:''}</span>`).join('');
+  } else {
+    unsoldWrap.style.display = 'none';
+  }
+}
 
 // ── EVENT ──
 let evCache = null;
