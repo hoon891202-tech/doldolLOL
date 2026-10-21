@@ -57,6 +57,12 @@ nav{position:sticky;top:0;z-index:100;background:#1a3c38f8;backdrop-filter:blur(
 .page{display:none;position:relative;z-index:1;}
 .page.active{display:block;}
 .wrap{max-width:900px;margin:0 auto;padding:24px 16px 60px;}
+.auction-grid{display:grid;grid-template-columns:1fr 280px;gap:16px;align-items:start;}
+.auction-sidebar{position:sticky;top:12px;}
+@media (max-width:760px){
+  .auction-grid{grid-template-columns:1fr;}
+  .auction-sidebar{position:static;}
+}
 
 /* ── CARDS ── */
 .card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:16px;}
@@ -676,37 +682,43 @@ select.inp option{background:#f0fdf8;color:#1a2e2c;}
 
 <!-- ══ 경매 ══ -->
 <div id="page-auction" class="page">
-<div class="wrap">
-  <div id="auction-admin-card" class="card" style="display:none;">
-    <div class="card-header"><span class="card-icon">⚙️</span><span class="card-title">경매 준비</span><span class="card-note">관리자 전용</span></div>
-    <div style="padding:14px;display:flex;flex-direction:column;gap:12px;">
-      <div style="font-size:12px;color:var(--text-dim);">신청자 목록에서 👑 팀장으로 지정된 인원(최대 4명)에게 예산을 배정한 뒤 경매를 시작하세요.</div>
-      <div id="auction-captain-setup"></div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;">
-        <button class="btn btn-red btn-sm" onclick="auctionStart()">🎲 경매 시작</button>
-        <button class="btn btn-ghost btn-sm" onclick="auctionNext()">🎲 다음 선수 뽑기</button>
-        <button class="btn btn-ghost btn-sm" onclick="auctionSold()">✅ 낙찰 처리</button>
-        <button class="btn btn-ghost btn-sm" onclick="auctionPass()">🚫 유찰(패스)</button>
-        <button class="btn btn-danger btn-sm" onclick="auctionReset()">🔄 경매 초기화</button>
+<div class="wrap" style="max-width:1120px;">
+  <div class="auction-grid">
+    <div>
+      <div id="auction-admin-card" class="card" style="display:none;">
+        <div class="card-header"><span class="card-icon">⚙️</span><span class="card-title">경매 준비</span><span class="card-note">관리자 전용</span></div>
+        <div style="padding:14px;display:flex;flex-direction:column;gap:12px;">
+          <div style="font-size:12px;color:var(--text-dim);">신청자 목록에서 👑 팀장으로 지정된 인원(최대 4명)에게 예산을 배정한 뒤 경매를 시작하세요.</div>
+          <div id="auction-captain-setup"></div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button class="btn btn-red btn-sm" onclick="auctionStart()">🎲 경매 시작</button>
+            <button class="btn btn-ghost btn-sm" onclick="auctionNext()">🎲 다음 선수 뽑기</button>
+            <button class="btn btn-ghost btn-sm" onclick="auctionSold()">✅ 낙찰 처리</button>
+            <button class="btn btn-ghost btn-sm" onclick="auctionPass()">🚫 유찰(패스)</button>
+            <button class="btn btn-danger btn-sm" onclick="auctionReset()">🔄 경매 초기화</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header"><span class="card-icon">🔨</span><span class="card-title">현재 경매</span><span id="auction-status-badge" class="card-note">대기중</span></div>
+        <div id="auction-nominee" style="padding:16px;">
+          <div style="text-align:center;color:var(--text-dim);font-size:13px;padding:20px 0;">경매가 아직 시작되지 않았습니다.</div>
+        </div>
+      </div>
+
+      <div class="sec-label" style="font-family:'Black Han Sans',sans-serif;font-size:13px;color:#ff5555;letter-spacing:1px;margin-bottom:10px;">🏟️ 팀 현황</div>
+      <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:20px;" id="auction-teams">
+        <div style="width:100%;text-align:center;padding:18px 0;font-size:12px;color:var(--text-dim);grid-column:1/-1;">경매가 시작되면 팀 현황이 표시됩니다.</div>
       </div>
     </div>
-  </div>
 
-  <div class="card">
-    <div class="card-header"><span class="card-icon">🔨</span><span class="card-title">현재 경매</span><span id="auction-status-badge" class="card-note">대기중</span></div>
-    <div id="auction-nominee" style="padding:16px;">
-      <div style="text-align:center;color:var(--text-dim);font-size:13px;padding:20px 0;">경매가 아직 시작되지 않았습니다.</div>
+    <div class="auction-sidebar">
+      <div id="auction-order-wrap" class="card" style="display:none;">
+        <div class="card-header"><span class="card-icon">🎲</span><span class="card-title">경매 순서</span></div>
+        <div id="auction-order" style="display:flex;flex-direction:column;gap:6px;padding:12px;max-height:70vh;overflow-y:auto;"></div>
+      </div>
     </div>
-  </div>
-
-  <div class="sec-label" style="font-family:'Black Han Sans',sans-serif;font-size:13px;color:#ff5555;letter-spacing:1px;margin-bottom:10px;">🏟️ 팀 현황</div>
-  <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:20px;" id="auction-teams">
-    <div style="width:100%;text-align:center;padding:18px 0;font-size:12px;color:var(--text-dim);grid-column:1/-1;">경매가 시작되면 팀 현황이 표시됩니다.</div>
-  </div>
-
-  <div id="auction-order-wrap" style="display:none;">
-    <div class="sec-label" style="font-family:'Black Han Sans',sans-serif;font-size:13px;color:#ff5555;letter-spacing:1px;margin-bottom:10px;">🎲 경매 순서 (랜덤 확정)</div>
-    <div id="auction-order" style="display:flex;flex-direction:column;gap:6px;margin-bottom:20px;"></div>
   </div>
 </div>
 </div>
@@ -5091,25 +5103,55 @@ window.auctionStart = async () => {
   } catch(e){ console.error('auctionStart error:', e); showToast('경매 시작 중 오류가 발생했습니다'); }
 };
 
+async function auctionDrawOne(){
+  const stateRef = doc(db,'auctionState','current');
+  return await runTransaction(db, async (tx) => {
+    const snap = await tx.get(stateRef);
+    if(!snap.exists()) throw new Error('NOT_STARTED');
+    const data = snap.data();
+    if(data.nominee) throw new Error('NOMINEE_EXISTS');
+    const order = data.order || [];
+    const nextIndex = data.nextIndex || 0;
+    if(nextIndex >= order.length) throw new Error('POOL_EMPTY');
+    const nominee = order[nextIndex];
+
+    // 해당 라인이 비어있는 팀이 단 하나뿐이면 경매 없이 그 팀으로 자동 배정
+    const teamRefs = auctionTeamsCache.map(t=>doc(db,'auctionTeams',t.captainUid));
+    const teamSnaps = await Promise.all(teamRefs.map(r=>tx.get(r)));
+    const teams = teamSnaps.filter(s=>s.exists()).map(s=>({ref:s.ref, ...s.data()}));
+    const eligible = nominee.line ? teams.filter(t => !(t.roster||[]).some(p=>p.line===nominee.line)) : [];
+
+    if(nominee.line && eligible.length===1){
+      const team = eligible[0];
+      const roster = [...(team.roster||[]), {...nominee, price:0, auto:true}];
+      tx.update(team.ref, { roster });
+      tx.update(stateRef, { nextIndex:nextIndex+1, nominee:null, currentBid:0, currentBidderUid:null, currentBidderNick:null, deadline:null, bidLog:[], updatedAt:new Date().toISOString() });
+      return { auto:true, nominee, teamName: team.realname||team.nick };
+    }
+    tx.update(stateRef, { nextIndex:nextIndex+1, nominee, currentBid:0, currentBidderUid:null, currentBidderNick:null, deadline:new Date(Date.now()+AUCTION_ROUND_SECONDS*1000).toISOString(), bidLog:[], updatedAt:new Date().toISOString() });
+    return { auto:false, nominee };
+  });
+}
+
 window.auctionNext = async () => {
   if(!isAdmin) return;
-  const stateRef = doc(db,'auctionState','current');
+  const autoAssigned = [];
   try {
-    await runTransaction(db, async (tx) => {
-      const snap = await tx.get(stateRef);
-      if(!snap.exists()) throw new Error('NOT_STARTED');
-      const data = snap.data();
-      if(data.nominee) throw new Error('NOMINEE_EXISTS');
-      const order = data.order || [];
-      const nextIndex = data.nextIndex || 0;
-      if(nextIndex >= order.length) throw new Error('POOL_EMPTY');
-      const nominee = order[nextIndex];
-      tx.update(stateRef, { nextIndex:nextIndex+1, nominee, currentBid:0, currentBidderUid:null, currentBidderNick:null, deadline:new Date(Date.now()+AUCTION_ROUND_SECONDS*1000).toISOString(), updatedAt:new Date().toISOString() });
-    });
+    let result = await auctionDrawOne();
+    const guardMax = (auctionStateCache?.order?.length || 0) + 5;
+    let guard = 0;
+    while(result.auto && guard < guardMax){
+      autoAssigned.push(`${result.nominee.realname||result.nominee.nick}→${result.teamName}`);
+      result = await auctionDrawOne();
+      guard++;
+    }
+    if(autoAssigned.length) showToast(`🔁 자동 배정: ${autoAssigned.join(', ')}`);
   } catch(e){
-    if(e.message==='NOT_STARTED') showToast('먼저 경매를 시작해주세요');
+    if(e.message==='POOL_EMPTY'){
+      showToast(autoAssigned.length ? `🔁 자동 배정: ${autoAssigned.join(', ')} · 남은 선수 없음` : '남은 선수가 없습니다. 경매를 종료하세요');
+    }
+    else if(e.message==='NOT_STARTED') showToast('먼저 경매를 시작해주세요');
     else if(e.message==='NOMINEE_EXISTS') showToast('현재 선수를 먼저 낙찰/유찰 처리하세요');
-    else if(e.message==='POOL_EMPTY') showToast('남은 선수가 없습니다. 경매를 종료하세요');
     else { console.error('auctionNext error:', e); showToast('오류가 발생했습니다'); }
   }
 };
@@ -5128,14 +5170,19 @@ async function auctionPlaceBid(amount){
       const state = stateSnap.data();
       if(amount <= (state.currentBid||0)) throw new Error('TOO_LOW');
       const teamSnap = await tx.get(teamRef);
-      const remaining = teamSnap.exists() ? teamSnap.data().remaining : 0;
+      const team = teamSnap.exists() ? teamSnap.data() : null;
+      const remaining = team ? team.remaining : 0;
       if(amount > remaining) throw new Error('OVER_BUDGET');
-      tx.update(stateRef, { currentBid:amount, currentBidderUid:currentUser.uid, currentBidderNick: myTeam.nick, updatedAt:new Date().toISOString() });
+      if(state.nominee.line && team && (team.roster||[]).some(p=>p.line===state.nominee.line)) throw new Error('LINE_FILLED');
+      const logEntry = { teamNick: myTeam.nick, amount, ts: Date.now() };
+      const bidLog = [...(state.bidLog||[]), logEntry].slice(-30);
+      tx.update(stateRef, { currentBid:amount, currentBidderUid:currentUser.uid, currentBidderNick: myTeam.nick, bidLog, updatedAt:new Date().toISOString() });
     });
   } catch(e){
     if(e.message==='NO_NOMINEE') showToast('현재 경매 중인 선수가 없습니다');
     else if(e.message==='TOO_LOW') showToast('현재가보다 높은 금액을 입력해주세요');
     else if(e.message==='OVER_BUDGET') showToast('남은 예산을 초과했습니다');
+    else if(e.message==='LINE_FILLED') showToast('이미 해당 라인 선수를 보유하고 있습니다');
     else { console.error('auctionPlaceBid error:', e); showToast('입찰 중 오류가 발생했습니다'); }
   }
 }
@@ -5147,10 +5194,13 @@ window.auctionBid = async () => {
   if(inp) inp.value='';
 };
 
-window.auctionQuickBid = async (step) => {
+// +5/+10/+50/+100 버튼은 바로 입찰하지 않고 입력창 금액만 누적 — "제출" 버튼으로 최종 입찰
+window.auctionQuickBid = (step) => {
+  const inp = document.getElementById('auction-bid-input');
+  if(!inp) return;
   const state = auctionStateCache;
-  if(!state || !state.nominee){ showToast('현재 경매 중인 선수가 없습니다'); return; }
-  await auctionPlaceBid((state.currentBid||0) + step);
+  const base = inp.value ? parseInt(inp.value, 10) : (state?.currentBid||0);
+  inp.value = (isNaN(base) ? 0 : base) + step;
 };
 
 window.auctionSold = async () => {
@@ -5256,20 +5306,29 @@ function renderAuctionView(){
         <div style="font-size:30px;font-weight:900;color:var(--gold-light);text-shadow:0 0 14px rgba(245,200,66,0.4);">${(state.currentBid||0).toLocaleString()}<span style="font-size:16px;">pt</span></div>
         <div style="font-size:13px;color:${state.currentBidderNick?'var(--text-mid)':'var(--text-dim)'};margin-top:2px;">${state.currentBidderNick?`${state.currentBidderNick} 팀`:'아직 입찰 없음'}</div>
       </div>
-      ${myTeam && state.status==='running' ? `
-      <div style="display:flex;flex-direction:column;gap:10px;margin-top:16px;align-items:center;">
+      ${(state.bidLog||[]).length ? `
+      <div style="max-width:320px;margin:10px auto 0;max-height:120px;overflow-y:auto;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:8px 12px;display:flex;flex-direction:column-reverse;gap:4px;">
+        ${[...state.bidLog].reverse().map(l=>`<div style="font-size:12px;color:var(--text-mid);"><b style="color:var(--gold-light);">${l.teamNick}</b> → ${l.amount.toLocaleString()}pt</div>`).join('')}
+      </div>` : ''}
+      ${(()=>{
+        const myHasLine = myTeam && n.line && (myTeam.roster||[]).some(p=>p.line===n.line);
+        if(myHasLine) return `<div style="text-align:center;margin-top:14px;font-size:12px;color:var(--text-dim);">이미 ${n.line} 라인을 보유하고 있어 입찰할 수 없습니다</div>`;
+        if(myTeam && state.status==='running') return `
+      <div style="display:flex;flex-direction:column;gap:10px;margin-top:14px;align-items:center;">
         <span style="font-size:12px;color:var(--text-dim);">내 남은 예산 <b style="color:var(--gold-light);">${(myTeam.remaining||0).toLocaleString()}pt</b></span>
-        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:center;">
-          <input type="number" id="auction-bid-input" class="inp" style="width:110px;" placeholder="직접입력">
-          <button class="btn btn-red btn-sm" onclick="auctionBid()">🔨 입찰하기</button>
-        </div>
         <div style="display:flex;gap:6px;">
           <button class="btn btn-ghost btn-sm" onclick="auctionQuickBid(5)">+5</button>
           <button class="btn btn-ghost btn-sm" onclick="auctionQuickBid(10)">+10</button>
           <button class="btn btn-ghost btn-sm" onclick="auctionQuickBid(50)">+50</button>
           <button class="btn btn-ghost btn-sm" onclick="auctionQuickBid(100)">+100</button>
         </div>
-      </div>` : ''}
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:center;">
+          <input type="number" id="auction-bid-input" class="inp" style="width:110px;" placeholder="입찰액">
+          <button class="btn btn-red btn-sm" onclick="auctionBid()">✅ 제출</button>
+        </div>
+      </div>`;
+        return '';
+      })()}
     `;
   } else if(state.status==='running'){
     nomineeEl.innerHTML = '<div style="text-align:center;color:var(--text-dim);font-size:13px;padding:20px 0;">관리자가 다음 선수를 뽑으면 경매가 시작됩니다.</div>';
@@ -5303,7 +5362,7 @@ function renderAuctionView(){
               ${avatar(p.realname||p.nick, color, 22)}
               <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${p.realname||p.nick}</span>
               ${p.line?`<span style="font-size:10px;color:var(--text-dim);flex-shrink:0;">${p.line}</span>`:''}
-              <span style="color:var(--gold-light);font-weight:700;flex-shrink:0;">${(p.price||0).toLocaleString()}pt</span>
+              ${p.auto?`<span style="color:var(--text-dim);font-weight:700;flex-shrink:0;font-size:11px;">자동배정</span>`:`<span style="color:var(--gold-light);font-weight:700;flex-shrink:0;">${(p.price||0).toLocaleString()}pt</span>`}
             </div>`).join('') : '<div style="font-size:11px;color:var(--text-dim);text-align:center;padding:10px 0;">낙찰된 선수 없음</div>'}
         </div>
       </div>`;
@@ -5323,9 +5382,10 @@ function renderAuctionView(){
       let pill;
       if(isNominee) pill = `<span style="font-size:10px;font-weight:700;padding:3px 9px;border-radius:10px;background:#8a1a1a;color:#ffaaaa;white-space:nowrap;">🔨 진행중</span>`;
       else if(soldTo){
-        const c = teamColor[soldTo.captainUid] || 'var(--gold-light)';
-        const price = (soldTo.roster||[]).find(x=>x.uid===p.uid)?.price || 0;
-        pill = `<span style="font-size:10px;font-weight:700;padding:3px 9px;border-radius:10px;background:${c}26;color:${c};white-space:nowrap;">${soldTo.realname||soldTo.nick} · ${price.toLocaleString()}pt</span>`;
+        const c = teamColor[soldTo.captainUid] || '#f5c842';
+        const picked = (soldTo.roster||[]).find(x=>x.uid===p.uid);
+        const label = picked?.auto ? '자동배정' : `${(picked?.price||0).toLocaleString()}pt`;
+        pill = `<span style="font-size:10px;font-weight:700;padding:3px 9px;border-radius:10px;background:${c}26;color:${c};white-space:nowrap;">${soldTo.realname||soldTo.nick} · ${label}</span>`;
       }
       else if(i < (state.nextIndex||0)) pill = `<span style="font-size:10px;padding:3px 9px;border-radius:10px;background:var(--bg4);color:var(--text-dim);white-space:nowrap;">🚫 재경매 대기</span>`;
       else pill = `<span style="font-size:10px;padding:3px 9px;border-radius:10px;background:var(--bg3);color:var(--text-dim);white-space:nowrap;">대기</span>`;
