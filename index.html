@@ -5216,7 +5216,7 @@ window.auctionStart = async () => {
     const batch = writeBatch(db);
     for(const c of captains){
       batch.set(doc(db,'auctionTeams',c.uid), {
-        captainUid:c.uid, nick:c.nick, realname:c.realname||'', budget:c.budget, remaining:c.budget, roster:[]
+        captainUid:c.uid, nick:c.nick, realname:c.realname||'', captainLine:c.line||'', budget:c.budget, remaining:c.budget, roster:[]
       });
     }
     batch.set(doc(db,'auctionState','current'), {
@@ -5245,7 +5245,7 @@ async function auctionDrawOne(){
     const teamRefs = auctionTeamsCache.map(t=>doc(db,'auctionTeams',t.captainUid));
     const teamSnaps = await Promise.all(teamRefs.map(r=>tx.get(r)));
     const teams = teamSnaps.filter(s=>s.exists()).map(s=>({ref:s.ref, ...s.data()}));
-    const eligible = nominee.line ? teams.filter(t => !(t.roster||[]).some(p=>p.line===nominee.line)) : [];
+    const eligible = nominee.line ? teams.filter(t => t.captainLine!==nominee.line && !(t.roster||[]).some(p=>p.line===nominee.line)) : [];
 
     if(nominee.line && eligible.length===1){
       const team = eligible[0];
@@ -5299,7 +5299,7 @@ async function auctionPlaceBid(amount){
       const team = teamSnap.exists() ? teamSnap.data() : null;
       const remaining = team ? team.remaining : 0;
       if(amount > remaining) throw new Error('OVER_BUDGET');
-      if(state.nominee.line && team && (team.roster||[]).some(p=>p.line===state.nominee.line)) throw new Error('LINE_FILLED');
+      if(state.nominee.line && team && (team.captainLine===state.nominee.line || (team.roster||[]).some(p=>p.line===state.nominee.line))) throw new Error('LINE_FILLED');
       const logEntry = { teamNick: myTeam.nick, amount, ts: Date.now() };
       const bidLog = [...(state.bidLog||[]), logEntry].slice(-30);
       // 입찰이 들어올 때마다 제한시간 +10초 연장(막판 스나이핑 방지)
@@ -5456,7 +5456,7 @@ function renderAuctionView(){
         ${[...state.bidLog].reverse().map(l=>`<div style="font-size:12px;color:var(--text-mid);"><b style="color:var(--gold-light);">${l.teamNick}</b> → ${l.amount.toLocaleString()}pt</div>`).join('')}
       </div>` : ''}
       ${(()=>{
-        const myHasLine = myTeam && n.line && (myTeam.roster||[]).some(p=>p.line===n.line);
+        const myHasLine = myTeam && n.line && (myTeam.captainLine===n.line || (myTeam.roster||[]).some(p=>p.line===n.line));
         if(myHasLine) return `<div style="text-align:center;margin-top:14px;font-size:12px;color:var(--text-dim);">이미 ${n.line} 라인을 보유하고 있어 입찰할 수 없습니다</div>`;
         if(myTeam && state.status==='running') return `
       <div style="display:flex;flex-direction:column;gap:10px;margin-top:14px;align-items:center;">
@@ -5503,7 +5503,7 @@ function renderAuctionView(){
               <input id="auction-team-name-input-${slot}" class="inp" style="width:90px;font-size:11px;padding:2px 6px;">
               <button class="btn btn-ghost btn-sm" style="padding:1px 6px;font-size:10px;" onclick="saveAuctionTeamName('${slot}')">✔</button>
             </div>`:''}
-            <div style="font-size:11px;color:var(--text-dim);">👑 ${t.realname||t.nick} · ${(t.roster||[]).length}명 영입</div>
+            <div style="font-size:11px;color:var(--text-dim);">👑 ${t.realname||t.nick}${t.captainLine?` (${t.captainLine})`:''} · ${(t.roster||[]).length}명 영입</div>
           </div>
           <div style="text-align:right;flex-shrink:0;">
             <div style="font-size:13px;color:var(--gold-light);font-weight:700;">${(t.remaining||0).toLocaleString()}pt</div>
