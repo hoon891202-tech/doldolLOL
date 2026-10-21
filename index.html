@@ -5176,7 +5176,10 @@ async function auctionPlaceBid(amount){
       if(state.nominee.line && team && (team.roster||[]).some(p=>p.line===state.nominee.line)) throw new Error('LINE_FILLED');
       const logEntry = { teamNick: myTeam.nick, amount, ts: Date.now() };
       const bidLog = [...(state.bidLog||[]), logEntry].slice(-30);
-      tx.update(stateRef, { currentBid:amount, currentBidderUid:currentUser.uid, currentBidderNick: myTeam.nick, bidLog, updatedAt:new Date().toISOString() });
+      // 입찰이 들어올 때마다 제한시간 +10초 연장(막판 스나이핑 방지)
+      const curDeadline = Math.max(new Date(state.deadline||0).getTime(), Date.now());
+      const deadline = new Date(curDeadline + 10000).toISOString();
+      tx.update(stateRef, { currentBid:amount, currentBidderUid:currentUser.uid, currentBidderNick: myTeam.nick, bidLog, deadline, updatedAt:new Date().toISOString() });
     });
   } catch(e){
     if(e.message==='NO_NOMINEE') showToast('현재 경매 중인 선수가 없습니다');
