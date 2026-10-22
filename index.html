@@ -4497,6 +4497,18 @@ function renderApplyLineCounts(){
     const full = c>=draftLineCap;
     return `<span style="font-size:11px;padding:3px 8px;border-radius:6px;border:1px solid ${full?'#8a3030':'var(--border)'};background:${full?'#3a1515':'var(--bg3)'};color:${full?'#ff7777':'var(--text-dim)'};">${p} ${c}/${draftLineCap}${full?' 마감':''}</span>`;
   }).join('');
+  // 드롭다운에도 마감된 라인은 바로 표시 + 선택 불가 처리
+  const sel = document.getElementById('apply-line-select');
+  if(sel){
+    POS_LABELS.forEach(p=>{
+      const opt = sel.querySelector(`option[value="${p}"]`);
+      if(!opt) return;
+      const full = counts[p] >= draftLineCap;
+      opt.disabled = full;
+      opt.textContent = full ? `${p} (마감)` : p;
+      if(full && !sel.disabled && sel.value===p) sel.value = '';
+    });
+  }
 }
 
 function renderApplicantList(){
