@@ -4627,13 +4627,14 @@ window.adminRemoveApplicant = async (uid) => {
       const mySnap = await tx.get(myRef);
       if(!mySnap.exists() || !mySnap.data().applied) return;
       const myLine = mySnap.data().line;
-      tx.set(myRef, {applied:false}, {merge:true});
+      let cntRef = null, cur = 0;
       if(myLine){
-        const cntRef = doc(db,'applyLineCounts',myLine);
+        cntRef = doc(db,'applyLineCounts',myLine);
         const cntSnap = await tx.get(cntRef);
-        const cur = cntSnap.exists() ? (cntSnap.data().count||0) : 0;
-        tx.set(cntRef, {count: Math.max(0,cur-1)}, {merge:true});
+        cur = cntSnap.exists() ? (cntSnap.data().count||0) : 0;
       }
+      tx.set(myRef, {applied:false}, {merge:true});
+      if(cntRef) tx.set(cntRef, {count: Math.max(0,cur-1)}, {merge:true});
     });
     showToast('제외됐습니다');
     loadApplyPage();
@@ -4684,13 +4685,14 @@ window.toggleApply = async () => {
     const myLine = mySnap.data().line;
     try {
       await runTransaction(db, async (tx) => {
-        tx.set(myRef, {applied:false, uid:currentUser.uid}, {merge:true});
+        let cntRef = null, cur = 0;
         if(myLine){
-          const cntRef = doc(db,'applyLineCounts',myLine);
+          cntRef = doc(db,'applyLineCounts',myLine);
           const cntSnap = await tx.get(cntRef);
-          const cur = cntSnap.exists() ? (cntSnap.data().count||0) : 0;
-          tx.set(cntRef, {count: Math.max(0, cur-1)}, {merge:true});
+          cur = cntSnap.exists() ? (cntSnap.data().count||0) : 0;
         }
+        tx.set(myRef, {applied:false, uid:currentUser.uid}, {merge:true});
+        if(cntRef) tx.set(cntRef, {count: Math.max(0, cur-1)}, {merge:true});
       });
       showToast('신청이 취소됐습니다');
     } catch(e){ console.error('toggleApply cancel error:', e); showToast('취소 중 오류가 발생했습니다'); return; }
