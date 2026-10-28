@@ -971,7 +971,8 @@ const TIER_NAMES = {C:'챌린저',GM:'그마',M:'마스터',D:'다이아',E:'에
 const POS_SCORE_MAP = {탑:'scoreTop',정글:'scoreJungle',미드:'scoreMid',원딜:'scoreAdc',서폿:'scoreSupport'};
 const POS_LABELS = ['탑','정글','미드','원딜','서폿'];
 let draftLineCap = 4; // 라인별 신청 제한 (settings/draftConfig.lineCap으로 관리자가 조정, 기본값 4)
-const AUCTION_ROUND_SECONDS = 60; // 경매 한 명당 제한시간(초)
+const AUCTION_ROUND_SECONDS = 30; // 경매 한 명당 제한시간(초)
+const AUCTION_EXTEND_SECONDS = 5; // 입찰 시 연장 시간(초), 남은시간이 AUCTION_ROUND_SECONDS를 넘지 않게 캡
 
 function escapeHtml(s){ return String(s==null?'':s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
@@ -1129,6 +1130,7 @@ const TIER_PTS_MAP = {C:10,GM:10,M:9,D:8,E:7,P:6,G:5,S:4,B:3,I:3};
 let currentUser = null;
 let currentProfile = null;
 let isAdmin = false;
+let isCaptain = false; // 드래프트 신청 탭: 내가 팀장으로 지정됐는지
 
 // ── AUTH ──
 window.switchAuthTab = (tab, el) => {
@@ -4462,12 +4464,14 @@ async function loadApplicantList(){
     const el = document.getElementById('apply-list');
     if(!applicants.length){
       applicantListCache = [];
+      isCaptain = false;
       el.innerHTML='<div class="empty-hint">신청자가 없습니다</div>';
       renderApplyLineCounts();
       if(isAdmin) renderAdminAddSelect(userMap);
       return;
     }
     applicantListCache = applicants.map(a => ({...a, _live: userMap[a.uid]||{}}));
+    isCaptain = !!(currentUser && applicantListCache.some(u=>u.uid===currentUser.uid && u.captain));
     renderApplicantList();
     if(isAdmin) renderAdminAddSelect(userMap);
   } catch(e){ console.error('loadApplicantList error:', e); }
@@ -4514,6 +4518,10 @@ function renderApplyLineCounts(){
 function renderApplicantList(){
   renderApplyLineCounts();
   const el = document.getElementById('apply-list');
+  if(!isAdmin && !isCaptain){
+    el.innerHTML = '<div class="empty-hint">팀장으로 지정되면 전체 신청자 목록을 볼 수 있어요.</div>';
+    return;
+  }
   if(!applicantListCache.length){ el.innerHTML='<div class="empty-hint">신청자가 없습니다</div>'; return; }
   const sorted = [...applicantListCache].sort((a,b)=>(b.captain?1:0)-(a.captain?1:0));
   el.innerHTML = sorted.map((u,i)=>{
@@ -5316,9 +5324,11 @@ async function auctionPlaceBid(amount){
       if(state.nominee.line && team && (team.captainLine===state.nominee.line || (team.roster||[]).some(p=>p.line===state.nominee.line))) throw new Error('LINE_FILLED');
       const logEntry = { teamNick: myTeam.nick, amount, ts: Date.now() };
       const bidLog = [...(state.bidLog||[]), logEntry].slice(-30);
-      // 입찰이 들어올 때마다 제한시간 +10초 연장(막판 스나이핑 방지)
+      // 입찰이 들어올 때마다 제한시간 +5초 연장(막판 스나이핑 방지), 남은시간은 AUCTION_ROUND_SECONDS(30초)를 넘지 않도록 캡
       const curDeadline = Math.max(new Date(state.deadline||0).getTime(), Date.now());
-      const deadline = new Date(curDeadline + 10000).toISOString();
+      const extended = curDeadline + AUCTION_EXTEND_SECONDS*1000;
+      const capped = Math.min(extended, Date.now() + AUCTION_ROUND_SECONDS*1000);
+      const deadline = new Date(capped).toISOString();
       tx.update(stateRef, { currentBid:amount, currentBidderUid:currentUser.uid, currentBidderNick: myTeam.nick, bidLog, deadline, updatedAt:new Date().toISOString() });
     });
   } catch(e){
