@@ -57,12 +57,6 @@ nav{position:sticky;top:0;z-index:100;background:#1a3c38f8;backdrop-filter:blur(
 .page{display:none;position:relative;z-index:1;}
 .page.active{display:block;}
 .wrap{max-width:900px;margin:0 auto;padding:24px 16px 60px;}
-.auction-grid{display:grid;grid-template-columns:230px 1fr 260px;gap:14px;align-items:start;}
-.auction-sidebar{position:sticky;top:12px;}
-@media (max-width:980px){
-  .auction-grid{grid-template-columns:1fr;}
-  .auction-sidebar{position:static;}
-}
 
 /* ── CARDS ── */
 .card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:16px;}
@@ -272,9 +266,9 @@ select.inp option{background:#f0fdf8;color:#1a2e2c;}
   <div class="nav-tab" onclick="showPage('jarparty',this)">🎮 자랭파티</div>
   <div class="nav-tab" onclick="showPage('combo',this)">🗂️ 종합신청</div>
   <div class="nav-tab" onclick="showPage('regs',this)">📜 운영 규정</div>
+  <div class="nav-tab" onclick="showPage('rule',this)">📋 드래프트 룰북</div>
   <div class="nav-tab" onclick="showPage('apply',this)">✋ 드래프트 신청</div>
   <div class="nav-tab" onclick="showPage('draft',this)">👥 드래프트</div>
-  <div class="nav-tab" onclick="showPage('auction',this)">🔨 경매</div>
   <div class="nav-tab" onclick="showPage('mypage',this)">👤 마이페이지</div>
   <div id="admin-tab" class="nav-tab" onclick="showPage('admin',this)" style="display:none">⚙️ 관리자</div>
   <div class="nav-user">
@@ -493,6 +487,78 @@ select.inp option{background:#f0fdf8;color:#1a2e2c;}
 </div>
 </div>
 
+<!-- ══ 룰북 ══ -->
+<div id="page-rule" class="page">
+<div class="wrap">
+  <div class="card">
+    <div class="card-header"><span class="card-icon">👑</span><span class="card-title">팀장 선발 — 티어 점수</span><span class="card-note" id="rule-edit-btn" style="cursor:pointer;color:#cc2020;display:none;" onclick="toggleRuleEdit()">✏️ 수정</span></div>
+    <div id="tier-view" style="display:grid;grid-template-columns:repeat(4,1fr);gap:7px;padding:14px;"></div>
+    <div id="tier-edit" style="display:none;padding:14px;">
+      <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;" id="tier-edit-grid"></div>
+      <div style="display:flex;gap:8px;margin-top:12px;">
+        <button class="btn btn-red btn-sm" onclick="saveRuleSettings()">💾 저장</button>
+        <button class="btn btn-ghost btn-sm" onclick="toggleRuleEdit()">취소</button>
+      </div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-header"><span class="card-icon">🏆</span><span class="card-title">토너먼트 방식</span></div>
+    <div id="tournament-view" style="padding:14px;"></div>
+    <div id="tournament-edit" style="display:none;padding:14px;">
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+          <span style="font-size:12px;color:var(--text-dim);width:60px;">4강</span>
+          <select id="rule-semi" class="inp" style="width:100px;"><option value="BO3">BO3</option><option value="BO5">BO5</option><option value="BO1">BO1</option></select>
+          <input id="rule-semi-note" class="inp" style="flex:1;min-width:120px;" placeholder="비고 (예: 하드피어리스)">
+        </div>
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+          <span style="font-size:12px;color:var(--text-dim);width:60px;">결승</span>
+          <select id="rule-final" class="inp" style="width:100px;"><option value="BO5">BO5</option><option value="BO3">BO3</option><option value="BO7">BO7</option></select>
+          <input id="rule-final-note" class="inp" style="flex:1;min-width:120px;" placeholder="비고 (예: 하드피어리스)">
+        </div>
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+          <span style="font-size:12px;color:var(--text-dim);width:60px;">3·4위전</span>
+          <select id="rule-third" class="inp" style="width:100px;"><option value="없음">없음</option><option value="BO3">BO3</option><option value="BO1">BO1</option></select>
+          <input id="rule-third-note" class="inp" style="flex:1;min-width:120px;" placeholder="비고">
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:12px;">
+        <button class="btn btn-red btn-sm" onclick="saveRuleSettings()">💾 저장</button>
+        <button class="btn btn-ghost btn-sm" onclick="toggleRuleEdit()">취소</button>
+      </div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-header"><span class="card-icon">⚠️</span><span class="card-title">제재 기준</span></div>
+    <div id="penalty-view"></div>
+    <div id="penalty-edit" style="display:none;padding:14px;">
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <div style="display:flex;gap:8px;align-items:center;">
+          <span style="font-size:12px;color:#aaa;width:56px;">1회 경고</span>
+          <input id="rule-p1" class="inp" style="flex:1;" placeholder="1회 경고 내용">
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <span style="font-size:12px;color:#ff8800;width:56px;">2회 경고</span>
+          <input id="rule-p2" class="inp" style="flex:1;" placeholder="2회 경고 내용">
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <span style="font-size:12px;color:#ff5555;width:56px;">3회 경고</span>
+          <input id="rule-p3" class="inp" style="flex:1;" placeholder="3회 경고 내용">
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:12px;">
+        <button class="btn btn-red btn-sm" onclick="saveRuleSettings()">💾 저장</button>
+        <button class="btn btn-ghost btn-sm" onclick="toggleRuleEdit()">취소</button>
+      </div>
+    </div>
+  </div>
+  <div class="page-footer">
+    <div class="footer-q">"지더라도 웃으면서, 이기려고 최선을 다하자"</div>
+    <div class="footer-s">돌돌LOL · 친목 우선 · 승리 의지 필수</div>
+  </div>
+</div>
+</div>
+
 <!-- ══ 드래프트 신청 ══ -->
 <div id="page-apply" class="page">
 <div class="wrap">
@@ -503,16 +569,7 @@ select.inp option{background:#f0fdf8;color:#1a2e2c;}
       <div id="apply-open-area">
         <div style="font-size:13px;color:var(--text-mid);margin-bottom:14px;" id="apply-desc">다음 드래프트에 참여하려면 신청해주세요.</div>
         <div id="apply-my-status" style="margin-bottom:14px;"></div>
-        <div id="apply-line-counts" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;"></div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
-          <select id="apply-line-select" class="inp" style="width:140px;">
-            <option value="">라인 선택</option>
-            <option value="탑">탑</option>
-            <option value="정글">정글</option>
-            <option value="미드">미드</option>
-            <option value="원딜">원딜</option>
-            <option value="서폿">서폿</option>
-          </select>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
           <button class="btn btn-red" id="apply-btn" onclick="toggleApply()">✋ 신청하기</button>
         </div>
       </div>
@@ -530,24 +587,6 @@ select.inp option{background:#f0fdf8;color:#1a2e2c;}
         <button class="btn btn-red btn-sm" onclick="openApplyPeriod()">🟢 신청 기간 열기</button>
         <button class="btn btn-ghost btn-sm" onclick="closeApplyPeriod()">🔴 신청 기간 닫기</button>
         <button class="btn btn-danger btn-sm" onclick="clearApplicants()">🗑 신청자 초기화</button>
-      </div>
-      <div style="font-size:12px;color:var(--text-dim);margin-top:4px;">라인당 신청 제한 인원 (행사 규모에 맞게 조정, 전체 인원 = 이 값×5라인)</div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
-        <input type="number" id="apply-line-cap-input" class="inp" style="width:90px;" min="1" value="4">
-        <button class="btn btn-ghost btn-sm" onclick="saveDraftLineCap()">저장</button>
-      </div>
-      <div style="font-size:12px;color:var(--text-dim);margin-top:4px;">회원을 직접 신청자 목록에 추가할 수 있습니다.</div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
-        <select id="apply-admin-add-uid" class="inp" style="width:200px;"><option value="">회원 선택</option></select>
-        <select id="apply-admin-add-line" class="inp" style="width:110px;">
-          <option value="">라인 선택</option>
-          <option value="탑">탑</option>
-          <option value="정글">정글</option>
-          <option value="미드">미드</option>
-          <option value="원딜">원딜</option>
-          <option value="서폿">서폿</option>
-        </select>
-        <button class="btn btn-ghost btn-sm" onclick="adminAddApplicant()">➕ 추가</button>
       </div>
     </div>
   </div>
@@ -574,12 +613,7 @@ select.inp option{background:#f0fdf8;color:#1a2e2c;}
     <div style="background:var(--bg2);border:2px solid var(--border);border-radius:10px;overflow:hidden;transition:border-color 0.2s;" ondragover="onDragOver(event,'t0')" ondragleave="onDragLeave(event,'t0')" ondrop="onDrop(event,'t0')">
       <div style="display:flex;align-items:center;gap:9px;padding:10px 14px;border-bottom:1px solid var(--border);">
         <div style="width:10px;height:10px;border-radius:50%;background:#cc3030;flex-shrink:0;"></div>
-        <span id="draft-team-label-t0" style="font-family:'Black Han Sans',sans-serif;font-size:16px;letter-spacing:1px;color:#cc3030;">A팀</span>
-        <span id="draft-team-editwrap-t0" style="display:none;gap:4px;align-items:center;">
-          <input id="draft-team-input-t0" class="inp" style="width:80px;font-size:12px;padding:3px 6px;">
-          <button class="btn btn-ghost btn-sm" style="padding:2px 6px;font-size:10px;" onclick="saveDraftTeamNameInline('t0')">✔</button>
-        </span>
-        <span class="draft-team-edit-btn" style="display:none;cursor:pointer;font-size:11px;color:var(--text-dim);" onclick="toggleDraftTeamEdit('t0')">✏️</span>
+        <span style="font-family:'Black Han Sans',sans-serif;font-size:16px;letter-spacing:1px;color:#cc3030;">A팀</span>
         <span style="margin-left:auto;font-size:11px;color:var(--text-dim);" id="dtc0">0 / 5명</span>
       </div>
       <div style="min-height:100px;padding:10px;display:flex;flex-wrap:wrap;gap:7px;align-content:flex-start;" id="dt0"><div style="width:100%;text-align:center;padding:18px 0;font-size:12px;color:var(--text-dim);">여기에 드래그</div></div>
@@ -587,12 +621,7 @@ select.inp option{background:#f0fdf8;color:#1a2e2c;}
     <div style="background:var(--bg2);border:2px solid var(--border);border-radius:10px;overflow:hidden;transition:border-color 0.2s;" ondragover="onDragOver(event,'t1')" ondragleave="onDragLeave(event,'t1')" ondrop="onDrop(event,'t1')">
       <div style="display:flex;align-items:center;gap:9px;padding:10px 14px;border-bottom:1px solid var(--border);">
         <div style="width:10px;height:10px;border-radius:50%;background:#d07030;flex-shrink:0;"></div>
-        <span id="draft-team-label-t1" style="font-family:'Black Han Sans',sans-serif;font-size:16px;letter-spacing:1px;color:#d07030;">B팀</span>
-        <span id="draft-team-editwrap-t1" style="display:none;gap:4px;align-items:center;">
-          <input id="draft-team-input-t1" class="inp" style="width:80px;font-size:12px;padding:3px 6px;">
-          <button class="btn btn-ghost btn-sm" style="padding:2px 6px;font-size:10px;" onclick="saveDraftTeamNameInline('t1')">✔</button>
-        </span>
-        <span class="draft-team-edit-btn" style="display:none;cursor:pointer;font-size:11px;color:var(--text-dim);" onclick="toggleDraftTeamEdit('t1')">✏️</span>
+        <span style="font-family:'Black Han Sans',sans-serif;font-size:16px;letter-spacing:1px;color:#d07030;">B팀</span>
         <span style="margin-left:auto;font-size:11px;color:var(--text-dim);" id="dtc1">0 / 5명</span>
       </div>
       <div style="min-height:100px;padding:10px;display:flex;flex-wrap:wrap;gap:7px;align-content:flex-start;" id="dt1"><div style="width:100%;text-align:center;padding:18px 0;font-size:12px;color:var(--text-dim);">여기에 드래그</div></div>
@@ -600,12 +629,7 @@ select.inp option{background:#f0fdf8;color:#1a2e2c;}
     <div style="background:var(--bg2);border:2px solid var(--border);border-radius:10px;overflow:hidden;transition:border-color 0.2s;" ondragover="onDragOver(event,'t2')" ondragleave="onDragLeave(event,'t2')" ondrop="onDrop(event,'t2')">
       <div style="display:flex;align-items:center;gap:9px;padding:10px 14px;border-bottom:1px solid var(--border);">
         <div style="width:10px;height:10px;border-radius:50%;background:#40a060;flex-shrink:0;"></div>
-        <span id="draft-team-label-t2" style="font-family:'Black Han Sans',sans-serif;font-size:16px;letter-spacing:1px;color:#40a060;">C팀</span>
-        <span id="draft-team-editwrap-t2" style="display:none;gap:4px;align-items:center;">
-          <input id="draft-team-input-t2" class="inp" style="width:80px;font-size:12px;padding:3px 6px;">
-          <button class="btn btn-ghost btn-sm" style="padding:2px 6px;font-size:10px;" onclick="saveDraftTeamNameInline('t2')">✔</button>
-        </span>
-        <span class="draft-team-edit-btn" style="display:none;cursor:pointer;font-size:11px;color:var(--text-dim);" onclick="toggleDraftTeamEdit('t2')">✏️</span>
+        <span style="font-family:'Black Han Sans',sans-serif;font-size:16px;letter-spacing:1px;color:#40a060;">C팀</span>
         <span style="margin-left:auto;font-size:11px;color:var(--text-dim);" id="dtc2">0 / 5명</span>
       </div>
       <div style="min-height:100px;padding:10px;display:flex;flex-wrap:wrap;gap:7px;align-content:flex-start;" id="dt2"><div style="width:100%;text-align:center;padding:18px 0;font-size:12px;color:var(--text-dim);">여기에 드래그</div></div>
@@ -613,77 +637,10 @@ select.inp option{background:#f0fdf8;color:#1a2e2c;}
     <div style="background:var(--bg2);border:2px solid var(--border);border-radius:10px;overflow:hidden;transition:border-color 0.2s;" ondragover="onDragOver(event,'t3')" ondragleave="onDragLeave(event,'t3')" ondrop="onDrop(event,'t3')">
       <div style="display:flex;align-items:center;gap:9px;padding:10px 14px;border-bottom:1px solid var(--border);">
         <div style="width:10px;height:10px;border-radius:50%;background:#8050c0;flex-shrink:0;"></div>
-        <span id="draft-team-label-t3" style="font-family:'Black Han Sans',sans-serif;font-size:16px;letter-spacing:1px;color:#8050c0;">D팀</span>
-        <span id="draft-team-editwrap-t3" style="display:none;gap:4px;align-items:center;">
-          <input id="draft-team-input-t3" class="inp" style="width:80px;font-size:12px;padding:3px 6px;">
-          <button class="btn btn-ghost btn-sm" style="padding:2px 6px;font-size:10px;" onclick="saveDraftTeamNameInline('t3')">✔</button>
-        </span>
-        <span class="draft-team-edit-btn" style="display:none;cursor:pointer;font-size:11px;color:var(--text-dim);" onclick="toggleDraftTeamEdit('t3')">✏️</span>
+        <span style="font-family:'Black Han Sans',sans-serif;font-size:16px;letter-spacing:1px;color:#8050c0;">D팀</span>
         <span style="margin-left:auto;font-size:11px;color:var(--text-dim);" id="dtc3">0 / 5명</span>
       </div>
       <div style="min-height:100px;padding:10px;display:flex;flex-wrap:wrap;gap:7px;align-content:flex-start;" id="dt3"><div style="width:100%;text-align:center;padding:18px 0;font-size:12px;color:var(--text-dim);">여기에 드래그</div></div>
-    </div>
-  </div>
-
-  <div class="sec-label" style="font-family:'Black Han Sans',sans-serif;font-size:13px;color:#ff5555;letter-spacing:1px;margin:24px 0 12px;">📊 대진표</div>
-  <div id="bracket-admin-card" class="card" style="display:none;">
-    <div style="padding:14px;display:flex;flex-direction:column;gap:12px;">
-      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
-        <span style="font-size:12px;color:var(--text-dim);">방식</span>
-        <button class="btn btn-red btn-sm" id="bracket-mode-tournament" onclick="setBracketMode('tournament')">🏆 토너먼트</button>
-        <button class="btn btn-ghost btn-sm" id="bracket-mode-league" onclick="setBracketMode('league')">🔁 리그전</button>
-      </div>
-      <div style="display:flex;gap:14px;flex-wrap:wrap;" id="bracket-team-picker"></div>
-      <button class="btn btn-red btn-sm" onclick="generateBracket()" style="align-self:flex-start;">🎲 대진표 생성</button>
-    </div>
-  </div>
-  <div class="card">
-    <div id="bracket-view" style="padding:14px;display:none;"></div>
-  </div>
-</div>
-</div>
-
-<!-- ══ 경매 ══ -->
-<div id="page-auction" class="page">
-<div class="wrap" style="max-width:1200px;">
-  <div class="auction-grid">
-    <div class="auction-sidebar">
-      <div class="sec-label" style="font-family:'Black Han Sans',sans-serif;font-size:13px;color:#ff5555;letter-spacing:1px;margin-bottom:10px;">🏟️ 팀 현황</div>
-      <div style="display:flex;flex-direction:column;gap:10px;max-height:80vh;overflow-y:auto;" id="auction-teams">
-        <div style="width:100%;text-align:center;padding:18px 0;font-size:12px;color:var(--text-dim);">경매가 시작되면 팀 현황이 표시됩니다.</div>
-      </div>
-    </div>
-
-    <div>
-      <div id="auction-admin-card" class="card" style="display:none;">
-        <div class="card-header"><span class="card-icon">⚙️</span><span class="card-title">경매 준비</span><span class="card-note">관리자 전용</span></div>
-        <div style="padding:14px;display:flex;flex-direction:column;gap:12px;">
-          <div style="font-size:12px;color:var(--text-dim);">신청자 목록에서 👑 팀장으로 지정된 인원(최대 4명)에게 예산을 배정한 뒤 경매를 시작하세요.</div>
-          <div id="auction-captain-setup"></div>
-          <div style="display:flex;gap:8px;flex-wrap:wrap;">
-            <button class="btn btn-red btn-sm" onclick="auctionStart()">🎲 경매 시작</button>
-            <button class="btn btn-ghost btn-sm" onclick="auctionNext()">🎲 다음 선수 뽑기</button>
-            <button class="btn btn-ghost btn-sm" onclick="auctionSold()">✅ 낙찰 처리</button>
-            <button class="btn btn-ghost btn-sm" onclick="auctionPass()">🚫 유찰(패스)</button>
-            <button class="btn btn-ghost btn-sm" onclick="applyAuctionToDraft()">📥 드래프트에 적용</button>
-            <button class="btn btn-danger btn-sm" onclick="auctionReset()">🔄 경매 초기화</button>
-          </div>
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="card-header"><span class="card-icon">🔨</span><span class="card-title">현재 경매</span><span id="auction-status-badge" class="card-note">대기중</span></div>
-        <div id="auction-nominee" style="padding:16px;">
-          <div style="text-align:center;color:var(--text-dim);font-size:13px;padding:20px 0;">경매가 아직 시작되지 않았습니다.</div>
-        </div>
-      </div>
-    </div>
-
-    <div class="auction-sidebar">
-      <div id="auction-order-wrap" class="card" style="display:none;">
-        <div class="card-header"><span class="card-icon">🎲</span><span class="card-title">경매 순서</span></div>
-        <div id="auction-order" style="display:flex;flex-direction:column;gap:6px;padding:12px;max-height:80vh;overflow-y:auto;"></div>
-      </div>
     </div>
   </div>
 </div>
@@ -943,7 +900,7 @@ select.inp option{background:#f0fdf8;color:#1a2e2c;}
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, browserLocalPersistence, setPersistence }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-import { getFirestore, doc, setDoc, getDoc, getDocs, collection, addDoc, deleteDoc, updateDoc, query, where, orderBy, writeBatch, serverTimestamp, runTransaction, onSnapshot }
+import { getFirestore, doc, setDoc, getDoc, getDocs, collection, addDoc, deleteDoc, updateDoc, query, where, orderBy, writeBatch, serverTimestamp, runTransaction }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 import { getFunctions, httpsCallable }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-functions.js";
@@ -970,100 +927,59 @@ const ADMIN_UIDS = ["0vg5Ki56xZTSNh7JJRqOOSUZ3zn1"];
 const TIER_NAMES = {C:'챌린저',GM:'그마',M:'마스터',D:'다이아',E:'에메',P:'플레',G:'골드',S:'실버',B:'브론즈',I:'아이언'};
 const POS_SCORE_MAP = {탑:'scoreTop',정글:'scoreJungle',미드:'scoreMid',원딜:'scoreAdc',서폿:'scoreSupport'};
 const POS_LABELS = ['탑','정글','미드','원딜','서폿'];
-let draftLineCap = 4; // 라인별 신청 제한 (settings/draftConfig.lineCap으로 관리자가 조정, 기본값 4)
-const AUCTION_ROUND_SECONDS = 30; // 경매 한 명당 제한시간(초)
-const AUCTION_EXTEND_SECONDS = 5; // 입찰 시 연장 시간(초), 남은시간이 AUCTION_ROUND_SECONDS를 넘지 않게 캡
-
-function escapeHtml(s){ return String(s==null?'':s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
-
-// ── 팀명 (드래프트/경매/대진표 공용, t0~t3) ──
-const DRAFT_TEAM_SLOTS = ['t0','t1','t2','t3'];
-const DRAFT_TEAM_COLOR = {t0:'#cc3030', t1:'#d07030', t2:'#40a060', t3:'#8050c0'};
-const DRAFT_TEAM_DEFAULT = {t0:'A팀', t1:'B팀', t2:'C팀', t3:'D팀'};
-let draftTeamNames = {...DRAFT_TEAM_DEFAULT};
-let draftTeamNamesUnsub = null;
-
-function ensureDraftTeamNamesListener(){
-  if(draftTeamNamesUnsub) return;
-  draftTeamNamesUnsub = onSnapshot(doc(db,'draftTeamNames','current'), snap => {
-    const d = snap.exists() ? snap.data() : {};
-    draftTeamNames = {
-      t0: d.t0 || DRAFT_TEAM_DEFAULT.t0, t1: d.t1 || DRAFT_TEAM_DEFAULT.t1,
-      t2: d.t2 || DRAFT_TEAM_DEFAULT.t2, t3: d.t3 || DRAFT_TEAM_DEFAULT.t3
-    };
-    if(document.getElementById('page-draft')?.classList.contains('active')){
-      renderDraftTeamHeaders();
-      if(isAdmin) renderBracketTeamPicker();
-    }
-    if(document.getElementById('page-auction')?.classList.contains('active')) renderAuctionView();
-    if(bracketCache) renderBracketPage();
-  }, ()=>{});
-}
-
-window.saveDraftTeamName = async (slot, inputId) => {
-  const inp = document.getElementById(inputId);
-  const name = (inp?.value||'').trim();
-  if(!name){ showToast('팀명을 입력해주세요'); return; }
-  try { await setDoc(doc(db,'draftTeamNames','current'), {[slot]:name}, {merge:true}); showToast('팀명이 저장됐습니다'); }
-  catch(e){ console.error('saveDraftTeamName error:', e); showToast('저장 중 오류가 발생했습니다'); }
-};
-
-function renderDraftTeamHeaders(){
-  DRAFT_TEAM_SLOTS.forEach(slot=>{
-    const el = document.getElementById(`draft-team-label-${slot}`);
-    if(el) el.textContent = draftTeamNames[slot];
-  });
-}
 
 // 멸망전 스탯 기반 라인별×티어별 밸런스 점수표 (오름차순, 돌돌롤_2026_멸망점수추가.xlsx 기준, 2026-09-02)
 // 주의: functions/index.js의 BAL_TIER_TABLE과 동일한 데이터를 유지해야 함
 const BAL_TIER_TABLE = [
-  {label:'브론즈4↓', full:'브론즈4 이하', code:'B', 탑:6.5,  정글:6.5,  미드:5.5,  원딜:6,    서폿:8.5},
-  {label:'브론즈3', full:'브론즈3',      code:'B', 탑:7.2,  정글:7.4,  미드:6.5,  원딜:6.7,  서폿:9.7},
-  {label:'브론즈2', full:'브론즈2',      code:'B', 탑:8,    정글:8.1,  미드:7.2,  원딜:7.4,  서폿:11},
-  {label:'브론즈1', full:'브론즈1',      code:'B', 탑:9.1,  정글:8.7,  미드:8,    원딜:8.2,  서폿:12.4},
-  {label:'실버4',  full:'실버4',       code:'S', 탑:10.2, 정글:9.5,  미드:10,   원딜:9,    서폿:13.8},
-  {label:'실버3',  full:'실버3',       code:'S', 탑:11,   정글:10,   미드:13,   원딜:10,   서폿:15},
-  {label:'실버2',  full:'실버2',      code:'S', 탑:12,   정글:11,   미드:13.9, 원딜:10.6, 서폿:15.9},
-  {label:'실버1',  full:'실버1',      code:'S', 탑:13,   정글:11.9, 미드:14.8, 원딜:11.3, 서폿:16.7},
-  {label:'골드4',  full:'골드4',      code:'G', 탑:14.6, 정글:12.8, 미드:15.9, 원딜:11.9, 서폿:17.6},
-  {label:'골드3',  full:'골드3',      code:'G', 탑:15.9, 정글:13.8, 미드:16.8, 원딜:12.6, 서폿:18.3},
-  {label:'골드2',  full:'골드2',      code:'G', 탑:17.7, 정글:14.7, 미드:17.8, 원딜:13.4, 서폿:19.1},
-  {label:'골드1',  full:'골드1',      code:'G', 탑:19,   정글:16.7, 미드:19.7, 원딜:15.1, 서폿:20.5},
-  {label:'플레4',  full:'플래티넘4',   code:'P', 탑:21.2, 정글:18.1, 미드:21.1, 원딜:16.4, 서폿:21.2},
-  {label:'플레3',  full:'플래티넘3',   code:'P', 탑:24,   정글:19.3, 미드:22.7, 원딜:17.5, 서폿:22},
-  {label:'플레2',  full:'플래티넘2',   code:'P', 탑:24.7, 정글:20.5, 미드:24.3, 원딜:18.7, 서폿:22.8},
-  {label:'플레1',  full:'플래티넘1',   code:'P', 탑:25.2, 정글:21.9, 미드:27.1, 원딜:20.3, 서폿:24.2},
-  {label:'에메4',  full:'에메랄드4',   code:'E', 탑:26,   정글:23.4, 미드:29.6, 원딜:21.6, 서폿:25.1},
-  {label:'에메3',  full:'에메랄드3',   code:'E', 탑:26.5, 정글:24.8, 미드:31.8, 원딜:22.8, 서폿:26},
-  {label:'에메2',  full:'에메랄드2',   code:'E', 탑:27.3, 정글:26.6, 미드:33,   원딜:24.3, 서폿:27},
-  {label:'에메1',  full:'에메랄드1',   code:'E', 탑:28.6, 정글:28.8, 미드:34.6, 원딜:25.7, 서폿:28.2},
-  {label:'다이아4', full:'다이아4',    code:'D', 탑:30.3, 정글:30.7, 미드:35.4, 원딜:27.6, 서폿:29.3},
-  {label:'다이아3', full:'다이아3',    code:'D', 탑:31.6, 정글:32.5, 미드:37.1, 원딜:29.7, 서폿:30.3},
-  {label:'다이아2', full:'다이아2',    code:'D', 탑:33.8, 정글:34.8, 미드:37.1, 원딜:32.1, 서폿:31.3},
-  {label:'다이아1', full:'다이아1',    code:'D', 탑:35.7, 정글:36.8, 미드:38,   원딜:34,   서폿:32.2},
-  {label:'마스터+', full:'마스터+ (0~99 LP)',      code:'M', 탑:37.4, 정글:38.2, 미드:39.8, 원딜:36.1, 서폿:33.1},
-  {label:'마스터+', full:'마스터+ (100~199 LP)',   code:'M', 탑:39.1, 정글:39.4, 미드:41.3, 원딜:38.3, 서폿:34},
-  {label:'마스터+', full:'마스터+ (200~299 LP)',   code:'M', 탑:41.8, 정글:40.6, 미드:43,   원딜:40.6, 서폿:35},
-  {label:'마스터+', full:'마스터+ (300~399 LP)',   code:'M', 탑:43,   정글:42.4, 미드:44.7, 원딜:43.5, 서폿:36.1},
-  {label:'마스터+', full:'마스터+ (400~499 LP)',   code:'M', 탑:45.2, 정글:44.3, 미드:45.2, 원딜:46.2, 서폿:37.7},
-  {label:'마스터+', full:'마스터+ (500~599 LP)',   code:'M', 탑:47.9, 정글:46.3, 미드:46.2, 원딜:48.6, 서폿:39},
-  {label:'마스터+', full:'마스터+ (600~699 LP)',   code:'M', 탑:49.7, 정글:48.4, 미드:48,   원딜:51.1, 서폿:41.1},
-  {label:'마스터+', full:'마스터+ (700~799 LP)',   code:'M', 탑:51.3, 정글:50.6, 미드:49.3, 원딜:53.7, 서폿:42.8},
-  {label:'마스터+', full:'마스터+ (800~899 LP)',   code:'M', 탑:52.6, 정글:53.1, 미드:50.2, 원딜:56.1, 서폿:44.5},
-  {label:'마스터+', full:'마스터+ (900~999 LP)',   code:'M', 탑:54.8, 정글:55.4, 미드:51.4, 원딜:58.8, 서폿:46.2},
-  {label:'마스터+', full:'마스터+ (1000~1099 LP)', code:'M', 탑:57.8, 정글:57.7, 미드:53.1, 원딜:61.3, 서폿:48},
-  {label:'마스터+', full:'마스터+ (1100~1199 LP)', code:'M', 탑:59.9, 정글:59.4, 미드:54.7, 원딜:62.2, 서폿:48.7},
-  {label:'마스터+', full:'마스터+ (1200~1299 LP)', code:'M', 탑:62.4, 정글:60.5, 미드:56,   원딜:62.7, 서폿:49.3},
-  {label:'마스터+', full:'마스터+ (1300~1399 LP)', code:'M', 탑:63.1, 정글:61.3, 미드:57.3, 원딜:63.3, 서폿:49.8},
-  {label:'마스터+', full:'마스터+ (1400~1499 LP)', code:'M', 탑:63.8, 정글:62.2, 미드:58.2, 원딜:63.9, 서폿:50.1},
-  {label:'마스터+', full:'마스터+ (1500~1599 LP)', code:'M', 탑:64.6, 정글:63.3, 미드:59.9, 원딜:64.2, 서폿:50.6},
-  {label:'마스터+', full:'마스터+ (1600~1699 LP)', code:'M', 탑:65.5, 정글:63.8, 미드:60.8, 원딜:64.4, 서폿:50.9},
-  {label:'마스터+', full:'마스터+ (1700~1799 LP)', code:'M', 탑:66,   정글:64.3, 미드:61.1, 원딜:64.7, 서폿:51.5},
-  {label:'마스터+', full:'마스터+ (1800 이상)',    code:'M', 탑:67,   정글:66,   미드:62,   원딜:65,   서폿:52},
+  {label:'빨1',  full:'빨멩이1',              code:'빨', 탑:6.5,  정글:6.5,  미드:5.5,  원딜:6,    서폿:8.5},
+  {label:'빨2',  full:'빨멩이2',              code:'빨', 탑:7.2,  정글:7.4,  미드:6.5,  원딜:6.7,  서폿:9.7},
+  {label:'빨3',  full:'빨멩이3',              code:'빨', 탑:8,    정글:8.1,  미드:7.2,  원딜:7.4,  서폿:11},
+  {label:'빨4',  full:'빨멩이4',              code:'빨', 탑:9.1,  정글:8.7,  미드:8,    원딜:8.2,  서폿:12.4},
+  {label:'주1',  full:'주멩이1',              code:'주', 탑:10.2, 정글:9.5,  미드:10,   원딜:9,    서폿:13.8},
+  {label:'주2',  full:'주멩이2',              code:'주', 탑:11,   정글:10,   미드:13,   원딜:10,   서폿:15},
+  {label:'주3',  full:'주멩이3',              code:'주', 탑:12,   정글:11,   미드:13.9, 원딜:10.6, 서폿:15.9},
+  {label:'주4',  full:'주멩이4',              code:'주', 탑:13,   정글:11.9, 미드:14.8, 원딜:11.3, 서폿:16.7},
+  {label:'노1',  full:'노멩이1',              code:'노', 탑:14.6, 정글:12.8, 미드:15.9, 원딜:11.9, 서폿:17.6},
+  {label:'노2',  full:'노멩이2',              code:'노', 탑:15.9, 정글:13.8, 미드:16.8, 원딜:12.6, 서폿:18.3},
+  {label:'노3',  full:'노멩이3',              code:'노', 탑:17.7, 정글:14.7, 미드:17.8, 원딜:13.4, 서폿:19.1},
+  {label:'노4',  full:'노멩이4',              code:'노', 탑:19,   정글:16.7, 미드:19.7, 원딜:15.1, 서폿:20.5},
+  {label:'초1',  full:'초멩이1',              code:'초', 탑:21.2, 정글:18.1, 미드:21.1, 원딜:16.4, 서폿:21.2},
+  {label:'초2',  full:'초멩이2',              code:'초', 탑:24,   정글:19.3, 미드:22.7, 원딜:17.5, 서폿:22},
+  {label:'초3',  full:'초멩이3',              code:'초', 탑:24.7, 정글:20.5, 미드:24.3, 원딜:18.7, 서폿:22.8},
+  {label:'초4',  full:'초멩이4',              code:'초', 탑:25.2, 정글:21.9, 미드:27.1, 원딜:20.3, 서폿:24.2},
+  {label:'파1',  full:'파멩이1',              code:'파', 탑:26,   정글:23.4, 미드:29.6, 원딜:21.6, 서폿:25.1},
+  {label:'파2',  full:'파멩이2',              code:'파', 탑:26.5, 정글:24.8, 미드:31.8, 원딜:22.8, 서폿:26},
+  {label:'파3',  full:'파멩이3',              code:'파', 탑:27.3, 정글:26.6, 미드:33,   원딜:24.3, 서폿:27},
+  {label:'파4',  full:'파멩이4',              code:'파', 탑:28.6, 정글:28.8, 미드:34.6, 원딜:25.7, 서폿:28.2},
+  {label:'남1',  full:'남멩이1',              code:'남', 탑:30.3, 정글:30.7, 미드:35.4, 원딜:27.6, 서폿:29.3},
+  {label:'남2',  full:'남멩이2',              code:'남', 탑:31.6, 정글:32.5, 미드:37.1, 원딜:29.7, 서폿:30.3},
+  {label:'남3',  full:'남멩이3',              code:'남', 탑:33.8, 정글:34.8, 미드:37.1, 원딜:32.1, 서폿:31.3},
+  {label:'남4',  full:'남멩이4',              code:'남', 탑:35.7, 정글:36.8, 미드:38,   원딜:34,   서폿:32.2},
+  {label:'보1',  full:'보멩이1 (0~99LP)',     code:'보', 탑:37.4, 정글:38.2, 미드:39.8, 원딜:36.1, 서폿:33.1},
+  {label:'보2',  full:'보멩이2 (100~199LP)',  code:'보', 탑:39.1, 정글:39.4, 미드:41.3, 원딜:38.3, 서폿:34},
+  {label:'보3',  full:'보멩이3 (200~299LP)',  code:'보', 탑:41.8, 정글:40.6, 미드:43,   원딜:40.6, 서폿:35},
+  {label:'보4',  full:'보멩이4 (300~399LP)',  code:'보', 탑:43,   정글:42.4, 미드:44.7, 원딜:43.5, 서폿:36.1},
+  {label:'무1',  full:'무지개멩이1 (400~499LP)',  code:'무', 탑:45.2, 정글:44.3, 미드:45.2, 원딜:46.2, 서폿:37.7},
+  {label:'무2',  full:'무지개멩이2 (500~599LP)',  code:'무', 탑:47.9, 정글:46.3, 미드:46.2, 원딜:48.6, 서폿:39},
+  {label:'무3',  full:'무지개멩이3 (600~699LP)',  code:'무', 탑:49.7, 정글:48.4, 미드:48,   원딜:51.1, 서폿:41.1},
+  {label:'무4',  full:'무지개멩이4 (700~799LP)',  code:'무', 탑:51.3, 정글:50.6, 미드:49.3, 원딜:53.7, 서폿:42.8},
+  {label:'무5',  full:'무지개멩이5 (800~899LP)',  code:'무', 탑:52.6, 정글:53.1, 미드:50.2, 원딜:56.1, 서폿:44.5},
+  {label:'무6',  full:'무지개멩이6 (900~999LP)',  code:'무', 탑:54.8, 정글:55.4, 미드:51.4, 원딜:58.8, 서폿:46.2},
+  {label:'무7',  full:'무지개멩이7 (1000~1099LP)',code:'무', 탑:57.8, 정글:57.7, 미드:53.1, 원딜:61.3, 서폿:48},
+  {label:'무8',  full:'무지개멩이8 (1100~1199LP)',code:'무', 탑:59.9, 정글:59.4, 미드:54.7, 원딜:62.2, 서폿:48.7},
+  {label:'무9',  full:'무지개멩이9 (1200~1299LP)',code:'무', 탑:62.4, 정글:60.5, 미드:56,   원딜:62.7, 서폿:49.3},
+  {label:'무10', full:'무지개멩이10 (1300~1399LP)',code:'무', 탑:63.1, 정글:61.3, 미드:57.3, 원딜:63.3, 서폿:49.8},
+  {label:'무11', full:'무지개멩이11 (1400~1499LP)',code:'무', 탑:63.8, 정글:62.2, 미드:58.2, 원딜:63.9, 서폿:50.1},
+  {label:'무12', full:'무지개멩이12 (1500~1599LP)',code:'무', 탑:64.6, 정글:63.3, 미드:59.9, 원딜:64.2, 서폿:50.6},
+  {label:'무13', full:'무지개멩이13 (1600~1699LP)',code:'무', 탑:65.5, 정글:63.8, 미드:60.8, 원딜:64.4, 서폿:50.9},
+  {label:'무14', full:'무지개멩이14 (1700~1799LP)',code:'무', 탑:66,   정글:64.3, 미드:61.1, 원딜:64.7, 서폿:51.5},
+  {label:'무15', full:'무지개멩이15 (1800LP이상)', code:'무', 탑:67,   정글:66,   미드:62,   원딜:65,   서폿:52},
 ];
-const TIER_DOT_COLOR = {B:'#b07840', S:'#8fa8c0', G:'#e0b030', P:'#3ab0d8', E:'#20c090', D:'#5060e0', M:'#a040e0'};
-function balTierDot(code){ return `<span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:${TIER_DOT_COLOR[code]||'#888'};flex-shrink:0;"></span>`; }
+const TIER_DOT_COLOR = {빨:'#e03030',주:'#e07820',노:'#d4b800',초:'#22b050',파:'#30a8e0',남:'#3040c0',보:'#9030d0'};
+function balTierDot(code){
+  if(code==='무') return `<span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:linear-gradient(135deg,#ff4444,#ff9900,#ddcc00,#22cc55,#2299ff,#9933ff);flex-shrink:0;"></span>`;
+  return `<span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:${TIER_DOT_COLOR[code]||'#888'};flex-shrink:0;"></span>`;
+}
 // 점수 → 현재 티어 구간(내림 탐색) 반환. score<=0 이면 null(미지원)
 function balTierLookup(posKor, score){
   if(!score || score<=0) return null;
@@ -1130,7 +1046,6 @@ const TIER_PTS_MAP = {C:10,GM:10,M:9,D:8,E:7,P:6,G:5,S:4,B:3,I:3};
 let currentUser = null;
 let currentProfile = null;
 let isAdmin = false;
-let isCaptain = false; // 드래프트 신청 탭: 내가 팀장으로 지정됐는지
 
 // ── AUTH ──
 window.switchAuthTab = (tab, el) => {
@@ -1220,13 +1135,12 @@ window.showPage = (id, el) => {
   if(id==='admin' && isAdmin) loadAdmin();
   if(id==='mypage') loadMyPage();
   if(id==='apply') loadApplyPage();
+  if(id==='rule') loadRulePage();
   if(id==='naejeon') loadNaejeonPage();
   if(id==='naejeon-stats') loadNaejeonStatsPage();
   if(id==='jarparty') loadJarPartyPage();
   if(id==='combo') loadComboPage();
   if(id==='regs') loadRegsPage();
-  if(id==='auction') loadAuctionPage();
-  if(id==='draft') loadDraftPage();
 };
 
 // ── UTILS ──
@@ -2586,6 +2500,114 @@ window.saveRegs = async () => {
   document.getElementById('regs-edit-btn').textContent = '✏️ 수정';
   renderRegs();
   showToast('운영 규정이 저장됐습니다 ✅');
+};
+
+// ── RULE SETTINGS ──
+const DEFAULT_RULES = {
+  tiers: [{name:'챌/그마',pts:10},{name:'마스터',pts:9},{name:'다이아',pts:8},{name:'에메',pts:7},{name:'플레',pts:6},{name:'골드',pts:5},{name:'실버',pts:4},{name:'브론즈↓',pts:3}],
+  semi:'BO3', semiNote:'하드피어리스',
+  final:'BO5', finalNote:'하드피어리스',
+  third:'없음', thirdNote:'패자 즉시 탈락',
+  p1:'구두 경고', p2:'해당 경기 몰수패', p3:'대회 제명'
+};
+let ruleSettings = null;
+let ruleEditMode = false;
+
+async function loadRulePage(){
+  try {
+    const snap = await getDoc(doc(db,'settings','rules'));
+    ruleSettings = snap.exists() ? snap.data() : {...DEFAULT_RULES};
+  } catch(e){ ruleSettings = {...DEFAULT_RULES}; }
+  renderRulePage();
+  // 관리자만 수정 버튼 표시
+  const editBtn = document.getElementById('rule-edit-btn');
+  if(editBtn) editBtn.style.display = isAdmin ? 'inline' : 'none';
+}
+
+function renderRulePage(){
+  const r = ruleSettings;
+  // 티어 뷰
+  const tv = document.getElementById('tier-view');
+  if(tv) tv.innerHTML = r.tiers.map(t=>`
+    <div style="background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:9px 11px;display:flex;justify-content:space-between;align-items:center;">
+      <span style="font-size:12px;color:var(--text-mid);">${t.name}</span>
+      <span style="font-size:15px;font-weight:700;color:var(--gold-light);">${t.pts}pt</span>
+    </div>`).join('');
+  // 토너먼트 뷰
+  const tv2 = document.getElementById('tournament-view');
+  if(tv2) tv2.innerHTML = `<table class="tbl">
+    <tr><th>단계</th><th>방식</th><th>비고</th></tr>
+    <tr><td>4강</td><td class="v-gold">${r.semi}</td><td>${r.semiNote}</td></tr>
+    <tr><td>결승</td><td class="v-gold">${r.final}</td><td>${r.finalNote}</td></tr>
+    <tr><td>3·4위전</td><td class="${r.third==='없음'?'v-red':'v-gold'}">${r.third}</td><td>${r.thirdNote}</td></tr>
+  </table>`;
+  // 제재 뷰
+  const pv = document.getElementById('penalty-view');
+  if(pv) pv.innerHTML = `
+    <div class="pen-row"><div class="pen-num n1">1</div><div class="pen-label">1회 경고</div><div class="pen-desc">${r.p1}</div></div>
+    <div class="pen-row"><div class="pen-num n2">2</div><div class="pen-label">2회 경고</div><div class="pen-desc">${r.p2}</div></div>
+    <div class="pen-row"><div class="pen-num n3">3</div><div class="pen-label">3회 경고</div><div class="pen-desc">${r.p3}</div></div>`;
+}
+
+window.toggleRuleEdit = () => {
+  ruleEditMode = !ruleEditMode;
+  const r = ruleSettings;
+  document.getElementById('tier-view').style.display = ruleEditMode?'none':'grid';
+  document.getElementById('tier-edit').style.display = ruleEditMode?'block':'none';
+  document.getElementById('tournament-view').style.display = ruleEditMode?'none':'block';
+  document.getElementById('tournament-edit').style.display = ruleEditMode?'block':'none';
+  document.getElementById('penalty-view').style.display = ruleEditMode?'none':'block';
+  document.getElementById('penalty-edit').style.display = ruleEditMode?'block':'none';
+  document.getElementById('rule-edit-btn').textContent = ruleEditMode?'✕ 닫기':'✏️ 수정';
+  if(ruleEditMode){
+    // 티어 편집 grid 채우기
+    document.getElementById('tier-edit-grid').innerHTML = r.tiers.map((t,i)=>`
+      <div style="display:flex;gap:6px;align-items:center;">
+        <input class="inp" style="flex:1;" value="${t.name}" id="te-name-${i}" placeholder="티어명">
+        <input class="inp" style="width:64px;" type="number" value="${t.pts}" id="te-pts-${i}" placeholder="pt">
+        <span style="font-size:11px;color:var(--text-dim);">pt</span>
+      </div>`).join('');
+    document.getElementById('rule-semi').value = r.semi;
+    document.getElementById('rule-semi-note').value = r.semiNote;
+    document.getElementById('rule-final').value = r.final;
+    document.getElementById('rule-final-note').value = r.finalNote;
+    document.getElementById('rule-third').value = r.third;
+    document.getElementById('rule-third-note').value = r.thirdNote;
+    document.getElementById('rule-p1').value = r.p1;
+    document.getElementById('rule-p2').value = r.p2;
+    document.getElementById('rule-p3').value = r.p3;
+  }
+};
+
+window.saveRuleSettings = async () => {
+  const tiers = ruleSettings.tiers.map((t,i)=>({
+    name: document.getElementById(`te-name-${i}`).value.trim() || t.name,
+    pts: parseFloat(document.getElementById(`te-pts-${i}`).value) || t.pts
+  }));
+  const updated = {
+    tiers,
+    semi: document.getElementById('rule-semi').value,
+    semiNote: document.getElementById('rule-semi-note').value,
+    final: document.getElementById('rule-final').value,
+    finalNote: document.getElementById('rule-final-note').value,
+    third: document.getElementById('rule-third').value,
+    thirdNote: document.getElementById('rule-third-note').value,
+    p1: document.getElementById('rule-p1').value,
+    p2: document.getElementById('rule-p2').value,
+    p3: document.getElementById('rule-p3').value,
+  };
+  await setDoc(doc(db,'settings','rules'), updated);
+  ruleSettings = updated;
+  ruleEditMode = false;
+  renderRulePage();
+  document.getElementById('tier-view').style.display='grid';
+  document.getElementById('tier-edit').style.display='none';
+  document.getElementById('tournament-view').style.display='block';
+  document.getElementById('tournament-edit').style.display='none';
+  document.getElementById('penalty-view').style.display='block';
+  document.getElementById('penalty-edit').style.display='none';
+  document.getElementById('rule-edit-btn').textContent='✏️ 수정';
+  showToast('룰북이 저장됐습니다 ✅');
 };
 
 // ── 내전 시스템 ──
@@ -4416,13 +4438,6 @@ window.comboRecordGames = async (type) => {
 // ── APPLY ──
 async function loadApplyPage(){
   if(isAdmin) document.getElementById('apply-admin-card').style.display='block';
-  // 라인별 제한 인원 설정 로드
-  try {
-    const cfgSnap = await getDoc(doc(db,'settings','draftConfig'));
-    draftLineCap = (cfgSnap.exists() && cfgSnap.data().lineCap) || 4;
-    const capInp = document.getElementById('apply-line-cap-input');
-    if(capInp) capInp.value = draftLineCap;
-  } catch(e){ console.error('draftConfig load error:', e); }
   // 신청 기간 상태 확인
   try {
     const snap = await getDoc(doc(db,'settings','applyPeriod'));
@@ -4439,295 +4454,46 @@ async function loadApplyPage(){
         : '<div style="font-size:13px;color:var(--text-dim);">아직 신청하지 않았습니다.</div>';
       document.getElementById('apply-btn').textContent = applied ? '❌ 신청 취소' : '✋ 신청하기';
       document.getElementById('apply-btn').className = applied ? 'btn btn-ghost' : 'btn btn-red';
-      const lineSel = document.getElementById('apply-line-select');
-      if(lineSel){
-        lineSel.value = (mySnap.exists() && mySnap.data().line) || '';
-        lineSel.disabled = applied;
-      }
     }
   } catch(e){}
   // 신청자 목록
   loadApplicantList();
 }
 
-let applicantListCache = [];
-
 async function loadApplicantList(){
   try {
     const snap = await getDocs(query(collection(db,'applicants'), where('applied','==',true)));
-    const applicants = [];
-    snap.forEach(d=> applicants.push({...d.data(), uid: d.id}));
-    document.getElementById('apply-count').textContent = applicants.length+'명';
-    const usersSnap = await getDocs(collection(db,'users'));
-    const userMap = {};
-    usersSnap.forEach(d=> userMap[d.id] = d.data());
+    const uids = [];
+    snap.forEach(d=> uids.push(d.data()));
+    document.getElementById('apply-count').textContent = uids.length+'명';
     const el = document.getElementById('apply-list');
-    if(!applicants.length){
-      applicantListCache = [];
-      isCaptain = false;
-      el.innerHTML='<div class="empty-hint">신청자가 없습니다</div>';
-      renderApplyLineCounts();
-      if(isAdmin) renderAdminAddSelect(userMap);
-      return;
-    }
-    applicantListCache = applicants.map(a => ({...a, _live: userMap[a.uid]||{}}));
-    isCaptain = !!(currentUser && applicantListCache.some(u=>u.uid===currentUser.uid && u.captain));
-    renderApplicantList();
-    if(isAdmin) renderAdminAddSelect(userMap);
+    if(!uids.length){ el.innerHTML='<div class="empty-hint">신청자가 없습니다</div>'; return; }
+    el.innerHTML = uids.map((u,i)=>`
+      <div style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;margin-bottom:6px;">
+        <span style="font-size:12px;color:var(--text-dim);width:20px;">${i+1}</span>
+        <span style="flex:1;font-size:13px;font-weight:500;">${u.realname||u.nick} ${u.birthyear?u.birthyear+'년생 ':''}<span style="color:var(--text-mid);font-size:11px;">(${u.nick})</span></span>
+        <span class="tb t${u.tier}">${TIER_NAMES[u.tier]||u.tier}</span>
+        <span style="font-size:11px;">${posScoreBadge(u)||'<span style="color:var(--text-dim);">-</span>'}</span>
+      </div>`).join('');
   } catch(e){ console.error('loadApplicantList error:', e); }
 }
 
-function renderAdminAddSelect(userMap){
-  const sel = document.getElementById('apply-admin-add-uid');
-  if(!sel) return;
-  const appliedUids = new Set(applicantListCache.map(u=>u.uid));
-  const users = Object.entries(userMap)
-    .filter(([id,u]) => u.active && !appliedUids.has(id))
-    .map(([id,u]) => ({id, ...u}));
-  users.sort((a,b)=>(a.realname||a.nick||'').localeCompare(b.realname||b.nick||'','ko'));
-  const prev = sel.value;
-  sel.innerHTML = '<option value="">회원 선택</option>' + users.map(u=>`<option value="${u.id}">${u.realname||u.nick} (${u.nick})</option>`).join('');
-  if(prev && appliedUids.has(prev) === false && users.some(u=>u.id===prev)) sel.value = prev;
-}
-
-function renderApplyLineCounts(){
-  const el = document.getElementById('apply-line-counts');
-  if(!el) return;
-  const counts = {};
-  POS_LABELS.forEach(p=>counts[p]=0);
-  applicantListCache.forEach(u=>{ if(u.line && counts[u.line]!==undefined) counts[u.line]++; });
-  el.innerHTML = POS_LABELS.map(p=>{
-    const c = counts[p];
-    const full = c>=draftLineCap;
-    return `<span style="font-size:11px;padding:3px 8px;border-radius:6px;border:1px solid ${full?'#8a3030':'var(--border)'};background:${full?'#3a1515':'var(--bg3)'};color:${full?'#ff7777':'var(--text-dim)'};">${p} ${c}/${draftLineCap}${full?' 마감':''}</span>`;
-  }).join('');
-  // 드롭다운에도 마감된 라인은 바로 표시 + 선택 불가 처리
-  const sel = document.getElementById('apply-line-select');
-  if(sel){
-    POS_LABELS.forEach(p=>{
-      const opt = sel.querySelector(`option[value="${p}"]`);
-      if(!opt) return;
-      const full = counts[p] >= draftLineCap;
-      opt.disabled = full;
-      opt.textContent = full ? `${p} (마감)` : p;
-      if(full && !sel.disabled && sel.value===p) sel.value = '';
-    });
-  }
-}
-
-function renderApplicantList(){
-  renderApplyLineCounts();
-  const el = document.getElementById('apply-list');
-  if(!isAdmin && !isCaptain){
-    el.innerHTML = '<div class="empty-hint">팀장으로 지정되면 전체 신청자 목록을 볼 수 있어요.</div>';
-    return;
-  }
-  if(!applicantListCache.length){ el.innerHTML='<div class="empty-hint">신청자가 없습니다</div>'; return; }
-  const sorted = [...applicantListCache].sort((a,b)=>(b.captain?1:0)-(a.captain?1:0));
-  el.innerHTML = sorted.map((u,i)=>{
-    const live = u._live || {};
-    const champs = (live.topChampions||[]).slice(0,5);
-    const games = live.recentSoloMatches?.length||0;
-    const wins = live.recentSoloMatches?.filter(x=>x.win).length||0;
-    const wr = games>0 ? Math.round(wins/games*100) : null;
-    const wrColor = wr===null?'var(--text-dim)':wr>=60?'var(--green)':wr>=50?'var(--gold-light)':'#ff7070';
-    const laneEnabled = live.laneEnabled || {};
-    const mainLane = live.mainLane||'', subLane = live.subLane||'';
-    const laneBadges = POS_LABELS.map(pos=>{
-      const off = laneEnabled[pos]===false;
-      const role = pos===mainLane?'주':pos===subLane?'부':'';
-      return `<span style="font-size:10px;padding:2px 6px;border-radius:5px;border:1px solid ${off?'#334455':role?'#3a5a8a':'var(--border)'};background:${off?'transparent':role?'#1a2a4a':'var(--bg3)'};color:${off?'#556677':role?'#88bbff':'var(--text-dim)'};${off?'text-decoration:line-through;opacity:0.6;':''}">${pos}${role?` (${role})`:''}</span>`;
-    }).join('');
-    const champHtml = champs.length
-      ? `<div style="display:flex;gap:10px;margin-top:8px;flex-wrap:wrap;">${champs.map(c=>{
-          const imgSrc = c.id ? `https://ddragon.leagueoflegends.com/cdn/${ddVersion}/img/champion/${c.id}.png` : '';
-          return `<div style="text-align:center;">
-            ${imgSrc?`<img src="${imgSrc}" onerror="this.style.display='none'" style="width:42px;height:42px;border-radius:7px;border:1px solid var(--border);object-fit:cover;display:block;margin:0 auto 3px;">`:
-            `<div style="width:42px;height:42px;border-radius:7px;border:1px solid var(--border);background:var(--bg2);margin:0 auto 3px;"></div>`}
-            <div style="font-size:9px;color:var(--text-mid);max-width:50px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${c.name||''}</div>
-            <div style="font-size:9px;color:var(--gold-light);">${c.games}판</div>
-          </div>`;
-        }).join('')}</div>`
-      : `<div style="font-size:11px;color:var(--text-dim);margin-top:8px;">최근 챔피언 데이터 없음</div>`;
-    return `<div style="background:var(--bg3);border:1px solid ${u.captain?'#8a6a20':'var(--border)'};border-radius:8px;margin-bottom:8px;overflow:hidden;">
-      <div style="display:flex;align-items:center;gap:10px;padding:8px 12px;cursor:pointer;flex-wrap:wrap;" onclick="toggleApplyAccordion('${u.uid}')">
-        <span style="font-size:12px;color:var(--text-dim);width:20px;">${i+1}</span>
-        <span style="flex:1;font-size:13px;font-weight:500;min-width:120px;">${u.realname||u.nick} ${u.birthyear?u.birthyear+'년생 ':''}<span style="color:var(--text-mid);font-size:11px;">(${u.nick})</span></span>
-        ${u.line?`<span style="font-size:11px;background:#1a2a4a;color:#88bbff;border:1px solid #3a5a8a;padding:2px 7px;border-radius:6px;white-space:nowrap;">${u.line}</span>`:''}
-        ${u.captain?`<span style="font-size:11px;background:#3a2a0a;color:#f5c842;border:1px solid #8a6a20;padding:2px 7px;border-radius:6px;font-weight:700;white-space:nowrap;">👑 팀장 ${u.budget?u.budget+'pt':''}</span>`:''}
-        <span class="tb t${u.tier}">${TIER_NAMES[u.tier]||u.tier}</span>
-        ${isAdmin?`<button class="btn btn-ghost btn-sm" style="padding:3px 8px;font-size:11px;white-space:nowrap;" onclick="event.stopPropagation();toggleCaptain('${u.uid}')">${u.captain?'팀장 해제':'👑 팀장'}</button>`:''}
-        ${isAdmin?`<button class="btn btn-danger btn-sm" style="padding:3px 8px;font-size:11px;white-space:nowrap;" onclick="event.stopPropagation();adminRemoveApplicant('${u.uid}')">✕ 제외</button>`:''}
-        <span id="apply-acc-arrow-${u.uid}" style="font-size:11px;color:var(--text-dim);transition:transform 0.15s;display:inline-block;">▼</span>
-      </div>
-      <div id="apply-acc-${u.uid}" style="display:none;padding:0 12px 12px;border-top:1px solid var(--border);">
-        ${isAdmin && u.captain?`<div style="display:flex;align-items:center;gap:8px;margin-top:10px;" onclick="event.stopPropagation()">
-          <span style="font-size:12px;color:var(--text-dim);">경매 예산</span>
-          <input type="number" id="apply-budget-${u.uid}" class="inp" style="width:100px;" value="${u.budget||''}" placeholder="예: 1000">
-          <button class="btn btn-ghost btn-sm" style="padding:3px 10px;font-size:11px;" onclick="saveCaptainBudget('${u.uid}','apply-budget-${u.uid}')">저장</button>
-        </div>`:''}
-        <div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:8px;">${posScoreBadge(u)||'<span style="font-size:11px;color:var(--text-dim);">포지션 점수 없음</span>'}</div>
-        <div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:8px;">${laneBadges}</div>
-        ${champHtml}
-        ${wr!==null?`<div style="font-size:11px;color:var(--text-dim);margin-top:8px;">최근 솔랭 ${games}판 승률 <span style="color:${wrColor};font-weight:700;">${wr}%</span> (${wins}승${games-wins}패)</div>`:''}
-      </div>
-    </div>`;
-  }).join('');
-}
-
-window.toggleApplyAccordion = (uid) => {
-  const body = document.getElementById(`apply-acc-${uid}`);
-  const arrow = document.getElementById(`apply-acc-arrow-${uid}`);
-  if(!body) return;
-  const open = body.style.display !== 'none';
-  body.style.display = open ? 'none' : 'block';
-  if(arrow) arrow.style.transform = open ? '' : 'rotate(180deg)';
-};
-
-window.toggleCaptain = async (uid) => {
-  if(!isAdmin) return;
-  const item = applicantListCache.find(u=>u.uid===uid);
-  if(!item) return;
-  const newVal = !item.captain;
-  if(newVal){
-    const captainCount = applicantListCache.filter(u=>u.captain).length;
-    if(captainCount >= 4){ showToast('팀장은 최대 4명까지 지정할 수 있습니다'); return; }
-  }
-  await setDoc(doc(db,'applicants',uid), {captain:newVal}, {merge:true});
-  item.captain = newVal;
-  renderApplicantList();
-  showToast(newVal ? `${item.realname||item.nick} 팀장 지정됨` : '팀장 해제됨');
-};
-
-window.saveCaptainBudget = async (uid, inputId) => {
-  if(!isAdmin) return;
-  const inp = document.getElementById(inputId || `apply-budget-${uid}`);
-  const budget = parseInt(inp?.value || '0', 10);
-  if(isNaN(budget) || budget < 0){ showToast('올바른 예산을 입력해주세요'); return; }
-  const item = applicantListCache.find(u=>u.uid===uid);
-  await setDoc(doc(db,'applicants',uid), {budget}, {merge:true});
-  if(item) item.budget = budget;
-  showToast('예산이 저장됐습니다');
-};
-
-window.toggleAuctionTeamNameEdit = (slot) => {
-  const label = document.getElementById(`auction-team-name-${slot}`);
-  const wrap = document.getElementById(`auction-team-name-editwrap-${slot}`);
-  const inp = document.getElementById(`auction-team-name-input-${slot}`);
-  if(!label || !wrap) return;
-  const editing = wrap.style.display !== 'none';
-  if(editing){ wrap.style.display='none'; label.style.display='inline'; }
-  else { if(inp) inp.value = draftTeamNames[slot]; wrap.style.display='inline-flex'; label.style.display='none'; }
-};
-
-window.saveAuctionTeamName = async (slot) => {
-  await saveDraftTeamName(slot, `auction-team-name-input-${slot}`);
-  toggleAuctionTeamNameEdit(slot);
-};
-
-window.adminRemoveApplicant = async (uid) => {
-  if(!isAdmin) return;
-  const item = applicantListCache.find(u=>u.uid===uid);
-  if(!confirm(`${item?.realname||item?.nick||'해당 회원'}을(를) 신청자 목록에서 제외할까요?`)) return;
-  const myRef = doc(db,'applicants',uid);
-  try {
-    await runTransaction(db, async (tx) => {
-      const mySnap = await tx.get(myRef);
-      if(!mySnap.exists() || !mySnap.data().applied) return;
-      const myLine = mySnap.data().line;
-      let cntRef = null, cur = 0;
-      if(myLine){
-        cntRef = doc(db,'applyLineCounts',myLine);
-        const cntSnap = await tx.get(cntRef);
-        cur = cntSnap.exists() ? (cntSnap.data().count||0) : 0;
-      }
-      tx.set(myRef, {applied:false}, {merge:true});
-      if(cntRef) tx.set(cntRef, {count: Math.max(0,cur-1)}, {merge:true});
-    });
-    showToast('제외됐습니다');
-    loadApplyPage();
-  } catch(e){ console.error('adminRemoveApplicant error:', e); showToast('제외 중 오류가 발생했습니다'); }
-};
-
-window.adminAddApplicant = async () => {
-  if(!isAdmin) return;
-  const uid = document.getElementById('apply-admin-add-uid')?.value;
-  const line = document.getElementById('apply-admin-add-line')?.value;
-  if(!uid){ showToast('추가할 회원을 선택해주세요'); return; }
-  if(!line){ showToast('라인을 선택해주세요'); return; }
-  try {
-    const userSnap = await getDoc(doc(db,'users',uid));
-    if(!userSnap.exists()){ showToast('회원 정보를 찾을 수 없습니다'); return; }
-    const u = userSnap.data();
-    const myRef = doc(db,'applicants',uid);
-    await runTransaction(db, async (tx) => {
-      const mySnap = await tx.get(myRef);
-      if(mySnap.exists() && mySnap.data().applied) throw new Error('ALREADY_APPLIED');
-      const cntRef = doc(db,'applyLineCounts',line);
-      const cntSnap = await tx.get(cntRef);
-      const cur = cntSnap.exists() ? (cntSnap.data().count||0) : 0;
-      if(cur >= draftLineCap) throw new Error('LINE_FULL');
-      tx.set(cntRef, {count: cur+1}, {merge:true});
-      tx.set(myRef, {
-        applied:true, uid, line,
-        nick:u.nick, realname:u.realname||'', birthyear:u.birthyear||'', tier:u.tier,
-        scoreTop:u.scoreTop||0, scoreJungle:u.scoreJungle||0, scoreMid:u.scoreMid||0, scoreAdc:u.scoreAdc||0, scoreSupport:u.scoreSupport||0,
-        appliedAt: new Date().toISOString()
-      }, {merge:true});
-    });
-    showToast(`${u.realname||u.nick} 추가됐습니다`);
-    loadApplyPage();
-  } catch(e){
-    if(e.message==='ALREADY_APPLIED') showToast('이미 신청된 회원입니다');
-    else if(e.message==='LINE_FULL') showToast(`${line} 라인은 이미 ${draftLineCap}명이 신청해 마감되었습니다`);
-    else { console.error('adminAddApplicant error:', e); showToast('추가 중 오류가 발생했습니다'); }
-  }
-};
-
 window.toggleApply = async () => {
   if(!currentUser) return;
-  const myRef = doc(db,'applicants',currentUser.uid);
-  const mySnap = await getDoc(myRef);
+  const mySnap = await getDoc(doc(db,'applicants',currentUser.uid));
   const applied = mySnap.exists() && mySnap.data().applied;
   if(applied){
-    const myLine = mySnap.data().line;
-    try {
-      await runTransaction(db, async (tx) => {
-        let cntRef = null, cur = 0;
-        if(myLine){
-          cntRef = doc(db,'applyLineCounts',myLine);
-          const cntSnap = await tx.get(cntRef);
-          cur = cntSnap.exists() ? (cntSnap.data().count||0) : 0;
-        }
-        tx.set(myRef, {applied:false, uid:currentUser.uid}, {merge:true});
-        if(cntRef) tx.set(cntRef, {count: Math.max(0, cur-1)}, {merge:true});
-      });
-      showToast('신청이 취소됐습니다');
-    } catch(e){ console.error('toggleApply cancel error:', e); showToast('취소 중 오류가 발생했습니다'); return; }
+    await setDoc(doc(db,'applicants',currentUser.uid),{applied:false, uid:currentUser.uid});
+    showToast('신청이 취소됐습니다');
   } else {
-    const line = document.getElementById('apply-line-select')?.value || '';
-    if(!line){ showToast('라인을 선택해주세요'); return; }
-    try {
-      await runTransaction(db, async (tx) => {
-        const cntRef = doc(db,'applyLineCounts',line);
-        const cntSnap = await tx.get(cntRef);
-        const cur = cntSnap.exists() ? (cntSnap.data().count||0) : 0;
-        if(cur >= draftLineCap) throw new Error('LINE_FULL');
-        tx.set(cntRef, {count: cur+1}, {merge:true});
-        tx.set(myRef, {
-          applied:true, uid:currentUser.uid, line,
-          nick:currentProfile.nick, realname:currentProfile.realname||'',
-          birthyear:currentProfile.birthyear||'', tier:currentProfile.tier,
-          scoreTop:currentProfile.scoreTop||0, scoreJungle:currentProfile.scoreJungle||0, scoreMid:currentProfile.scoreMid||0, scoreAdc:currentProfile.scoreAdc||0, scoreSupport:currentProfile.scoreSupport||0,
-          appliedAt: new Date().toISOString()
-        }, {merge:true});
-      });
-      showToast('신청 완료! ✋');
-    } catch(e){
-      if(e.message==='LINE_FULL') showToast(`${line} 라인은 이미 ${draftLineCap}명이 신청해 마감되었습니다`);
-      else { console.error('toggleApply apply error:', e); showToast('신청 중 오류가 발생했습니다'); }
-      return;
-    }
+    await setDoc(doc(db,'applicants',currentUser.uid),{
+      applied:true, uid:currentUser.uid,
+      nick:currentProfile.nick, realname:currentProfile.realname||'',
+      birthyear:currentProfile.birthyear||'', tier:currentProfile.tier,
+      scoreTop:currentProfile.scoreTop||0, scoreJungle:currentProfile.scoreJungle||0, scoreMid:currentProfile.scoreMid||0, scoreAdc:currentProfile.scoreAdc||0, scoreSupport:currentProfile.scoreSupport||0,
+      appliedAt: new Date().toISOString()
+    });
+    showToast('신청 완료! ✋');
   }
   loadApplyPage();
 };
@@ -4740,76 +4506,17 @@ window.closeApplyPeriod = async () => {
   await setDoc(doc(db,'settings','applyPeriod'),{isOpen:false});
   showToast('신청 기간이 닫혔습니다 🔴'); loadApplyPage();
 };
-window.saveDraftLineCap = async () => {
-  if(!isAdmin) return;
-  const inp = document.getElementById('apply-line-cap-input');
-  const cap = parseInt(inp?.value || '0', 10);
-  if(isNaN(cap) || cap < 1){ showToast('올바른 인원 수를 입력해주세요'); return; }
-  await setDoc(doc(db,'settings','draftConfig'), {lineCap:cap});
-  draftLineCap = cap;
-  showToast(`라인당 ${cap}명으로 설정됐습니다 (총 ${cap*5}명)`);
-  renderApplyLineCounts();
-};
 window.clearApplicants = async () => {
   if(!confirm('신청자 목록을 모두 초기화할까요?')) return;
   const snap = await getDocs(collection(db,'applicants'));
   for(const d of snap.docs) await deleteDoc(doc(db,'applicants',d.id));
-  for(const line of POS_LABELS) await setDoc(doc(db,'applyLineCounts',line), {count:0});
   draftPlayers = [];
-  draftLocs = {};
-  await setDoc(doc(db,'draftArrange','current'), { locs:{}, updatedAt:new Date().toISOString() });
   renderDraft();
   showToast('초기화됐습니다'); loadApplyPage();
 };
 
 // ── DRAFT ──
-let draftPlayers = [], draftDragName = null, draftLocs = {}, draftUnsub = null, draftApplyingRemote = false;
-
-function loadDraftPage(){
-  ensureDraftTeamNamesListener();
-  renderDraftTeamHeaders();
-  document.querySelectorAll('.draft-team-edit-btn').forEach(b=>{ b.style.display = isAdmin ? 'inline' : 'none'; });
-  document.getElementById('bracket-admin-card').style.display = isAdmin ? 'block' : 'none';
-  if(isAdmin) renderBracketTeamPicker();
-  bracketListen();
-}
-
-window.toggleDraftTeamEdit = (slot) => {
-  const label = document.getElementById(`draft-team-label-${slot}`);
-  const wrap = document.getElementById(`draft-team-editwrap-${slot}`);
-  const inp = document.getElementById(`draft-team-input-${slot}`);
-  if(!label || !wrap) return;
-  const editing = wrap.style.display !== 'none';
-  if(editing){ wrap.style.display='none'; label.style.display='inline'; }
-  else { if(inp) inp.value = draftTeamNames[slot]; wrap.style.display='inline-flex'; label.style.display='none'; }
-};
-
-window.saveDraftTeamNameInline = async (slot) => {
-  await saveDraftTeamName(slot, `draft-team-input-${slot}`);
-  toggleDraftTeamEdit(slot);
-};
-
-function applyDraftLocs(){
-  draftPlayers.forEach(p => { p.loc = draftLocs[p.id] || 'pool'; });
-}
-
-function draftListen(){
-  if(draftUnsub) return;
-  draftUnsub = onSnapshot(doc(db,'draftArrange','current'), snap => {
-    draftLocs = (snap.exists() && snap.data().locs) || {};
-    if(!draftPlayers.length) return;
-    draftApplyingRemote = true;
-    applyDraftLocs();
-    renderDraft();
-    draftApplyingRemote = false;
-  }, ()=>{});
-}
-
-async function draftSaveLoc(uid, zone){
-  if(draftApplyingRemote) return;
-  try { await setDoc(doc(db,'draftArrange','current'), { locs:{ [uid]: zone }, updatedAt:new Date().toISOString() }, {merge:true}); }
-  catch(e){ console.error('draftSaveLoc error:', e); }
-}
+let draftPlayers = [], draftDragName = null;
 
 window.loadDraftMembers = async () => {
   const applySnap = await getDocs(query(collection(db,'applicants'), where('applied','==',true)));
@@ -4828,12 +4535,6 @@ window.loadDraftMembers = async () => {
     .map(u => ({...u, loc:'pool'}));
   newPlayers.sort((a,b)=>(TIER_PTS_MAP[b.tier]||0)-(TIER_PTS_MAP[a.tier]||0));
   draftPlayers = [...draftPlayers, ...newPlayers];
-  try {
-    const arrangeSnap = await getDoc(doc(db,'draftArrange','current'));
-    draftLocs = (arrangeSnap.exists() && arrangeSnap.data().locs) || {};
-  } catch(e){ draftLocs = {}; }
-  applyDraftLocs();
-  draftListen();
   renderDraft();
   showToast(newPlayers.length ? `신규 ${newPlayers.length}명 추가됐습니다` : '최신 상태로 동기화됐습니다');
 };
@@ -4854,15 +4555,15 @@ function renderDraft(){
 function draftCard(p){
   const pts = TIER_PTS_MAP[p.tier]||3;
   return `<div draggable="true" ondragstart="draftDragStart('${p.id}')" ondragend="draftDragEnd(this)" ontouchstart="draftTouchStart(event,'${p.id}')"
-    style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px 12px;cursor:grab;user-select:none;display:flex;flex-direction:column;gap:5px;width:168px;flex-shrink:0;transition:all 0.15s;"
+    style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px 12px;cursor:grab;user-select:none;display:flex;flex-direction:column;gap:4px;width:110px;flex-shrink:0;transition:all 0.15s;overflow:hidden;"
     onmouseover="this.style.borderColor='#8a3030'" onmouseout="this.style.borderColor='var(--border)'">
-    <div style="font-size:13px;font-weight:500;line-height:1.3;word-break:break-word;">${p.realname||p.nick}</div>
-    <div style="font-size:10px;color:var(--text-dim);line-height:1.3;word-break:break-word;">${p.birthyear?p.birthyear+'년생 ':''}<span style="color:var(--text-mid);">(${p.nick})</span></div>
-    <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;">
+    <div style="font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${p.realname||p.nick}</div>
+    <div style="font-size:10px;color:var(--text-dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${p.birthyear?p.birthyear+'년생 ':''}<span style="color:var(--text-mid);">(${p.nick})</span></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;">
       ${tierBadges(p.tier, p.currentTier, '10px', p.currentRank, p.currentLP)}
-      <span style="font-size:11px;color:var(--gold-light);font-weight:700;white-space:nowrap;">${pts}pt</span>
+      <span style="font-size:11px;color:var(--gold-light);font-weight:700;">${pts}pt</span>
     </div>
-    ${(()=>{const b=posScoreBadge(p);return b?`<div style="font-size:10px;display:flex;flex-wrap:wrap;gap:3px;">${b}</div>`:''})()}
+    ${(()=>{const b=posScoreBadge(p);return b?`<div style="font-size:10px;">${b}</div>`:''})()}
   </div>`;
 }
 
@@ -4879,7 +4580,7 @@ window.onDrop = (e, zone) => {
     if(cnt>=5){ showToast('팀이 가득 찼습니다 (5명)'); return; }
   }
   const p = draftPlayers.find(pl=>pl.id===draftDragName);
-  if(p){ p.loc = zone; draftLocs[p.id] = zone; draftSaveLoc(p.id, zone); }
+  if(p) p.loc = zone;
   draftDragName = null;
   renderDraft();
 };
@@ -4921,662 +4622,13 @@ window.draftTouchStart = (e, id) => {
         if(cnt>=5){ showToast('팀이 가득 찼습니다 (5명)'); draftTouch=null; return; }
       }
       const p=draftPlayers.find(pl=>pl.id===draftTouch);
-      if(p){ p.loc=zone; draftLocs[p.id]=zone; draftSaveLoc(p.id, zone); renderDraft(); }
+      if(p){ p.loc=zone; renderDraft(); }
     }
     draftTouch=null;
   };
   src.addEventListener('touchmove', onMove, { passive:false });
   src.addEventListener('touchend', onEnd);
 };
-
-// ── 대진표 (토너먼트 / 리그전) ──
-let bracketCache = null, bracketUnsub = null, bracketModeSelected = 'tournament';
-
-function bracketListen(){
-  if(bracketUnsub) return;
-  bracketUnsub = onSnapshot(doc(db,'draftBracket','current'), snap => {
-    bracketCache = snap.exists() ? snap.data() : null;
-    if(bracketCache) bracketModeSelected = bracketCache.mode;
-    renderBracketPage();
-  }, ()=>{});
-}
-
-function renderBracketTeamPicker(){
-  const el = document.getElementById('bracket-team-picker');
-  if(!el) return;
-  el.innerHTML = DRAFT_TEAM_SLOTS.map(slot=>`
-    <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:${DRAFT_TEAM_COLOR[slot]};cursor:pointer;">
-      <input type="checkbox" class="bracket-team-cb" value="${slot}" checked> ${escapeHtml(draftTeamNames[slot])}
-    </label>`).join('');
-}
-
-window.setBracketMode = (mode) => {
-  bracketModeSelected = mode;
-  const tb = document.getElementById('bracket-mode-tournament'), lb = document.getElementById('bracket-mode-league');
-  if(tb) tb.className = mode==='tournament' ? 'btn btn-red btn-sm' : 'btn btn-ghost btn-sm';
-  if(lb) lb.className = mode==='league' ? 'btn btn-red btn-sm' : 'btn btn-ghost btn-sm';
-};
-
-function buildTournamentMatches(slots){
-  if(slots.length===2) return [{id:'final',round:'final',label:'결승',teamA:slots[0],teamB:slots[1],winner:null,date:'',time:''}];
-  if(slots.length===3) return [
-    {id:'sf1',round:'semi',label:'준결승',teamA:slots[0],teamB:slots[1],winner:null,date:'',time:''},
-    {id:'final',round:'final',label:'결승 (부전승: '+draftTeamNames[slots[2]]+')',teamA:null,teamB:slots[2],winner:null,date:'',time:''}
-  ];
-  return [
-    {id:'sf1',round:'semi',label:'4강 A',teamA:slots[0],teamB:slots[1],winner:null,date:'',time:''},
-    {id:'sf2',round:'semi',label:'4강 B',teamA:slots[2],teamB:slots[3],winner:null,date:'',time:''},
-    {id:'final',round:'final',label:'결승',teamA:null,teamB:null,winner:null,date:'',time:''},
-    {id:'3rd',round:'3rd',label:'3·4위전',teamA:null,teamB:null,winner:null,date:'',time:''}
-  ];
-}
-
-function buildLeagueMatches(slots){
-  const matches = [];
-  for(let i=0;i<slots.length;i++) for(let j=i+1;j<slots.length;j++)
-    matches.push({id:`rr-${slots[i]}-${slots[j]}`, round:'league', label:'', teamA:slots[i], teamB:slots[j], winner:null, date:'', time:''});
-  return matches;
-}
-
-window.generateBracket = async () => {
-  if(!isAdmin) return;
-  const checked = Array.from(document.querySelectorAll('.bracket-team-cb:checked')).map(cb=>cb.value);
-  if(checked.length < 2){ showToast('최소 2팀을 선택해주세요'); return; }
-  if(checked.length > 4){ showToast('최대 4팀까지 선택 가능합니다'); return; }
-  if(!confirm('대진표를 새로 생성할까요? 기존 대진표는 초기화됩니다.')) return;
-  const matches = bracketModeSelected==='tournament' ? buildTournamentMatches(checked) : buildLeagueMatches(checked);
-  try {
-    await setDoc(doc(db,'draftBracket','current'), { mode:bracketModeSelected, teamSlots:checked, matches, updatedAt:new Date().toISOString() });
-    showToast('대진표가 생성됐습니다');
-  } catch(e){ console.error('generateBracket error:', e); showToast('생성 중 오류가 발생했습니다'); }
-};
-
-function propagateTournamentWinner(matches, matchId){
-  const m = matches.find(x=>x.id===matchId);
-  if(!m || !m.winner) return;
-  const loserSlot = m.teamA===m.winner ? m.teamB : m.teamA;
-  const apply = (targetId, field, value) => {
-    const t = matches.find(x=>x.id===targetId);
-    if(!t) return;
-    t[field] = value;
-    if(t.winner && t.winner!==t.teamA && t.winner!==t.teamB) t.winner = null;
-  };
-  if(matchId==='sf1'){ apply('final','teamA',m.winner); apply('3rd','teamA',loserSlot); }
-  if(matchId==='sf2'){ apply('final','teamB',m.winner); apply('3rd','teamB',loserSlot); }
-}
-
-window.setBracketWinner = async (matchId, slot) => {
-  if(!isAdmin || !bracketCache) return;
-  const matches = bracketCache.matches.map(m=>({...m}));
-  const m = matches.find(x=>x.id===matchId);
-  if(!m || !m.teamA || !m.teamB) return;
-  m.winner = (m.winner===slot) ? null : slot;
-  if(bracketCache.mode==='tournament') propagateTournamentWinner(matches, matchId);
-  try { await setDoc(doc(db,'draftBracket','current'), {...bracketCache, matches, updatedAt:new Date().toISOString()}); }
-  catch(e){ console.error('setBracketWinner error:', e); showToast('저장 중 오류가 발생했습니다'); }
-};
-
-window.setBracketSchedule = async (matchId, field, value) => {
-  if(!isAdmin || !bracketCache) return;
-  const matches = bracketCache.matches.map(m=> m.id===matchId ? {...m, [field]:value} : m);
-  try { await setDoc(doc(db,'draftBracket','current'), {...bracketCache, matches, updatedAt:new Date().toISOString()}); }
-  catch(e){ console.error('setBracketSchedule error:', e); }
-};
-
-function computeStandings(data){
-  const leagueMatches = data.matches.filter(m=>m.round==='league');
-  const wins = {}, played = {};
-  data.teamSlots.forEach(s=>{ wins[s]=0; played[s]=0; });
-  leagueMatches.forEach(m=>{
-    played[m.teamA] = (played[m.teamA]||0)+(m.winner?1:0);
-    played[m.teamB] = (played[m.teamB]||0)+(m.winner?1:0);
-    if(m.winner) wins[m.winner] = (wins[m.winner]||0)+1;
-  });
-  const arr = data.teamSlots.map(s=>({slot:s, wins:wins[s]||0, played:played[s]||0, losses:(played[s]||0)-(wins[s]||0)}));
-  arr.sort((a,b)=>{
-    if(b.wins!==a.wins) return b.wins-a.wins;
-    const h2h = leagueMatches.find(m=>(m.teamA===a.slot&&m.teamB===b.slot)||(m.teamA===b.slot&&m.teamB===a.slot));
-    if(h2h && h2h.winner) return h2h.winner===a.slot ? -1 : 1;
-    return 0;
-  });
-  return arr;
-}
-
-window.generateLeaguePlayoff = async () => {
-  if(!isAdmin || !bracketCache) return;
-  const standings = computeStandings(bracketCache);
-  const matches = [...bracketCache.matches];
-  if(!matches.some(m=>m.id==='playoff-final')){
-    matches.push({id:'playoff-final', round:'playoff-final', label:'결승', teamA:standings[0]?.slot||null, teamB:standings[1]?.slot||null, winner:null, date:'', time:''});
-  }
-  if(standings.length>=4 && !matches.some(m=>m.id==='playoff-3rd')){
-    matches.push({id:'playoff-3rd', round:'playoff-3rd', label:'3·4위전', teamA:standings[2]?.slot||null, teamB:standings[3]?.slot||null, winner:null, date:'', time:''});
-  }
-  try { await setDoc(doc(db,'draftBracket','current'), {...bracketCache, matches, updatedAt:new Date().toISOString()}); showToast('플레이오프가 생성됐습니다'); }
-  catch(e){ console.error('generateLeaguePlayoff error:', e); showToast('생성 중 오류가 발생했습니다'); }
-};
-
-function bracketMatchBox(m){
-  const teamHtml = (slot) => slot ? `<span style="color:${DRAFT_TEAM_COLOR[slot]};font-weight:700;">${escapeHtml(draftTeamNames[slot])}</span>` : '<span style="color:var(--text-dim);">TBD</span>';
-  const canPick = isAdmin && m.teamA && m.teamB;
-  const pickHtml = (slot) => {
-    if(!slot) return '';
-    if(canPick) return `<button class="btn btn-ghost btn-sm" style="padding:2px 8px;font-size:10px;${m.winner===slot?'border-color:var(--gold-light);color:var(--gold-light);':''}" onclick="setBracketWinner('${m.id}','${slot}')">${m.winner===slot?'✅ 승':'선택'}</button>`;
-    return m.winner===slot ? '<span style="font-size:10px;color:var(--gold-light);font-weight:700;">✅ 승</span>' : '';
-  };
-  const scheduleHtml = isAdmin
-    ? `<div style="display:flex;gap:4px;margin-top:4px;">
-        <input type="date" class="inp" style="flex:1;font-size:10px;padding:3px 5px;" value="${m.date||''}" onchange="setBracketSchedule('${m.id}','date',this.value)">
-        <input type="time" class="inp" style="flex:1;font-size:10px;padding:3px 5px;" value="${m.time||''}" onchange="setBracketSchedule('${m.id}','time',this.value)">
-      </div>`
-    : (m.date||m.time ? `<div style="font-size:10px;color:var(--text-dim);">${m.date||''} ${m.time||''}</div>` : '');
-  return `<div style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px 12px;display:flex;flex-direction:column;gap:6px;min-width:160px;">
-    ${m.label?`<div style="font-size:11px;color:var(--text-dim);">${escapeHtml(m.label)}</div>`:''}
-    <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;">${teamHtml(m.teamA)}${pickHtml(m.teamA)}</div>
-    <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;">${teamHtml(m.teamB)}${pickHtml(m.teamB)}</div>
-    ${scheduleHtml}
-  </div>`;
-}
-
-function renderTournamentBracket(data){
-  const rounds = [{key:'semi',label:'4강'},{key:'final',label:'결승'},{key:'3rd',label:'3·4위전'}];
-  const cols = rounds.map(r=>{
-    const ms = data.matches.filter(m=>m.round===r.key);
-    if(!ms.length) return '';
-    return `<div style="display:flex;flex-direction:column;gap:12px;">
-      <div style="font-size:12px;color:var(--text-dim);text-align:center;font-family:'Black Han Sans',sans-serif;letter-spacing:1px;">${r.label}</div>
-      ${ms.map(m=>bracketMatchBox(m)).join('')}
-    </div>`;
-  }).join('');
-  return `<div style="display:flex;gap:20px;overflow-x:auto;padding:4px 0;">${cols}</div>`;
-}
-
-function renderLeagueBracket(data){
-  const standings = computeStandings(data);
-  const standingsHtml = `<table class="tbl" style="margin-bottom:16px;">
-    <tr><th>순위</th><th>팀</th><th>승</th><th>패</th></tr>
-    ${standings.map((s,i)=>`<tr><td>${i+1}</td><td style="color:${DRAFT_TEAM_COLOR[s.slot]};font-weight:700;">${escapeHtml(draftTeamNames[s.slot])}</td><td>${s.wins}</td><td>${s.losses}</td></tr>`).join('')}
-  </table>`;
-  const leagueMatches = data.matches.filter(m=>m.round==='league');
-  const playoffMatches = data.matches.filter(m=>m.round!=='league');
-  const matchesHtml = `<div style="font-size:12px;color:var(--text-dim);margin-bottom:8px;">조별 경기</div>
-    <div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:16px;">${leagueMatches.map(m=>bracketMatchBox(m)).join('')}</div>`;
-  const allDone = leagueMatches.length>0 && leagueMatches.every(m=>m.winner);
-  const playoffHtml = playoffMatches.length
-    ? `<div style="font-size:12px;color:var(--text-dim);margin-bottom:8px;">플레이오프</div><div style="display:flex;gap:10px;flex-wrap:wrap;">${playoffMatches.map(m=>bracketMatchBox(m)).join('')}</div>`
-    : (isAdmin && allDone ? `<button class="btn btn-ghost btn-sm" onclick="generateLeaguePlayoff()">🏆 플레이오프 생성 (결승 · 3·4위전)</button>` : '');
-  return standingsHtml + matchesHtml + playoffHtml;
-}
-
-function renderBracketPage(){
-  const viewEl = document.getElementById('bracket-view');
-  if(!viewEl) return;
-  if(!bracketCache){ viewEl.style.display = 'none'; return; }
-  viewEl.style.display = 'block';
-  viewEl.innerHTML = bracketCache.mode==='tournament' ? renderTournamentBracket(bracketCache) : renderLeagueBracket(bracketCache);
-}
-
-// ── AUCTION ──
-let auctionStateUnsub = null, auctionTeamsUnsub = null;
-let auctionStateCache = null, auctionTeamsCache = [];
-
-async function loadAuctionPage(){
-  ensureDraftTeamNamesListener();
-  document.getElementById('auction-admin-card').style.display = isAdmin ? 'block' : 'none';
-  if(isAdmin) await renderAuctionCaptainSetup();
-  if(!auctionStateUnsub){
-    auctionStateUnsub = onSnapshot(doc(db,'auctionState','current'), snap => {
-      auctionStateCache = snap.exists() ? snap.data() : null;
-      renderAuctionView();
-    }, ()=>{});
-  }
-  if(!auctionTeamsUnsub){
-    auctionTeamsUnsub = onSnapshot(collection(db,'auctionTeams'), snap => {
-      auctionTeamsCache = [];
-      snap.forEach(d=> auctionTeamsCache.push({...d.data(), id:d.id}));
-      renderAuctionView();
-    }, ()=>{});
-  }
-  auctionStartTicker();
-}
-
-let auctionTimerInterval = null, auctionTimeoutHandledFor = null;
-
-function auctionStartTicker(){
-  if(auctionTimerInterval) return;
-  auctionTimerInterval = setInterval(()=>{
-    const state = auctionStateCache;
-    const timerEl = document.getElementById('auction-timer');
-    if(!state || !state.nominee || !state.deadline){ if(timerEl) timerEl.textContent=''; return; }
-    const remainingMs = Math.max(0, new Date(state.deadline).getTime() - Date.now());
-    const remaining = Math.ceil(remainingMs/1000);
-    if(timerEl) timerEl.textContent = `⏱ ${(remainingMs/1000).toFixed(1)}`;
-    if(remaining <= 0){
-      const key = state.nominee.uid + '|' + state.deadline;
-      if(auctionTimeoutHandledFor !== key){
-        auctionTimeoutHandledFor = key;
-        auctionResolveTimeout();
-      }
-    }
-  }, 200);
-}
-
-async function auctionResolveTimeout(){
-  const stateRef = doc(db,'auctionState','current');
-  try {
-    await runTransaction(db, async (tx) => {
-      const stateSnap = await tx.get(stateRef);
-      if(!stateSnap.exists()) return;
-      const state = stateSnap.data();
-      if(!state.nominee) return;
-      const stateUpdate = { nominee:null, currentBid:0, currentBidderUid:null, currentBidderNick:null, deadline:null, updatedAt:new Date().toISOString() };
-      if(state.currentBidderUid){
-        const teamRef = doc(db,'auctionTeams',state.currentBidderUid);
-        const teamSnap = await tx.get(teamRef);
-        const team = teamSnap.exists() ? teamSnap.data() : null;
-        const price = state.currentBid;
-        if(team && price <= team.remaining){
-          const roster = [...(team.roster||[]), {...state.nominee, price}];
-          tx.update(teamRef, { remaining: team.remaining - price, roster });
-        } else {
-          // 입찰자가 있었지만 예산 검증에 실패한 비정상 상황 — 유찰로 간주해 순서 맨 뒤로 재편입
-          stateUpdate.order = [...(state.order||[]), state.nominee];
-        }
-      } else {
-        // 입찰자 없이 시간 종료 — 유찰, 순서 맨 뒤로 재편입해 나중에 다시 경매
-        stateUpdate.order = [...(state.order||[]), state.nominee];
-      }
-      tx.update(stateRef, stateUpdate);
-    });
-  } catch(e){ console.error('auctionResolveTimeout error:', e); }
-}
-
-async function renderAuctionCaptainSetup(){
-  const el = document.getElementById('auction-captain-setup');
-  if(!el) return;
-  try {
-    const snap = await getDocs(query(collection(db,'applicants'), where('applied','==',true), where('captain','==',true)));
-    const captains = [];
-    snap.forEach(d=> captains.push({...d.data(), uid:d.id}));
-    if(!captains.length){ el.innerHTML = '<div style="font-size:12px;color:var(--text-dim);">신청자 목록에서 팀장을 먼저 지정해주세요.</div>'; return; }
-    const colors = ['#cc3030','#d07030','#40a060','#8050c0'];
-    el.innerHTML = `<div style="display:flex;flex-direction:column;gap:8px;">${captains.map((c,i)=>{
-      const color = colors[i%4];
-      const initial = (c.realname||c.nick||'?').trim().charAt(0) || '?';
-      return `
-      <div style="display:flex;align-items:center;gap:10px;background:var(--bg2);border:1px solid ${color}55;border-radius:9px;padding:8px 12px;">
-        <div style="width:30px;height:30px;border-radius:50%;background:radial-gradient(circle at 35% 30%, ${color}55, ${color}22);border:2px solid ${color};display:flex;align-items:center;justify-content:center;font-family:'Black Han Sans',sans-serif;font-size:13px;color:${color};flex-shrink:0;">${initial}</div>
-        <span style="flex:1;font-size:13px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${c.realname||c.nick}</span>
-        <input type="number" id="auction-budget-${c.uid}" class="inp" style="width:100px;" value="${c.budget||''}" placeholder="예산">
-        <button class="btn btn-ghost btn-sm" style="padding:3px 10px;font-size:11px;" onclick="saveCaptainBudget('${c.uid}','auction-budget-${c.uid}')">저장</button>
-      </div>`;
-    }).join('')}</div>`;
-  } catch(e){ console.error('renderAuctionCaptainSetup error:', e); }
-}
-
-window.auctionStart = async () => {
-  if(!isAdmin) return;
-  try {
-    const appSnap = await getDocs(query(collection(db,'applicants'), where('applied','==',true)));
-    const all = [];
-    appSnap.forEach(d=> all.push({...d.data(), uid: d.id}));
-    const captains = all.filter(u=>u.captain);
-    if(!captains.length){ showToast('팀장을 먼저 지정해주세요'); return; }
-    if(captains.length > 4){ showToast('팀장은 최대 4명입니다'); return; }
-    const missingBudget = captains.find(c=>!c.budget || c.budget<=0);
-    if(missingBudget){ showToast(`${missingBudget.realname||missingBudget.nick} 팀장의 예산을 설정해주세요`); return; }
-    const pool = all.filter(u=>!u.captain).map(u=>({
-      uid:u.uid, nick:u.nick, realname:u.realname||'', birthyear:u.birthyear||'', tier:u.tier, line:u.line||'',
-      scoreTop:u.scoreTop||0, scoreJungle:u.scoreJungle||0, scoreMid:u.scoreMid||0, scoreAdc:u.scoreAdc||0, scoreSupport:u.scoreSupport||0
-    }));
-    if(!pool.length){ showToast('경매에 올릴 선수가 없습니다'); return; }
-    // 경매 시작 시 전체 순서를 한 번만 랜덤으로 섞어서 고정 — 화면에 전체 순서도를 미리 보여주기 위함
-    for(let i=pool.length-1; i>0; i--){
-      const j = Math.floor(Math.random()*(i+1));
-      [pool[i], pool[j]] = [pool[j], pool[i]];
-    }
-    const batch = writeBatch(db);
-    for(const c of captains){
-      batch.set(doc(db,'auctionTeams',c.uid), {
-        captainUid:c.uid, nick:c.nick, realname:c.realname||'', captainLine:c.line||'', budget:c.budget, remaining:c.budget, roster:[]
-      });
-    }
-    batch.set(doc(db,'auctionState','current'), {
-      status:'running', order:pool, nextIndex:0, nominee:null,
-      currentBid:0, currentBidderUid:null, currentBidderNick:null,
-      updatedAt:new Date().toISOString()
-    });
-    await batch.commit();
-    showToast('경매가 시작되었습니다! 다음 선수를 뽑아주세요');
-  } catch(e){ console.error('auctionStart error:', e); showToast('경매 시작 중 오류가 발생했습니다'); }
-};
-
-async function auctionDrawOne(){
-  const stateRef = doc(db,'auctionState','current');
-  return await runTransaction(db, async (tx) => {
-    const snap = await tx.get(stateRef);
-    if(!snap.exists()) throw new Error('NOT_STARTED');
-    const data = snap.data();
-    if(data.nominee) throw new Error('NOMINEE_EXISTS');
-    const order = data.order || [];
-    const nextIndex = data.nextIndex || 0;
-    if(nextIndex >= order.length) throw new Error('POOL_EMPTY');
-    const nominee = order[nextIndex];
-
-    // 해당 라인이 비어있는 팀이 단 하나뿐이면 경매 없이 그 팀으로 자동 배정
-    const teamRefs = auctionTeamsCache.map(t=>doc(db,'auctionTeams',t.captainUid));
-    const teamSnaps = await Promise.all(teamRefs.map(r=>tx.get(r)));
-    const teams = teamSnaps.filter(s=>s.exists()).map(s=>({ref:s.ref, ...s.data()}));
-    const eligible = nominee.line ? teams.filter(t => t.captainLine!==nominee.line && !(t.roster||[]).some(p=>p.line===nominee.line)) : [];
-
-    if(nominee.line && eligible.length===1){
-      const team = eligible[0];
-      const roster = [...(team.roster||[]), {...nominee, price:0, auto:true}];
-      tx.update(team.ref, { roster });
-      tx.update(stateRef, { nextIndex:nextIndex+1, nominee:null, currentBid:0, currentBidderUid:null, currentBidderNick:null, deadline:null, bidLog:[], updatedAt:new Date().toISOString() });
-      return { auto:true, nominee, teamName: team.realname||team.nick };
-    }
-    tx.update(stateRef, { nextIndex:nextIndex+1, nominee, currentBid:0, currentBidderUid:null, currentBidderNick:null, deadline:new Date(Date.now()+AUCTION_ROUND_SECONDS*1000).toISOString(), bidLog:[], updatedAt:new Date().toISOString() });
-    return { auto:false, nominee };
-  });
-}
-
-window.auctionNext = async () => {
-  if(!isAdmin) return;
-  const autoAssigned = [];
-  try {
-    let result = await auctionDrawOne();
-    const guardMax = (auctionStateCache?.order?.length || 0) + 5;
-    let guard = 0;
-    while(result.auto && guard < guardMax){
-      autoAssigned.push(`${result.nominee.realname||result.nominee.nick}→${result.teamName}`);
-      result = await auctionDrawOne();
-      guard++;
-    }
-    if(autoAssigned.length) showToast(`🔁 자동 배정: ${autoAssigned.join(', ')}`);
-  } catch(e){
-    if(e.message==='POOL_EMPTY'){
-      showToast(autoAssigned.length ? `🔁 자동 배정: ${autoAssigned.join(', ')} · 남은 선수 없음` : '남은 선수가 없습니다. 경매를 종료하세요');
-    }
-    else if(e.message==='NOT_STARTED') showToast('먼저 경매를 시작해주세요');
-    else if(e.message==='NOMINEE_EXISTS') showToast('현재 선수를 먼저 낙찰/유찰 처리하세요');
-    else { console.error('auctionNext error:', e); showToast('오류가 발생했습니다'); }
-  }
-};
-
-async function auctionPlaceBid(amount){
-  if(!currentUser) return;
-  const myTeam = auctionTeamsCache.find(t=>t.captainUid===currentUser.uid);
-  if(!myTeam){ showToast('팀장만 입찰할 수 있습니다'); return; }
-  if(isNaN(amount) || amount<=0){ showToast('올바른 금액을 입력해주세요'); return; }
-  const stateRef = doc(db,'auctionState','current');
-  const teamRef = doc(db,'auctionTeams',currentUser.uid);
-  try {
-    await runTransaction(db, async (tx) => {
-      const stateSnap = await tx.get(stateRef);
-      if(!stateSnap.exists() || !stateSnap.data().nominee) throw new Error('NO_NOMINEE');
-      const state = stateSnap.data();
-      if(amount <= (state.currentBid||0)) throw new Error('TOO_LOW');
-      const teamSnap = await tx.get(teamRef);
-      const team = teamSnap.exists() ? teamSnap.data() : null;
-      const remaining = team ? team.remaining : 0;
-      if(amount > remaining) throw new Error('OVER_BUDGET');
-      if(state.nominee.line && team && (team.captainLine===state.nominee.line || (team.roster||[]).some(p=>p.line===state.nominee.line))) throw new Error('LINE_FILLED');
-      const logEntry = { teamNick: myTeam.nick, amount, ts: Date.now() };
-      const bidLog = [...(state.bidLog||[]), logEntry].slice(-30);
-      // 입찰이 들어올 때마다 제한시간 +5초 연장(막판 스나이핑 방지), 남은시간은 AUCTION_ROUND_SECONDS(30초)를 넘지 않도록 캡
-      const curDeadline = Math.max(new Date(state.deadline||0).getTime(), Date.now());
-      const extended = curDeadline + AUCTION_EXTEND_SECONDS*1000;
-      const capped = Math.min(extended, Date.now() + AUCTION_ROUND_SECONDS*1000);
-      const deadline = new Date(capped).toISOString();
-      tx.update(stateRef, { currentBid:amount, currentBidderUid:currentUser.uid, currentBidderNick: myTeam.nick, bidLog, deadline, updatedAt:new Date().toISOString() });
-    });
-  } catch(e){
-    if(e.message==='NO_NOMINEE') showToast('현재 경매 중인 선수가 없습니다');
-    else if(e.message==='TOO_LOW') showToast('현재가보다 높은 금액을 입력해주세요');
-    else if(e.message==='OVER_BUDGET') showToast('남은 예산을 초과했습니다');
-    else if(e.message==='LINE_FILLED') showToast('이미 해당 라인 선수를 보유하고 있습니다');
-    else { console.error('auctionPlaceBid error:', e); showToast('입찰 중 오류가 발생했습니다'); }
-  }
-}
-
-window.auctionBid = async () => {
-  const inp = document.getElementById('auction-bid-input');
-  const amount = parseInt(inp?.value || '0', 10);
-  await auctionPlaceBid(amount);
-  if(inp) inp.value='';
-};
-
-// +5/+10/+50/+100 버튼은 바로 입찰하지 않고 입력창 금액만 누적 — "제출" 버튼으로 최종 입찰
-window.auctionQuickBid = (step) => {
-  const inp = document.getElementById('auction-bid-input');
-  if(!inp) return;
-  const state = auctionStateCache;
-  const base = inp.value ? parseInt(inp.value, 10) : (state?.currentBid||0);
-  inp.value = (isNaN(base) ? 0 : base) + step;
-};
-
-window.auctionSold = async () => {
-  if(!isAdmin) return;
-  const stateRef = doc(db,'auctionState','current');
-  try {
-    await runTransaction(db, async (tx) => {
-      const stateSnap = await tx.get(stateRef);
-      if(!stateSnap.exists()) throw new Error('NOT_STARTED');
-      const state = stateSnap.data();
-      if(!state.nominee) throw new Error('NO_NOMINEE');
-      if(!state.currentBidderUid) throw new Error('NO_BIDDER');
-      const teamRef = doc(db,'auctionTeams',state.currentBidderUid);
-      const teamSnap = await tx.get(teamRef);
-      if(!teamSnap.exists()) throw new Error('NO_TEAM');
-      const team = teamSnap.data();
-      const price = state.currentBid;
-      if(price > team.remaining) throw new Error('OVER_BUDGET');
-      const roster = [...(team.roster||[]), {...state.nominee, price}];
-      tx.update(teamRef, { remaining: team.remaining - price, roster });
-      tx.update(stateRef, { nominee:null, currentBid:0, currentBidderUid:null, currentBidderNick:null, deadline:null, updatedAt:new Date().toISOString() });
-    });
-    showToast('낙찰 처리되었습니다');
-  } catch(e){
-    if(e.message==='NO_NOMINEE') showToast('경매 중인 선수가 없습니다');
-    else if(e.message==='NO_BIDDER') showToast('입찰자가 없습니다. 유찰 처리해주세요');
-    else { console.error('auctionSold error:', e); showToast('처리 중 오류가 발생했습니다'); }
-  }
-};
-
-window.auctionPass = async () => {
-  if(!isAdmin) return;
-  const stateRef = doc(db,'auctionState','current');
-  try {
-    await runTransaction(db, async (tx) => {
-      const snap = await tx.get(stateRef);
-      if(!snap.exists()) throw new Error('NOT_STARTED');
-      const state = snap.data();
-      if(!state.nominee) throw new Error('NO_NOMINEE');
-      const order = [...(state.order||[]), state.nominee];
-      tx.update(stateRef, { nominee:null, currentBid:0, currentBidderUid:null, currentBidderNick:null, deadline:null, order, updatedAt:new Date().toISOString() });
-    });
-    showToast('유찰 — 순서 맨 뒤로 재배치되었습니다');
-  } catch(e){
-    if(e.message==='NO_NOMINEE') showToast('경매 중인 선수가 없습니다');
-    else { console.error('auctionPass error:', e); showToast('처리 중 오류가 발생했습니다'); }
-  }
-};
-
-window.auctionReset = async () => {
-  if(!isAdmin) return;
-  if(!confirm('경매를 초기화할까요? 모든 팀 배정 결과가 삭제됩니다.')) return;
-  try {
-    const teamsSnap = await getDocs(collection(db,'auctionTeams'));
-    for(const d of teamsSnap.docs) await deleteDoc(doc(db,'auctionTeams',d.id));
-    await deleteDoc(doc(db,'auctionState','current'));
-    showToast('경매가 초기화되었습니다');
-  } catch(e){ console.error('auctionReset error:', e); showToast('초기화 중 오류가 발생했습니다'); }
-};
-
-window.applyAuctionToDraft = async () => {
-  if(!isAdmin) return;
-  if(!auctionTeamsCache.length){ showToast('경매 팀 정보가 없습니다'); return; }
-  if(!confirm('현재 경매 결과(팀장+낙찰 선수)로 드래프트 화면의 팀 배치를 덮어쓸까요?')) return;
-  const locs = {};
-  auctionTeamsCache.forEach((t,i)=>{
-    if(i>=4) return; // 드래프트 화면은 A~D 4팀까지만 지원
-    locs[t.captainUid] = 't'+i;
-    (t.roster||[]).forEach(p=>{ locs[p.uid] = 't'+i; });
-  });
-  try {
-    await setDoc(doc(db,'draftArrange','current'), { locs, updatedAt:new Date().toISOString() });
-    showToast('드래프트 화면에 경매 결과가 적용됐습니다 — "드래프트" 탭에서 확인하세요');
-  } catch(e){ console.error('applyAuctionToDraft error:', e); showToast('적용 중 오류가 발생했습니다'); }
-};
-
-function renderAuctionView(){
-  const state = auctionStateCache;
-  const statusBadge = document.getElementById('auction-status-badge');
-  const nomineeEl = document.getElementById('auction-nominee');
-  const teamsEl = document.getElementById('auction-teams');
-  const orderWrap = document.getElementById('auction-order-wrap');
-  const orderEl = document.getElementById('auction-order');
-  if(!statusBadge || !nomineeEl || !teamsEl) return;
-
-  if(!state){
-    statusBadge.textContent = '대기중';
-    nomineeEl.innerHTML = '<div style="text-align:center;color:var(--text-dim);font-size:13px;padding:20px 0;">경매가 아직 시작되지 않았습니다.</div>';
-    teamsEl.innerHTML = '<div style="width:100%;text-align:center;padding:18px 0;font-size:12px;color:var(--text-dim);grid-column:1/-1;">경매가 시작되면 팀 현황이 표시됩니다.</div>';
-    orderWrap.style.display = 'none';
-    return;
-  }
-
-  const remainingCount = Math.max(0, (state.order?.length||0) - (state.nextIndex||0));
-  statusBadge.textContent = state.status==='running' ? `🔴 진행중 · 남은 선수 ${remainingCount}명` : '종료됨';
-
-  const myTeam = currentUser ? auctionTeamsCache.find(t=>t.captainUid===currentUser.uid) : null;
-  const colors = ['#cc3030','#d07030','#40a060','#8050c0'];
-  const teamColor = {};
-  auctionTeamsCache.forEach((t,i)=>{ teamColor[t.captainUid] = colors[i%4]; });
-  const initial = (name) => (name||'?').trim().charAt(0) || '?';
-  const avatar = (name, color, size) => `<div style="width:${size}px;height:${size}px;border-radius:50%;background:radial-gradient(circle at 35% 30%, ${color}55, ${color}22);border:2px solid ${color};display:flex;align-items:center;justify-content:center;font-family:'Black Han Sans',sans-serif;font-size:${Math.round(size*0.42)}px;color:${color};flex-shrink:0;">${initial(name)}</div>`;
-
-  if(state.nominee){
-    const n = state.nominee;
-    nomineeEl.innerHTML = `
-      <div id="auction-timer" style="text-align:center;font-family:'Black Han Sans',sans-serif;font-size:28px;letter-spacing:2px;color:#fff;background:linear-gradient(90deg,#8a1a1a,#cc3030,#8a1a1a);background-size:200% 100%;border-radius:10px;padding:10px 0;margin-bottom:16px;box-shadow:0 0 20px rgba(204,48,48,0.35);"></div>
-      <div style="display:flex;flex-direction:column;align-items:center;gap:8px;">
-        ${avatar(n.realname||n.nick, '#ff8080', 74)}
-        <div style="font-size:19px;font-weight:700;">${n.realname||n.nick} <span style="font-size:12px;color:var(--text-mid);font-weight:400;">(${n.nick})</span></div>
-        <div style="display:flex;gap:6px;align-items:center;">
-          ${n.line?`<span style="font-size:11px;background:#1a2a4a;color:#88bbff;border:1px solid #3a5a8a;padding:2px 8px;border-radius:10px;">${n.line}</span>`:''}
-          <span class="tb t${n.tier}">${TIER_NAMES[n.tier]||n.tier}</span>
-        </div>
-        <div style="display:flex;gap:5px;flex-wrap:wrap;justify-content:center;">${posScoreBadge(n)||''}</div>
-      </div>
-      <div style="text-align:center;margin:16px auto 0;padding:14px 20px;background:var(--bg2);border:1px solid var(--border);border-radius:12px;max-width:320px;">
-        <div style="font-size:11px;color:var(--text-dim);letter-spacing:1px;">현재 입찰가</div>
-        <div style="font-size:30px;font-weight:900;color:var(--gold-light);text-shadow:0 0 14px rgba(245,200,66,0.4);">${(state.currentBid||0).toLocaleString()}<span style="font-size:16px;">pt</span></div>
-        <div style="font-size:13px;color:${state.currentBidderNick?'var(--text-mid)':'var(--text-dim)'};margin-top:2px;">${state.currentBidderNick?`${state.currentBidderNick} 팀`:'아직 입찰 없음'}</div>
-      </div>
-      ${(state.bidLog||[]).length ? `
-      <div style="max-width:320px;margin:10px auto 0;max-height:120px;overflow-y:auto;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:8px 12px;display:flex;flex-direction:column-reverse;gap:4px;">
-        ${[...state.bidLog].reverse().map(l=>`<div style="font-size:12px;color:var(--text-mid);"><b style="color:var(--gold-light);">${l.teamNick}</b> → ${l.amount.toLocaleString()}pt</div>`).join('')}
-      </div>` : ''}
-      ${(()=>{
-        const myHasLine = myTeam && n.line && (myTeam.captainLine===n.line || (myTeam.roster||[]).some(p=>p.line===n.line));
-        if(myHasLine) return `<div style="text-align:center;margin-top:14px;font-size:12px;color:var(--text-dim);">이미 ${n.line} 라인을 보유하고 있어 입찰할 수 없습니다</div>`;
-        if(myTeam && state.status==='running') return `
-      <div style="display:flex;flex-direction:column;gap:10px;margin-top:14px;align-items:center;">
-        <span style="font-size:12px;color:var(--text-dim);">내 남은 예산 <b style="color:var(--gold-light);">${(myTeam.remaining||0).toLocaleString()}pt</b></span>
-        <div style="display:flex;gap:6px;">
-          <button class="btn btn-ghost btn-sm" onclick="auctionQuickBid(5)">+5</button>
-          <button class="btn btn-ghost btn-sm" onclick="auctionQuickBid(10)">+10</button>
-          <button class="btn btn-ghost btn-sm" onclick="auctionQuickBid(50)">+50</button>
-          <button class="btn btn-ghost btn-sm" onclick="auctionQuickBid(100)">+100</button>
-        </div>
-        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:center;">
-          <input type="number" id="auction-bid-input" class="inp" style="width:110px;" placeholder="입찰액">
-          <button class="btn btn-red btn-sm" onclick="auctionBid()">✅ 제출</button>
-        </div>
-      </div>`;
-        return '';
-      })()}
-    `;
-  } else if(state.status==='running'){
-    nomineeEl.innerHTML = '<div style="text-align:center;color:var(--text-dim);font-size:13px;padding:20px 0;">관리자가 다음 선수를 뽑으면 경매가 시작됩니다.</div>';
-  } else {
-    nomineeEl.innerHTML = '<div style="text-align:center;color:var(--text-dim);font-size:13px;padding:20px 0;">경매가 종료되었습니다.</div>';
-  }
-
-  if(!auctionTeamsCache.length){
-    teamsEl.innerHTML = '<div style="width:100%;text-align:center;padding:18px 0;font-size:12px;color:var(--text-dim);grid-column:1/-1;">경매가 시작되면 팀 현황이 표시됩니다.</div>';
-  } else {
-    teamsEl.innerHTML = auctionTeamsCache.map((t,i)=>{
-      const color = colors[i%4];
-      const slot = i<4 ? DRAFT_TEAM_SLOTS[i] : null;
-      const teamName = slot ? draftTeamNames[slot] : (t.realname||t.nick);
-      const canRename = slot && (isAdmin || (currentUser && currentUser.uid===t.captainUid));
-      const pct = t.budget ? Math.max(0, Math.min(100, Math.round((t.remaining||0)/t.budget*100))) : 0;
-      return `
-      <div style="background:var(--bg2);border:1px solid ${color}55;border-radius:12px;overflow:hidden;box-shadow:0 2px 10px rgba(0,0,0,0.25);">
-        <div style="display:flex;align-items:center;gap:10px;padding:12px 14px;background:linear-gradient(135deg, ${color}22, transparent);">
-          ${avatar(t.realname||t.nick, color, 38)}
-          <div style="flex:1;min-width:0;">
-            <div style="display:flex;align-items:center;gap:5px;">
-              <span id="auction-team-name-${slot}" style="font-family:'Black Han Sans',sans-serif;font-size:14px;letter-spacing:0.5px;color:${color};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(teamName)}</span>
-              ${canRename?`<span style="cursor:pointer;font-size:10px;color:var(--text-dim);flex-shrink:0;" onclick="toggleAuctionTeamNameEdit('${slot}')">✏️</span>`:''}
-            </div>
-            ${canRename?`<div id="auction-team-name-editwrap-${slot}" style="display:none;gap:4px;align-items:center;margin-top:3px;">
-              <input id="auction-team-name-input-${slot}" class="inp" style="width:90px;font-size:11px;padding:2px 6px;">
-              <button class="btn btn-ghost btn-sm" style="padding:1px 6px;font-size:10px;" onclick="saveAuctionTeamName('${slot}')">✔</button>
-            </div>`:''}
-            <div style="font-size:11px;color:var(--text-dim);">👑 ${t.realname||t.nick}${t.captainLine?` (${t.captainLine})`:''} · ${(t.roster||[]).length}명 영입</div>
-          </div>
-          <div style="text-align:right;flex-shrink:0;">
-            <div style="font-size:13px;color:var(--gold-light);font-weight:700;">${(t.remaining||0).toLocaleString()}pt</div>
-            <div style="font-size:10px;color:var(--text-dim);">/ ${(t.budget||0).toLocaleString()}</div>
-          </div>
-        </div>
-        <div style="height:5px;background:var(--bg4);"><div style="height:100%;width:${pct}%;background:${color};transition:width 0.3s;"></div></div>
-        <div style="padding:10px;display:flex;flex-direction:column;gap:5px;min-height:56px;">
-          ${(t.roster||[]).length ? t.roster.map(p=>`
-            <div style="display:flex;align-items:center;gap:8px;font-size:12px;background:var(--bg3);border:1px solid var(--border);border-radius:7px;padding:6px 10px;">
-              ${avatar(p.realname||p.nick, color, 22)}
-              <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${p.realname||p.nick}</span>
-              ${p.line?`<span style="font-size:10px;color:var(--text-dim);flex-shrink:0;">${p.line}</span>`:''}
-              ${p.auto?`<span style="color:var(--text-dim);font-weight:700;flex-shrink:0;font-size:11px;">자동배정</span>`:`<span style="color:var(--gold-light);font-weight:700;flex-shrink:0;">${(p.price||0).toLocaleString()}pt</span>`}
-            </div>`).join('') : '<div style="font-size:11px;color:var(--text-dim);text-align:center;padding:10px 0;">낙찰된 선수 없음</div>'}
-        </div>
-      </div>`;
-    }).join('');
-  }
-
-  const order = state.order || [];
-  if(!order.length){
-    orderWrap.style.display = 'none';
-  } else {
-    orderWrap.style.display = 'block';
-    const soldMap = {};
-    auctionTeamsCache.forEach(t=>{ (t.roster||[]).forEach(p=>{ soldMap[p.uid] = t; }); });
-    orderEl.innerHTML = order.map((p,i)=>{
-      const isNominee = state.nominee && state.nominee.uid===p.uid;
-      const soldTo = soldMap[p.uid];
-      let pill;
-      if(isNominee) pill = `<span style="font-size:10px;font-weight:700;padding:3px 9px;border-radius:10px;background:#8a1a1a;color:#ffaaaa;white-space:nowrap;">🔨 진행중</span>`;
-      else if(soldTo){
-        const c = teamColor[soldTo.captainUid] || '#f5c842';
-        const picked = (soldTo.roster||[]).find(x=>x.uid===p.uid);
-        const label = picked?.auto ? '자동배정' : `${(picked?.price||0).toLocaleString()}pt`;
-        pill = `<span style="font-size:10px;font-weight:700;padding:3px 9px;border-radius:10px;background:${c}26;color:${c};white-space:nowrap;">${soldTo.realname||soldTo.nick} · ${label}</span>`;
-      }
-      else if(i < (state.nextIndex||0)) pill = `<span style="font-size:10px;padding:3px 9px;border-radius:10px;background:var(--bg4);color:var(--text-dim);white-space:nowrap;">🚫 재경매 대기</span>`;
-      else pill = `<span style="font-size:10px;padding:3px 9px;border-radius:10px;background:var(--bg3);color:var(--text-dim);white-space:nowrap;">대기</span>`;
-      return `<div style="display:flex;align-items:center;gap:10px;padding:7px 12px;background:${isNominee?'#2a1010':'var(--bg3)'};border:1px solid ${isNominee?'#8a3030':'var(--border)'};border-radius:8px;">
-        <span style="font-size:11px;color:var(--text-dim);width:20px;text-align:center;flex-shrink:0;">${i+1}</span>
-        ${avatar(p.realname||p.nick, soldTo ? (teamColor[soldTo.captainUid]||'#888888') : (isNominee?'#ff8080':'#888888'), 24)}
-        <span style="flex:1;min-width:0;font-size:12.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${p.realname||p.nick}${p.line?` <span style="color:var(--text-dim);font-size:10px;">(${p.line})</span>`:''}</span>
-        ${pill}
-      </div>`;
-    }).join('');
-  }
-}
 
 // ── EVENT ──
 let evCache = null;
