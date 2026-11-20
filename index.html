@@ -776,6 +776,20 @@ select.inp option{background:#f0fdf8;color:#1a2e2c;}
     </div>
   </div>
   <div class="card">
+    <div class="card-header"><span class="card-icon">🗂️</span><span class="card-title">내전 확정 팀</span><span class="card-note">팀 확정 기록으로 승패 직접 입력</span></div>
+    <div style="padding:14px;display:flex;flex-direction:column;gap:10px;">
+      <div style="font-size:12px;color:var(--text-dim);">내전 화면에서 "✅ 팀 확정"한 10명·포지션이 날짜별로 보관됩니다. Riot 자동 기록이 못 찾은 경기(커스텀 등)는 여기서 승리 팀 버튼을 눌러 1판씩 기록하세요. 같은 팀으로 여러 판 했으면 판 수만큼 누르면 됩니다. Riot 자동 기록이 이미 잡은 경기는 다시 누르면 중복되니 주의하세요.</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+        <input type="date" id="adm-nc-date" class="inp" style="width:150px;">
+        <select id="adm-nc-game" class="inp" style="width:100px;">
+          <option value="0">전체</option><option value="1">내전1</option><option value="2">내전2</option><option value="3">내전3</option>
+        </select>
+        <button class="btn btn-sm" onclick="adminLoadConfirmed()">📂 불러오기</button>
+      </div>
+      <div id="adm-nc-list" style="font-size:12px;max-height:520px;overflow-y:auto;"></div>
+    </div>
+  </div>
+  <div class="card">
     <div class="card-header"><span class="card-icon">📋</span><span class="card-title">내전 신청/취소 로그</span><span class="card-note">오늘 기록, 매일 아침 7시 초기화</span></div>
     <div style="padding:14px;display:flex;flex-direction:column;gap:10px;">
       <div style="font-size:12px;color:var(--text-dim);">웹/카카오봇 신청·취소, 관리자 추가·제거, 게스트 추가·제거까지 전부 기록됩니다.</div>
@@ -3348,11 +3362,165 @@ window.njConfirmTeam = async (game) => {
   if (!confirm(`내전${game} — 이 팀 구성을 확정하고 자동 기록 검색을 시작할까요?`)) return;
   try {
     await njQueuePendingMatch(game);
-    showToast('✅ 팀 확정 완료 — 경기가 끝나면 자동으로 찾아 기록합니다. 다음 게임은 "🔄 팀 변경"으로 새로 배치하세요.', 6000);
+    await njSaveConfirmedTeam(game);
+    showToast('✅ 팀 확정 완료 — 경기가 끝나면 자동으로 찾아 기록합니다. 못 찾으면 관리자 페이지 "🗂️ 내전 확정 팀"에서 승패를 직접 기록하세요.', 6000);
   } catch(e) {
     console.error('njConfirmTeam error:', e);
     showToast('팀 확정 실패: ' + (e.message || e), 5000);
   }
+};
+
+// ── 내전 확정 팀 기록 (naejeonConfirmed) ─────────────────────────
+// 자동기록 대기열(naejeonPendingMatches)은 6시간 뒤 서버가 지워버리고, 라이엇이 커스텀 게임을
+// API에 안 남기는 날도 있어서, 팀 확정 시점의 10명/포지션을 날짜별로 따로 영구 보관한다.
+// 관리자 페이지에서 이 목록을 불러와 승패를 직접 기록할 수 있다.
+function kstDateStr(d = new Date()){
+  return new Date(d.getTime() + 9*60*60*1000).toISOString().slice(0,10);
+}
+function ncEsc(s){
+  return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+const NC_TEAM_NAMES = {1:['1팀','2팀'], 2:['3팀','4팀'], 3:['5팀','6팀']};
+
+async function njSaveConfirmedTeam(game){
+  const placed = njPlayers[game].filter(p => p.loc.startsWith('t1-') || p.loc.startsWith('t2-'));
+  if (placed.length !== 10) return;
+  const date = kstDateStr();
+  const players = placed.map(p => ({uid:p.uid, nick:p.nick||'', realname:p.realname||'', tier:p.tier||'', loc:p.loc}));
+  const sig = players.map(p => `${p.uid}@${p.loc}`).sort().join('|');
+  try {
+    // 같은 날 같은 내전에 똑같은 10명·포지션이 이미 있으면 다시 만들지 않는다 (확정 버튼 중복 클릭 대비)
+    const snap = await getDocs(query(collection(db,'naejeonConfirmed'), where('date','==',date)));
+    if (snap.docs.some(d => d.data().game === game && d.data().sig === sig)) return;
+    await addDoc(collection(db,'naejeonConfirmed'), {
+      game, date, sig, players, results: [],
+      confirmedAt: new Date().toISOString(),
+      confirmedBy: currentUser?.uid || null,
+    });
+  } catch(e){
+    console.error('njSaveConfirmedTeam error:', e);
+    showToast('확정 팀 보관 실패(자동 검색은 정상 진행): ' + (e.message||e), 6000);
+  }
+}
+
+window.adminLoadConfirmed = async () => {
+  const el = document.getElementById('adm-nc-list');
+  const dateEl = document.getElementById('adm-nc-date');
+  const gameEl = document.getElementById('adm-nc-game');
+  if (!el || !dateEl) return;
+  if (!dateEl.value) dateEl.value = kstDateStr();
+  const date = dateEl.value;
+  const gameFilter = Number(gameEl?.value || 0);
+  el.textContent = '불러오는 중...';
+  try {
+    const snap = await getDocs(query(collection(db,'naejeonConfirmed'), where('date','==',date)));
+    const rows = snap.docs.map(d => ({id:d.id, ...d.data()}))
+      .filter(r => !gameFilter || r.game === gameFilter)
+      .sort((a,b) => (a.game - b.game) || (a.confirmedAt||'').localeCompare(b.confirmedAt||''));
+    if (!rows.length){ el.textContent = `${date} — 확정된 팀 기록 없음`; return; }
+    el.innerHTML = rows.map(r => {
+      const [n1, n2] = NC_TEAM_NAMES[r.game] || ['1팀','2팀'];
+      const time = r.confirmedAt ? new Date(r.confirmedAt).toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'}) : '--:--';
+      const teamHtml = (tk, color) => NJ_POSITIONS.map(pos => {
+        const p = (r.players||[]).find(x => x.loc === `${tk}-${pos}`);
+        return `<div style="font-size:12px;"><span style="color:var(--text-dim);display:inline-block;width:30px;">${pos}</span><span style="color:${color};">${ncEsc(p?.nick||'-')}</span></div>`;
+      }).join('');
+      const results = r.results || [];
+      const w1 = results.filter(x => x.winner==='t1').length, w2 = results.filter(x => x.winner==='t2').length;
+      const resultTxt = results.length
+        ? `기록됨 ${results.length}판 — ${n1} ${w1}승 · ${n2} ${w2}승`
+        : '아직 기록 없음';
+      return `<div style="border:1px solid var(--border);border-radius:8px;padding:10px;margin-bottom:10px;background:var(--bg3);">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
+          <b>내전${r.game} <span style="font-weight:400;color:var(--text-dim);font-size:12px;">${time} 확정</span></b>
+          <span style="font-size:12px;color:${results.length?'#66cc66':'var(--text-dim)'};">${resultTxt}</span>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:8px;">
+          <div><div style="font-size:12px;font-weight:700;color:#d05050;margin-bottom:3px;">🔴 ${n1}</div>${teamHtml('t1','#e8a0a0')}</div>
+          <div><div style="font-size:12px;font-weight:700;color:#5090d0;margin-bottom:3px;">🔵 ${n2}</div>${teamHtml('t2','#a0c0e8')}</div>
+        </div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
+          <span style="font-size:12px;color:var(--text-dim);">기록 날짜</span>
+          <input type="date" id="adm-nc-rdate-${r.id}" class="inp" style="width:140px;padding:4px 6px;" value="${ncEsc(r.date)}">
+          <button class="btn btn-sm" style="background:#d05050;color:#fff;font-weight:700;" onclick="adminRecordConfirmed('${r.id}','t1')">${n1} 승</button>
+          <button class="btn btn-sm" style="background:#5090d0;color:#fff;font-weight:700;" onclick="adminRecordConfirmed('${r.id}','t2')">${n2} 승</button>
+          <button class="btn btn-sm btn-ghost" style="font-size:11px;" onclick="adminDeleteConfirmed('${r.id}')">🗑 삭제</button>
+        </div>
+      </div>`;
+    }).join('');
+  } catch(e){ console.error('adminLoadConfirmed error:', e); el.textContent = '불러오기 실패: ' + (e.message||e); }
+};
+
+// 확정 팀 1건 → 1판 승패 기록 (누를 때마다 1판). naejeonSessions + records 10건 + 라인 점수까지 반영
+window.adminRecordConfirmed = async (id, winner) => {
+  if (!isAdmin) return;
+  const ref = doc(db,'naejeonConfirmed',id);
+  const snap = await getDoc(ref);
+  if (!snap.exists()){ showToast('확정 기록을 찾을 수 없습니다'); return; }
+  const r = snap.data();
+  const players = r.players || [];
+  const t1 = players.filter(p => p.loc.startsWith('t1-'));
+  const t2 = players.filter(p => p.loc.startsWith('t2-'));
+  if (t1.length !== 5 || t2.length !== 5){ showToast('팀 구성이 5:5가 아닙니다'); return; }
+  const date = document.getElementById(`adm-nc-rdate-${id}`)?.value || r.date;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)){ showToast('기록 날짜를 확인해주세요'); return; }
+  const [n1, n2] = NC_TEAM_NAMES[r.game] || ['1팀','2팀'];
+  const prev = (r.results||[]).length;
+  if (!confirm(`내전${r.game} · ${date}\n${winner==='t1'?n1:n2} 승리로 1판 기록할까요?\n(이 팀으로 이미 ${prev}판 기록됨 → ${prev+1}판째)\n선수 10명 승/패와 라인 점수가 반영됩니다.`)) return;
+
+  try {
+    const now = new Date().toISOString();
+    const month = date.slice(0,7);
+    const toTeam = (list, tk) => list.map(p => ({uid:p.uid, nick:p.nick, realname:p.realname||'', tier:p.tier||'', pos:p.loc.replace(`${tk}-`,'')}));
+    const all = [...t1.map(p => ({...p, win: winner==='t1'})), ...t2.map(p => ({...p, win: winner==='t2'}))];
+    // 세션 + 기록 10건 + 확정 항목의 결과 표시를 한 번에(전부 성공 or 전부 실패) 쓴다 — 일부만 기록되는 사고 방지
+    const sessionRef = doc(collection(db,'naejeonSessions'));
+    const sid = sessionRef.id;
+    const batch = writeBatch(db);
+    batch.set(sessionRef, {
+      game: r.game, date, createdAt: now, winner,
+      team1: toTeam(t1,'t1'), team2: toTeam(t2,'t2'),
+      source: 'manual_confirmed', confirmedId: id,
+    });
+    for (const p of all){
+      batch.set(doc(collection(db,'records')), {
+        uid:p.uid, nick:p.nick, type:'naejeon', date, result: p.win?'win':'loss', pts:1, month,
+        createdAt: now, addedByAdmin: true, naejeonGame: r.game, naejeonSessionId: sid, source: 'manual_confirmed',
+      });
+    }
+    batch.update(ref, {results: [...(r.results||[]), {winner, date, sessionId: sid, recordedAt: now}]});
+    await batch.commit();
+
+    // 라인 점수는 기록이 확정된 뒤 선수별로 반영 (실패해도 승패 기록은 이미 안전하게 남아 있음)
+    let scoreFail = 0;
+    for (const p of all){
+      try {
+        const pos = p.loc.replace(/^t[12]-/,'');
+        const scoreKey = POS_SCORE_MAP[pos], streakKey = STREAK_KEY_OF[pos];
+        if (!scoreKey || !streakKey) continue;
+        const uSnap = await getDoc(doc(db,'users',p.uid));
+        if (!uSnap.exists()) continue;
+        const ud = uSnap.data();
+        const cur = ud[scoreKey] || 0;
+        if (cur <= 0) continue;
+        const {newScore, newStreak} = applyStreakedScore(pos, cur, ud[streakKey], p.win);
+        await updateDoc(doc(db,'users',p.uid), {[scoreKey]: newScore, [streakKey]: newStreak});
+      } catch(e){ scoreFail++; console.error('확정팀 점수 반영 실패:', p.uid, e); }
+    }
+    showToast(`✅ 내전${r.game} ${date} — ${winner==='t1'?n1:n2} 승 기록 완료${scoreFail ? ` (라인 점수 ${scoreFail}명 반영 실패, 콘솔 확인)` : ''}`, 5000);
+    await adminLoadConfirmed();
+    loadRanking();
+  } catch(e){
+    console.error('adminRecordConfirmed error:', e);
+    showToast('기록 실패: ' + (e.message||e), 6000);
+  }
+};
+
+window.adminDeleteConfirmed = async (id) => {
+  if (!isAdmin) return;
+  if (!confirm('이 확정 팀 항목을 목록에서 지울까요?\n(이미 기록된 승패/점수는 그대로 남습니다)')) return;
+  try { await deleteDoc(doc(db,'naejeonConfirmed',id)); showToast('삭제했습니다'); await adminLoadConfirmed(); }
+  catch(e){ showToast('삭제 실패: ' + (e.message||e), 5000); }
 };
 
 // "🔄 팀 변경" — 이미 확정되어 대기열에 들어간 항목은 그대로 두고, 화면만 비워서 다음 게임 배치를 새로 시작한다.
